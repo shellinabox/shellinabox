@@ -1,0 +1,4 @@
+usr/bin/*
+usr/share/man/man1/*
+debian/tmp/usr/bin/*
+debian/tmp/usr/share/man/man1/*

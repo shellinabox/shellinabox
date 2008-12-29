@@ -1,0 +1,138 @@
+#vt100 #reconnect {
+  position:         absolute;
+  z-index:          2;
+}
+
+#vt100 #reconnect input { 
+  padding:          1ex;
+  font-weight:      bold;
+  font-size:        x-large;
+}
+
+#vt100 pre { 
+  margin:           0px;
+}
+
+#vt100 #scrollable {
+  overflow-x:       hidden;
+  overflow-y:       scroll;
+  position:         relative;
+  padding:          1px;
+}
+
+#vt100 #console, #vt100 #alt_console, #vt100 #cursor { 
+  font-family:      "DejaVu Sans Mono", "Everson Mono", FreeMono, "Andale Mono", "Lucida Console", monospace;
+}
+
+#vt100 #cursor {
+  position:         absolute;
+  left:             0px;
+  top:              0px;
+  overflow:         hidden;
+  z-index:          1;
+}
+
+#vt100 #console div, #vt100 #alt_console div {
+  overflow:         hidden;
+}
+
+#vt100 #cursor.bright { 
+  background-color: #e60000;
+  color:            white;
+}
+
+#vt100 #cursor.dim {
+  visibility:       hidden;
+}
+
+#vt100 #cursor.inactive {
+  border:           1px solid #e60000;
+  margin:           -1px;
+}
+
+#vt100 #padding { 
+  visibility:       hidden;
+  width:            1px;
+  height:           0px;
+}
+
+#vt100 .hidden {
+  position:         absolute;
+  top:              -10000px;
+  left:             -10000px;
+  width:            0px;
+  height:           0px;
+}
+
+#vt100 #menu { 
+  overflow:         visible;
+  position:         absolute;
+  z-index:          3;
+}
+
+#vt100 #menu .popup {
+  background-color: #EEEEEE;
+  border:           1px solid black;
+  font-family:      sans-serif;
+  position:         absolute;
+}
+
+#vt100 #menu .popup ul { 
+  list-style-type:  none;
+  padding:          0px;
+  margin:           0px;
+  min-width:        10em;
+}
+
+#vt100 #menu .popup li { 
+  padding:          3px 0.5ex 3px 0.5ex;
+}
+
+#vt100 #menu .popup li.hover {
+  background-color: #444444;
+  color:            white;
+}
+
+#vt100 #menu .popup li.disabled {
+  color:            #AAAAAA;
+}
+
+#vt100 #menu .popup hr { 
+  margin:           0.5ex 0px 0.5ex 0px;
+}
+
+#vt100 #ansi0  { background-color: #000000; }
+#vt100 #ansi1  { background-color: #cd0000; }
+#vt100 #ansi2  { background-color: #00cd00; }
+#vt100 #ansi3  { background-color: #cdcd00; }
+#vt100 #ansi4  { background-color: #0000ee; }
+#vt100 #ansi5  { background-color: #cd00cd; }
+#vt100 #ansi6  { background-color: #00cdcd; }
+#vt100 #ansi7  { background-color: #e5e5e5; }
+#vt100 #ansi8  { background-color: #7f7f7f; }
+#vt100 #ansi9  { background-color: #ff0000; }
+#vt100 #ansi10 { background-color: #00ff00; }
+#vt100 #ansi11 { background-color: #e8e800; }
+#vt100 #ansi12 { background-color: #5c5cff; }
+#vt100 #ansi13 { background-color: #ff00ff; }
+#vt100 #ansi14 { background-color: #00ffff; }
+#vt100 #ansi15 { background-color: #ffffff; }
+
+@media print {
+  #vt100 .scrollback {
+    display:        none;
+  }
+
+  #vt100 #reconnect, #vt100 #cursor, #vt100 #menu { 
+    visibility:     hidden;
+  }
+
+  #vt100 #scrollable { 
+    overflow:       hidden;
+  }
+
+  #vt100 #console, #vt100 #alt_console { 
+    overflow:       hidden;
+    width:          1000000ex;
+  }
+}

@@ -1,0 +1,42 @@
+#!/bin/sh
+# postinst script for shellinabox
+
+set -e
+
+# summary of how this script can be called:
+#        * <postinst> `configure' <most-recently-configured-version>
+#        * <old-postinst> `abort-upgrade' <new version>
+#        * <conflictor's-postinst> `abort-remove' `in-favour' <package>
+#          <new-version>
+#        * <deconfigured's-postinst> `abort-deconfigure' `in-favour'
+#          <failed-install-package> <version> `removing'
+#          <conflicting-package> <version>
+# for details, see http://www.debian.org/doc/debian-policy/ or
+# the debian-policy package
+
+case "$1" in
+  configure)
+    if ! getent passwd shellinabox >/dev/null; then
+      adduser --disabled-password  --quiet --system \
+        --home /var/lib/shellinabox --gecos "Shell In A Box" \
+        --group shellinabox
+    fi
+  ;;
+  abort-upgrade|abort-remove|abort-deconfigure)
+  ;;
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+  ;;
+esac
+
+# Automatically added by dh_installinit
+if [ -x "/etc/init.d/shellinabox" ]; then
+        update-rc.d shellinabox start 30 2 3 4 5 . stop 01 0 1 6 . >/dev/null
+        if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
+                invoke-rc.d shellinabox start || exit $?
+        else
+                /etc/init.d/shellinabox start || exit $?
+        fi
+fi
+# End automatically added section

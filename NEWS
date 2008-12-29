@@ -1,0 +1,3 @@
+Version 2.0 of ShellInABox is a complete rewrite. While previous versions
+required the Java plugin, since version 2.0 JavaScript enabled browsers are
+supported without the need for additional plugins.

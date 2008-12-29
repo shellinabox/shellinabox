@@ -1,0 +1,8 @@
+# Should shellinaboxd start automatically
+SHELLINABOX_DAEMON_START=1
+
+# TCP port that shellinboxd's webserver listens on
+SHELLINABOX_PORT=4200
+
+# Any optional arguments (e.g. extra service definitions)
+SHELLINABOX_ARGS=

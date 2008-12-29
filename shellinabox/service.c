@@ -1,0 +1,198 @@
+// service.c -- Service descriptions
+// Copyright (C) 2008 Markus Gutschke <markus@shellinabox.com>
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License version 2 as
+// published by the Free Software Foundation.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program; if not, write to the Free Software Foundation, Inc.,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+//
+// In addition to these license terms, the author grants the following
+// additional rights:
+//
+// If you modify this program, or any covered work, by linking or
+// combining it with the OpenSSL project's OpenSSL library (or a
+// modified version of that library), containing parts covered by the
+// terms of the OpenSSL or SSLeay licenses, the author
+// grants you additional permission to convey the resulting work.
+// Corresponding Source for a non-source form of such a combination
+// shall include the source code for the parts of OpenSSL used as well
+// as that of the covered work.
+//
+// You may at your option choose to remove this additional permission from
+// the work, or from any part of it.
+//
+// It is possible to build this program in a way that it loads OpenSSL
+// libraries at run-time. If doing so, the following notices are required
+// by the OpenSSL and SSLeay licenses:
+//
+// This product includes software developed by the OpenSSL Project
+// for use in the OpenSSL Toolkit. (http://www.openssl.org/)
+//
+// This product includes cryptographic software written by Eric Young
+// (eay@cryptsoft.com)
+//
+//
+// The most up-to-date version of this program is always available from
+// http://shellinabox.com
+
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include "shellinabox/service.h"
+#include "shellinabox/launcher.h"
+#include "shellinabox/privileges.h"
+#include "logging/logging.h"
+
+
+struct Service **services;
+int            numServices;
+
+void initService(struct Service *service, const char *arg) {
+  // The first part of the argument is the path where the service should
+  // be mounted. Remove any trailing slashes and make sure there is exactly
+  // one leading slash before copying it into service->path.
+  char *desc;
+  check(desc                                = strdup(arg));
+  while (*arg == '/') {
+    arg++;
+  }
+  char *ptr;
+  if ((ptr = strchr(arg, ':')) == NULL) {
+  error:
+    fatal("Syntax error in service description \"%s\".", desc);
+  }
+  service->id                               = -1;
+  check(service->path                       = malloc(ptr - arg + 2));
+  ((char *)service->path)[0]                = '/';
+  memcpy((char *)service->path + 1, arg, ptr - arg);
+  ((char *)service->path)[ptr - arg + 1]    = '\000';
+  while (service->path[1] && strrchr(service->path, '\000')[-1] == '/') {
+    strrchr(service->path, '\000')[-1]      = '\000';
+  }
+  arg                                       = ptr + 1;
+
+  // The next part of the argument is either the word 'LOGIN' or the
+  // application definition.
+  if (!strcmp(arg, "LOGIN")) {
+    if (geteuid()) {
+      fatal("Must be \"root\" to invoke \"/bin/login\". Maybe, change "
+            "--service definitions?");
+    }
+    service->useLogin                       = 1;
+    service->useHomeDir                     = 0;
+    service->authUser                       = 0;
+    service->uid                            = 0;
+    service->gid                            = 0;
+    check(service->user                     = strdup("root"));
+    check(service->group                    = strdup("root"));
+    check(service->cwd                      = strdup("/"));
+    check(service->cmdline                  = strdup(
+                                                  "/bin/login -p -h ${peer}"));
+  } else {
+    service->useLogin                       = 0;
+
+    // The user definition is either the word 'AUTH' or a valid user and
+    // group id.
+    if ((ptr                                = strchr(arg, ':')) == NULL) {
+      goto error;
+    }
+    *ptr                                    = '\000';
+    if (supportsPAM() && !strcmp(arg, "AUTH")) {
+      service->authUser                     = 1;
+      service->uid                          = -1;
+      service->gid                          = -1;
+      service->user                         = NULL;
+      service->group                        = NULL;
+    } else {
+      service->authUser                     = 0;
+
+      // Numeric or symbolic user id
+      service->uid                          = parseUser(arg, &service->user);
+      *ptr                                  = ':';
+      arg                                   = ptr + 1;
+
+      // Numeric or symbolic group id
+      if ((ptr                              = strchr(arg, ':')) == NULL) {
+        goto error;
+      }
+      *ptr                                  = '\000';
+      service->gid                          = parseGroup(arg, &service->group);
+    }
+    *ptr                                    = ':';
+    arg                                     = ptr + 1;
+
+    // The next part of the argument is the starting working directory
+    if ((ptr                                = strchr(arg, ':')) == NULL) {
+      goto error;
+    }
+    *ptr                                    = '\000';
+    if (!strcmp(arg, "HOME")) {
+      service->useHomeDir                   = 1;
+      service->cwd                          = NULL;
+    } else {
+      if (*arg != '/') {
+        fatal("Working directories must have absolute paths");
+      }
+      service->useHomeDir                   = 0;
+      check(service->cwd                    = strdup(arg));
+    }
+    *ptr                                    = ':';
+    arg                                     = ptr + 1;
+
+    // The final argument is the command line
+    if (!*arg) {
+      goto error;
+    }
+    check(service->cmdline                  = strdup(arg));
+  }
+  free(desc);
+}
+
+struct Service *newService(const char *arg) {
+  struct Service *service;
+  check(service = malloc(sizeof(struct Service)));
+  initService(service, arg);
+  return service;
+}
+
+void destroyService(struct Service *service) {
+  if (service) {
+    free((char *)service->path);
+    free((char *)service->user);
+    free((char *)service->group);
+    free((char *)service->cwd);
+    free((char *)service->cmdline);
+  }
+}
+
+void deleteService(struct Service *service) {
+  destroyService(service);
+  free(service);
+}
+
+void destroyServiceHashEntry(void *arg, char *key, char *value) {
+}
+
+static int enumerateServicesHelper(void *arg, const char *key, char **value) {
+  check(services              = realloc(services,
+                                    ++numServices * sizeof(struct Service *)));
+  services[numServices-1]     = *(struct Service **)value;
+  services[numServices-1]->id = numServices-1;
+  return 1;
+}
+
+void enumerateServices(HashMap *serviceTable) {
+  check(!services);
+  check(!numServices);
+  iterateOverHashMap(serviceTable, enumerateServicesHelper, NULL);
+}

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+# Automatically added by dh_installinit
+if [ "$1" = "purge" ] ; then
+        update-rc.d shellinabox remove >/dev/null || exit $?
+fi
+# End automatically added section
+
+
+if [ "$1" = "purge" ] ; then
+        deluser --quiet --system --remove-home shellinabox > /dev/null || true
+        delgroup --quiet --system shellinabox > /dev/null || true
+fi

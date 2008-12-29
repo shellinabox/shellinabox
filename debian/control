@@ -1,0 +1,15 @@
+Source: shellinabox
+Section: web
+Priority: optional
+Maintainer: Markus Gutschke <markus@shellinabox.com>
+Build-Depends: debhelper (>= 4.0.0), binutils, libssl-dev, libpam0g-dev
+Standards-Version: 3.6.1
+
+Package: shellinabox
+Section: web
+Architecture: any
+Depends: ${shlibs:Depends}, adduser
+Description: publish command line shell through AJAX interface
+ Shellinabox can export arbitrary command line programs to any JavaScript
+ enabled web browser. By default, it prompts for username and password
+ and then exports a SSL/TLS encrypted login shell.

@@ -1,0 +1,6 @@
+2008-12-27  Markus Gutschke  <markus@shellinabox.com>
+
+	* First public release of the version 2.0 rewrite. This is the
+	first release of ShellInABox that supports an AJAX interface
+	instead of the original Java applet.
+

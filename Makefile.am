@@ -1,0 +1,211 @@
+AM_CPPFLAGS          =
+AM_CFLAGS            = -g -std=gnu99 -Wall -Werror -Os
+AM_LDFLAGS           = -g
+
+noinst_LTLIBRARIES   = libhttp.la                                             \
+                       liblogging.la
+bin_PROGRAMS         = shellinaboxd
+man_MANS             = shellinaboxd.1
+noinst_HEADERS       = libhttp/http.h
+dist_doc_DATA        = AUTHORS                                                \
+                       COPYING                                                \
+                       GPL-2                                                  \
+                       ChangeLog                                              \
+                       INSTALL                                                \
+                       NEWS                                                   \
+                       README                                                 \
+                       TODO
+EXTRA_DIST           = shellinabox/shellinaboxd.man.in                        \
+                       debian/README                                          \
+                       debian/changelog                                       \
+                       debian/compat                                          \
+                       debian/control                                         \
+                       debian/copyright                                       \
+                       debian/docs                                            \
+                       debian/rules                                           \
+                       debian/shellinabox.default                             \
+                       debian/shellinabox.dirs                                \
+                       debian/shellinabox.init                                \
+                       debian/shellinabox.install                             \
+                       debian/shellinabox.postinst                            \
+                       debian/shellinabox.postrm
+LIBLOGGING_INCLUDES  = logging/logging.h
+liblogging_la_SOURCES= logging/logging.c                                      \
+                       $(LIBLOGGING_INCLUDES)
+liblogging_la_LDFLAGS= -version 1:0:0
+
+LIBHTTP_INCLUDES     = libhttp/hashmap.h                                      \
+                       libhttp/trie.h                                         \
+                       libhttp/httpconnection.h                               \
+                       libhttp/server.h                                       \
+                       libhttp/ssl.h                                          \
+                       libhttp/url.h
+libhttp_la_SOURCES   = libhttp/hashmap.c                                      \
+                       libhttp/trie.c                                         \
+                       libhttp/httpconnection.c                               \
+                       libhttp/server.c                                       \
+                       libhttp/ssl.c                                          \
+                       libhttp/url.c                                          \
+                       $(LIBHTTP_INCLUDES)                                    \
+                       libhttp/libhttp.sym
+libhttp_la_LDFLAGS   = -export-symbols  $(top_srcdir)/libhttp/libhttp.sym     \
+                       -version 1:0:0 -ldl
+
+shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
+                       shellinabox/externalfile.c                             \
+                       shellinabox/externalfile.h                             \
+                       shellinabox/launcher.c                                 \
+                       shellinabox/launcher.h                                 \
+                       shellinabox/privileges.c                               \
+                       shellinabox/privileges.h                               \
+                       shellinabox/service.c                                  \
+                       shellinabox/service.h                                  \
+                       shellinabox/session.c                                  \
+                       shellinabox/session.h                                  \
+                       shellinabox/root_page.html                             \
+                       shellinabox/vt100.js                                   \
+                       shellinabox/shell_in_a_box.js                          \
+                       shellinabox/styles.css                                 \
+                       shellinabox/favicon.ico                                \
+                       shellinabox/beep.wav
+shellinaboxd_LDADD   = liblogging.la                                          \
+                       libhttp.la
+shellinaboxd_LDFLAGS = -static -ldl
+
+libtool: $(LIBTOOL_DEPS)
+	$(SHELL) ./config.status --recheck
+
+shellinaboxd.1: shellinabox/shellinaboxd.man.in
+	@echo preprocess  "$<" '>'"$@"
+	@if echo " $(DEFS)" | grep HAVE_OPENSSL_BIO_H |                       \
+                              grep HAVE_OPENSSL_ERR_H |                       \
+                              grep -q HAVE_OPENSSL_SSL_H; then                \
+          sed -e '/^#ifdef  *HAVE_OPENSSL$$/d;/^#endif$$/d' "$<" >"$@";       \
+        else                                                                  \
+          sed -e '/^#ifdef  *HAVE_OPENSSL$$/,/^#endif$$/d' "$<" >"$@";        \
+        fi
+	@man -Tps "./$@" >`echo "$@"|sed -e 's/\.[^.]*$$/.ps/'` || true
+
+clean-local:
+	-rm -rf shellinaboxd.1                                                \
+                shellinaboxd.ps
+	-rm -rf debian/shellinabox                                            \
+                debian/shellinabox*.debhelper*                                \
+	        debian/shellinabox.substvars                                  \
+                debian/tmp
+
+.css.o:
+	@$(ECHO) objcopy "$<" "$@"
+	@objcopy                                                              \
+	  -I binary `echo "$(build_cpu)" |                                    \
+		     grep -q '^i[0-9]86$$' &&                                 \
+		     echo ' -O elf32-i386 -B i386' ||                         \
+		     echo ' -O elf64-x86-64 -B x86-64'`                       \
+	  `echo "$<" | sed -e '                                               \
+	    s/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /;                         \
+	    t0; s/\([^.]*\)\([.].*\)/\1\2=\1 /; t0; s/.*/&=& /;:0;            \
+	    s/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/;       \
+	    :1;                                                               \
+	    s/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/;              \
+	    t1;                                                               \
+	    s/.\{53\}$$//;                                                    \
+	    s/[/.]/_/g;                                                       \
+	    s/^/--redefine-sym _binary_/;                                     \
+	    s/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/;                             \
+	    s/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/;                         \
+	    s/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                               \
+	  "$<" "$@"
+
+.html.o:
+	@$(ECHO) objcopy "$<" "$@"
+	@objcopy                                                              \
+	  -I binary `echo "$(build_cpu)" |                                    \
+		     grep -q '^i[0-9]86$$' &&                                 \
+		     echo ' -O elf32-i386 -B i386' ||                         \
+		     echo ' -O elf64-x86-64 -B x86-64'`                       \
+	  `echo "$<" | sed -e '                                               \
+	    s/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /;                         \
+	    t0; s/\([^.]*\)\([.].*\)/\1\2=\1 /; t0; s/.*/&=& /;:0;            \
+	    s/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/;       \
+	    :1;                                                               \
+	    s/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/;              \
+	    t1;                                                               \
+	    s/.\{53\}$$//;                                                    \
+	    s/[/.]/_/g;                                                       \
+	    s/^/--redefine-sym _binary_/;                                     \
+	    s/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/;                             \
+	    s/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/;                         \
+	    s/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                               \
+	  "$<" "$@"
+
+.ico.o:
+	@$(ECHO) objcopy "$<" "$@"
+	@objcopy                                                              \
+	  -I binary `echo "$(build_cpu)" |                                    \
+		     grep -q '^i[0-9]86$$' &&                                 \
+		     echo ' -O elf32-i386 -B i386' ||                         \
+		     echo ' -O elf64-x86-64 -B x86-64'`                       \
+	  `echo "$<" | sed -e '                                               \
+	    s/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /;                         \
+	    t0; s/\([^.]*\)\([.].*\)/\1\2=\1 /; t0; s/.*/&=& /;:0;            \
+	    s/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/;       \
+	    :1;                                                               \
+	    s/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/;              \
+	    t1;                                                               \
+	    s/.\{53\}$$//;                                                    \
+	    s/[/.]/_/g;                                                       \
+	    s/^/--redefine-sym _binary_/;                                     \
+	    s/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/;                             \
+	    s/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/;                         \
+	    s/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                               \
+	  "$<" "$@"
+
+.js.o:
+	@$(ECHO) preprocess "$<" \| objcopy "$@"
+	@trap 'rm -f "$@.pre"' EXIT INT TERM QUIT;                            \
+	sed -e "`sed -e 's/^#define *\([^ ]*\) *\(.*\)/\/^[^#]\/s\/\1\/\2 \\\\\/* \1 *\\\\\/\/g/; \
+			 t;d' "$<"`                                           \
+		;s/^#/\/\/ #/                                                 \
+                ;s/VERSION/\"@VERSION@\"/g" "$<" >"$@.pre" &&                 \
+objcopy                                                                       \
+	  -I binary `echo $(build_cpu) |                                      \
+		     grep -q '^i[0-9]86$$' &&                                 \
+		     echo ' -O elf32-i386 -B i386' ||                         \
+		     echo ' -O elf64-x86-64 -B x86-64'`                       \
+	  `echo "$@" | sed -e '                                               \
+	    s/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /;                         \
+	    t0; s/\([^.]*\)\([.].*\)/\1\2=\1 /; t0; s/.*/&=& /;:0;            \
+	    s/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/;       \
+	    :1;                                                               \
+	    s/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/;              \
+	    t1;                                                               \
+	    s/.\{53\}$$//;                                                    \
+	    s/[/.]/_/g;                                                       \
+	    s/^/--redefine-sym _binary_/;                                     \
+	    s/\([^=]*\)\(=[^ ]*\)/& \1_pre_end\2End/;                         \
+	    s/\([^=]*\)\(=[^ ]*\)/& \1_pre_start\2Start/;                     \
+	    s/[^ ]*\([^=]*\)=[^ ]*/-N\1_pre_size/'`                           \
+	  "$@.pre" "$@"
+
+.wav.o:
+	@$(ECHO) objcopy "$<" "$@"
+	@objcopy                                                              \
+	  -I binary `echo "$(build_cpu)" |                                    \
+		     grep -q '^i[0-9]86$$' &&                                 \
+		     echo ' -O elf32-i386 -B i386' ||                         \
+		     echo ' -O elf64-x86-64 -B x86-64'`                       \
+	  `echo "$<" | sed -e '                                               \
+	    s/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /;                         \
+	    t0; s/\([^.]*\)\([.].*\)/\1\2=\1 /; t0; s/.*/&=& /;:0;            \
+	    s/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/;       \
+	    :1;                                                               \
+	    s/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/;              \
+	    t1;                                                               \
+	    s/.\{53\}$$//;                                                    \
+	    s/[/.]/_/g;                                                       \
+	    s/^/--redefine-sym _binary_/;                                     \
+	    s/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/;                             \
+	    s/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/;                         \
+	    s/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                               \
+	  "$<" "$@"
+
