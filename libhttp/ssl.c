@@ -189,12 +189,16 @@ static void loadSSL(void) {
     { (void **)&x_SSL_get_error,               "SSL_get_error" },
     { (void **)&x_SSL_get_ex_data,             "SSL_get_ex_data" },
     { (void **)&x_SSL_get_rbio,                "SSL_get_rbio" },
+#ifdef TLSEXT_NAMETYPE_host_name
     { (void **)&x_SSL_get_servername,          "SSL_get_servername" },
+#endif
     { (void **)&x_SSL_get_wbio,                "SSL_get_wbio" },
     { (void **)&x_SSL_library_init,            "SSL_library_init" },
     { (void **)&x_SSL_new,                     "SSL_new" },
     { (void **)&x_SSL_read,                    "SSL_read" },
+#ifdef TLSEXT_NAMETYPE_host_name
     { (void **)&x_SSL_set_SSL_CTX,             "SSL_set_SSL_CTX" },
+#endif
     { (void **)&x_SSL_set_accept_state,        "SSL_set_accept_state" },
     { (void **)&x_SSL_set_bio,                 "SSL_set_bio" },
     { (void **)&x_SSL_set_ex_data,             "SSL_set_ex_data" },
