@@ -61,7 +61,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 [\ \fB-s\fP\ | \fB--service=\fP\fIservice\fP\ ]
 [\ \fB-t\fP\ | \fB--disable-ssl\fP\ ]
 [\ \fB-q\fP\ | \fB--quiet\fP\ ]
-[\ \fB-u\fP\ | \fB--user\fP\ ]
+[\ \fB-u\fP\ | \fB--user=\fP\fIuid\fP\ ]
 [\ \fB-v\fP\ | \fB--verbose\fP\ ]
 [\ \fB--version\fP\ ]
 .SH DESCRIPTION
@@ -95,7 +95,7 @@ Launch
 as a background daemon process. Optionally, write the process id to
 .IR pidfile .
 .TP
-\fB-c\fP\ |\ \fB--cert\fP\ \fIcertdir\fP
+\fB-c\fP\ |\ \fB--cert=\fP\fIcertdir\fP
 If built with SSL/TLS support enabled, the daemon will look in
 .I certdir
 for any certificates. If unspecified, this defaults to the current
@@ -137,7 +137,7 @@ security implications, the use of auto-generated self-signed
 certificates is intended for testing or in intranet deployments, only.
 .TP
 \fB-d\fP\ |\ \fB--debug\fP
-enables debugging mode, resulting in lots of log messages on
+Enables debugging mode, resulting in lots of log messages on
 .IR stderr .
 This option is mutually exclusive with
 .B --quiet
@@ -343,7 +343,7 @@ intranets, if SSL certificates are unavailable.
 .TP
 \fB-q\fP\ |\ \fB--quiet\fP
 Surpresses all messages to
-.BR stderr .
+.IR stderr .
 This option is mutually exclusive with
 .B --debug
 and
