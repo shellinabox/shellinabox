@@ -61,7 +61,8 @@
       document.write('<frameset cols="*">\n' +
                        '<frame src="' + url +
                           document.location.search.replace(/^\?/, '') + '#' +
-                          encodeURIComponent(document.location.href) + '">\n' +
+                          encodeURIComponent(document.location.href) +
+                          ',%s' + '">\n' +
                      '</frameset>');      
     })();
     --></script>

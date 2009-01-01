@@ -179,6 +179,11 @@ int supportsPAM(void) {
 }
 
 int launchChild(int service, struct Session *session) {
+  if (launcher < 0) {
+    errno              = EINVAL;
+    return -1;
+  }
+
   struct LaunchRequest request = {
     .service           = service,
     .width             = session->width,
@@ -1018,5 +1023,12 @@ int forkLauncher(void) {
     NOINTR(close(pair[1]));
     launcher = pair[0];
     return launcher;
+  }
+}
+
+void terminateLauncher(void) {
+  if (launcher >= 0) {
+    NOINTR(close(launcher));
+    launcher = -1;
   }
 }

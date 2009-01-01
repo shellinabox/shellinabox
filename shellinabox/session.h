@@ -73,8 +73,12 @@ struct Session *newSession(const char *sessionKey, Server *server, URL *url,
                            const char *peerName);
 void destroySession(struct Session *session);
 void deleteSession(struct Session *session);
+void abandonSession(struct Session *session);
+char *newSessionKey(void);
 void finishSession(struct Session *session);
 void finishAllSessions(void);
+struct Session *findCGISession(int *isNew, HttpConnection *http, URL *url,
+                               const char *cgiSessionKey);
 struct Session *findSession(int *isNew, HttpConnection *http, URL *url);
 void iterateOverSessions(int (*fnc)(void *, const char *, char **), void *arg);
 int  numSessions(void);

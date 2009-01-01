@@ -79,7 +79,8 @@ static int     enableSSL    = 1;
 static char    *certificateDir;
 static HashMap *externalFiles;
 static Server  *cgiServer;
-
+static char    *cgiSessionKey;
+static int     cgiSessions;
 
 static char *jsonEscape(const char *buf, int len) {
   static const char *hexDigit = "0123456789ABCDEF";
@@ -290,16 +291,13 @@ static int dataHandler(HttpConnection *http, struct Service *service,
 
   // Find an existing session, or create the record for a new one
   int isNew;
-  struct Session *session = findSession(&isNew, http, url);
+  struct Session *session = findCGISession(&isNew, http, url, cgiSessionKey);
   if (session == NULL) {
-    if (cgiServer && numSessions() == 0) {
-      // CGI servers only ever serve a single session
-      serverExitLoop(cgiServer, 1);
-    }
     httpSendReply(http, 400, "Bad Request", NULL);
     return HTTP_DONE;
   }
 
+  // Sanity check
   if (!isNew && strcmp(session->peerName, httpGetPeerName(http))) {
     error("Peername changed from %s to %s",
           session->peerName, httpGetPeerName(http));
@@ -320,34 +318,27 @@ static int dataHandler(HttpConnection *http, struct Service *service,
     session->height       = atoi(height);
   }
 
-  // If the caller provided the "keys" parameter, this request sends key
-  // strokes but does not expect a reply.
-  if (!keys) {
-    if (session->http &&
-        !completePendingRequest(session, "", 0, MAX_RESPONSE)) {
+  // Create a new session, if the client did not provide an existing one
+  if (isNew) {
+    if (cgiServer && cgiSessions++) {
+      serverExitLoop(cgiServer, 1);
+      abandonSession(session);
       httpSendReply(http, 400, "Bad Request", NULL);
       return HTTP_DONE;
     }
     session->http         = http;
-
-    // Create a new session, if the client did not provide an existing one
-    if (isNew) {
-      if (cgiServer && numSessions() > 1) {
-        deleteSession(session);
-        httpSendReply(http, 400, "Bad Request", NULL);
-        return HTTP_DONE;
-      }
-      debug("Creating new child process");
-      if (launchChild(service->id, session) < 0) {
-        deleteSession(session);
-        httpSendReply(http, 500, "Internal Error", NULL);
-        return HTTP_DONE;
-      }
-      session->connection = serverAddConnection(httpGetServer(http),
+    if (launchChild(service->id, session) < 0) {
+      abandonSession(session);
+      httpSendReply(http, 500, "Internal Error", NULL);
+      return HTTP_DONE;
+    }
+    if (cgiServer) {
+      terminateLauncher();
+    }
+    session->connection   = serverAddConnection(httpGetServer(http),
                                                 session->pty, handleSession,
                                                 sessionDone, session);
-      serverSetTimeout(session->connection, AJAX_TIMEOUT);
-    }
+    serverSetTimeout(session->connection, AJAX_TIMEOUT);
   }
 
   // Reset window dimensions of the pseudo TTY, if changed since last time set.
@@ -382,6 +373,15 @@ static int dataHandler(HttpConnection *http, struct Service *service,
     free(keyCodes);
     httpSendReply(http, 200, "OK", " ");
     return HTTP_DONE;
+  } else {
+    // This request is polling for data. Finish any pending requests and
+    // queue (or process) a new one.
+    if (session->http && session->http != http &&
+        !completePendingRequest(session, "", 0, MAX_RESPONSE)) {
+      httpSendReply(http, 400, "Bad Request", NULL);
+      return HTTP_DONE;
+    }
+    session->http         = http;
   }
 
   session->connection     = serverGetConnection(session->server,
@@ -798,6 +798,7 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Non-root service URLs are incompatible with CGI operation");
       }
     }
+    check(cgiSessionKey    = newSessionKey());
   }
 
   if (demonize) {
@@ -885,7 +886,7 @@ int main(int argc, char * const argv[]) {
     check(cgiRoot = malloc(cgiRootEnd - cgiRootStart + 1));
     memcpy(cgiRoot, cgiRootStart, cgiRootEnd - cgiRootStart);
     puts("Content-type: text/html; charset=utf-8\r\n\r");
-    printf(cgiRoot, port);
+    printf(cgiRoot, port, cgiSessionKey);
     fflush(stdout);
     free(cgiRoot);
     check(!NOINTR(close(fds[1])));
@@ -937,6 +938,7 @@ int main(int argc, char * const argv[]) {
   }
   free(services);
   free(certificateDir);
+  free(cgiSessionKey);
   info("Done");
   _exit(0);
 }

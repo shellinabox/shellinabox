@@ -96,14 +96,17 @@ function ShellInABox(url, container) {
     this.url        = url;
   }
   if (document.location.hash != '') {
-    this.nextUrl    = decodeURIComponent(document.location.hash).
+    var hash        = decodeURIComponent(document.location.hash).
                       replace(/^#/, '');
+    this.nextUrl    = hash.replace(/,.*/, '');
+    this.session    = hash.replace(/[^,]*,/, '');
   } else {
     this.nextUrl    = this.url;
+    this.session    = null;
   }
-  this.session      = null;
   this.pendingKeys  = '';
   this.keysInFlight = false;
+  this.connected    = false;
   this.superClass.constructor.call(this, container);
 
   // We have to initiate the first XMLHttpRequest from a timer. Otherwise,
@@ -117,6 +120,7 @@ function ShellInABox(url, container) {
 extend(ShellInABox, VT100);
 
 ShellInABox.prototype.sessionClosed = function() {
+  this.connected    = false;
   if (this.session) {
     this.session    = undefined;
     if (this.cursorX > 0) {
@@ -175,7 +179,8 @@ ShellInABox.prototype.sendRequest = function(request) {
 ShellInABox.prototype.onReadyStateChange = function(request) {
   if (request.readyState == XHR_LOADED) {
     if (request.status == 200) {
-      var response = eval('(' + request.responseText + ')');
+      this.connected = true;
+      var response   = eval('(' + request.responseText + ')');
 
       if (response.data) {
         this.vt100(response.data);
@@ -190,7 +195,6 @@ ShellInABox.prototype.onReadyStateChange = function(request) {
       }
     } else if (request.status == 0) {
       // Time Out
-      this.inspect(request);/***/
       this.sendRequest(request);
     } else {
       this.sessionClosed();
@@ -199,6 +203,9 @@ ShellInABox.prototype.onReadyStateChange = function(request) {
 };
 
 ShellInABox.prototype.sendKeys = function(keys) {
+  if (!this.connected) {
+    return;
+  }
   if (this.keysInFlight || this.session == undefined) {
     this.pendingKeys          += keys;
   } else {
