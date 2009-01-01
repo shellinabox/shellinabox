@@ -62,6 +62,7 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/service.h                                  \
                        shellinabox/session.c                                  \
                        shellinabox/session.h                                  \
+                       shellinabox/cgi_root.html                              \
                        shellinabox/root_page.html                             \
                        shellinabox/vt100.js                                   \
                        shellinabox/shell_in_a_box.js                          \

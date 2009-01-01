@@ -73,7 +73,8 @@ am__dirstamp = $(am__leading_dot)dirstamp
 am_shellinaboxd_OBJECTS = shellinaboxd.$(OBJEXT) \
 	externalfile.$(OBJEXT) launcher.$(OBJEXT) privileges.$(OBJEXT) \
 	service.$(OBJEXT) session.$(OBJEXT) \
-	shellinabox/root_page.$(OBJEXT) shellinabox/vt100.$(OBJEXT) \
+	shellinabox/cgi_root.$(OBJEXT) shellinabox/root_page.$(OBJEXT) \
+	shellinabox/vt100.$(OBJEXT) \
 	shellinabox/shell_in_a_box.$(OBJEXT) \
 	shellinabox/styles.$(OBJEXT) shellinabox/favicon.$(OBJEXT) \
 	shellinabox/beep.$(OBJEXT)
@@ -299,6 +300,7 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/service.h                                  \
                        shellinabox/session.c                                  \
                        shellinabox/session.h                                  \
+                       shellinabox/cgi_root.html                              \
                        shellinabox/root_page.html                             \
                        shellinabox/vt100.js                                   \
                        shellinabox/shell_in_a_box.js                          \
@@ -394,6 +396,8 @@ shellinabox/$(am__dirstamp):
 shellinabox/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) shellinabox/$(DEPDIR)
 	@: > shellinabox/$(DEPDIR)/$(am__dirstamp)
+shellinabox/cgi_root.$(OBJEXT): shellinabox/$(am__dirstamp) \
+	shellinabox/$(DEPDIR)/$(am__dirstamp)
 shellinabox/root_page.$(OBJEXT): shellinabox/$(am__dirstamp) \
 	shellinabox/$(DEPDIR)/$(am__dirstamp)
 shellinabox/vt100.$(OBJEXT): shellinabox/$(am__dirstamp) \
@@ -413,6 +417,7 @@ shellinaboxd$(EXEEXT): $(shellinaboxd_OBJECTS) $(shellinaboxd_DEPENDENCIES)
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 	-rm -f shellinabox/beep.$(OBJEXT)
+	-rm -f shellinabox/cgi_root.$(OBJEXT)
 	-rm -f shellinabox/favicon.$(OBJEXT)
 	-rm -f shellinabox/root_page.$(OBJEXT)
 	-rm -f shellinabox/shell_in_a_box.$(OBJEXT)

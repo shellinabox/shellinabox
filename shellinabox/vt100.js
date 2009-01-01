@@ -225,7 +225,8 @@ VT100.prototype.initializeElements = function(container) {
     }
     this.container.innerHTML   =
                        '<div id="reconnect" style="visibility: hidden">' +
-                         '<input type="button" value="Connect" />' +
+                         '<input type="button" value="Connect" ' +
+                                'onsubmit="return false" />' +
                        '</div>' +
                        '<div id="menu"></div>' +
                        '<div id="scrollable">' +
@@ -322,8 +323,9 @@ VT100.prototype.initializeElements = function(container) {
   this.addListener(this.reconnectBtn.firstChild, 'click',
                    function(vt100) {
                      return function() {
-                       vt100.reconnect();
+                       var rc = vt100.reconnect();
                        vt100.input.focus();
+                       return rc;
                      }
                    }(this));
 
@@ -398,6 +400,7 @@ VT100.prototype.getCurrentComputedStyle = function(elem, style) {
 };
 
 VT100.prototype.reconnect = function() {
+  return false;
 };
 
 VT100.prototype.showReconnect = function(state) {

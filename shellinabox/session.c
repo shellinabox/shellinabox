@@ -218,3 +218,7 @@ struct Session *findSession(int *isNew, HttpConnection *http, URL *url) {
 void iterateOverSessions(int (*fnc)(void *, const char *, char **), void *arg){
   iterateOverHashMap(sessions, fnc, arg);
 }
+
+int numSessions(void) {
+  return getHashmapSize(sessions);
+}

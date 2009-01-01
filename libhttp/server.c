@@ -49,6 +49,7 @@
 #include <string.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -166,6 +167,58 @@ static int serverQuitHandler(struct HttpConnection *http, void *arg) {
   return HTTP_DONE;
 }
 
+struct Server *newCGIServer(int portMin, int portMax, int timeout) {
+  struct Server *server         = newServer(0);
+  server->serverTimeout         = timeout;
+  int true                      = 1;
+  server->serverFd              = socket(PF_INET, SOCK_STREAM, 0);
+  check(server->serverFd >= 0);
+  check(!setsockopt(server->serverFd, SOL_SOCKET, SO_REUSEADDR,
+                    &true, sizeof(true)));
+  struct sockaddr_in serverAddr = { 0 };
+  serverAddr.sin_family         = AF_INET;
+  serverAddr.sin_addr.s_addr    = INADDR_ANY;
+
+  // Linux unlike BSD does not have support for picking a local port range.
+  // So, we have to randomly pick a port from our allowed port range, and then
+  // keep iterating until we find an unused port.
+  if (portMin || portMax) {
+    struct timeval tv;
+    check(!gettimeofday(&tv, NULL));
+    srand((int)(tv.tv_usec ^ tv.tv_sec));
+    check(portMin > 0);
+    check(portMax < 65536);
+    check(portMax >= portMin);
+    int portStart               = rand() % (portMax - portMin + 1) + portMin;
+    for (int p = 0; p <= portMax-portMin; p++) {
+      int port                  = (p+portStart)%(portMax-portMin+1)+ portMin;
+      serverAddr.sin_port       = htons(port);
+      if (!bind(server->serverFd, (struct sockaddr *)&serverAddr,
+                sizeof(serverAddr))) {
+        break;
+      }
+      serverAddr.sin_port       = 0;
+    }
+    if (!serverAddr.sin_port) {
+      fatal("Failed to find any available port");
+    }
+  }
+
+  check(!listen(server->serverFd, SOMAXCONN));
+  socklen_t socklen             = (socklen_t)sizeof(serverAddr);
+  check(!getsockname(server->serverFd, (struct sockaddr *)&serverAddr,
+                     &socklen));
+  check(socklen == sizeof(serverAddr));
+  server->port                  = ntohs(serverAddr.sin_port);
+  info("Listening on port %d", server->port);
+
+  check(server->pollFds         = malloc(sizeof(struct pollfd)));
+  server->pollFds->fd           = server->serverFd;
+  server->pollFds->events       = POLLIN;
+
+  return server;
+}
+
 struct Server *newServer(int port) {
   struct Server *server;
   check(server = malloc(sizeof(struct Server)));
@@ -177,6 +230,7 @@ void initServer(struct Server *server, int port) {
   server->port                  = port;
   server->looping               = 0;
   server->exitAll               = 0;
+  server->serverTimeout         = -1;
   server->serverFd              = -1;
   server->numericHosts          = 0;
   server->pollFds               = NULL;
@@ -206,6 +260,14 @@ void destroyServer(struct Server *server) {
 void deleteServer(struct Server *server) {
   destroyServer(server);
   free(server);
+}
+
+int serverGetListeningPort(struct Server *server) {
+  return server->port;
+}
+
+int serverGetFd(struct Server *server) {
+  return server->serverFd;
 }
 
 struct ServerConnection *serverAddConnection(struct Server *server, int fd,
@@ -363,6 +425,14 @@ void serverLoop(struct Server *server) {
       }
     }
 
+    // serverTimeout is always a delta value, unlike connection timeouts
+    // which are absolute times.
+    if (server->serverTimeout >= 0) {
+      if (timeout < 0 || timeout > server->serverTimeout + currentTime) {
+        timeout                           = server->serverTimeout+currentTime;
+      }
+    }
+
     if (timeout >= 0) {
       // Wait at least one second longer than needed, so that even if
       // poll() decides to return a second early (due to possible rounding
@@ -405,6 +475,12 @@ void serverLoop(struct Server *server) {
                                 http),
             INITIAL_TIMEOUT);
         }
+      }
+    } else {
+      if (server->serverTimeout > 0 && !server->numConnections) {
+        // In CGI mode, exit the server, if we haven't had any active
+        // connections in a while.
+        break;
       }
     }
     for (int i = 1;

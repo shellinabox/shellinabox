@@ -103,6 +103,7 @@ static int (*x_misc_conv)(int, const struct pam_message **,
 extern DIR *fdopendir(int) __attribute__((weak));
 
 static int   launcher = -1;
+static uid_t restricted;
 
 
 static void *loadSymbol(const char *lib, const char *fn) {
@@ -288,6 +289,60 @@ static void destroyUtmpHashEntry(void *arg, char *key, char *value) {
   deleteUtmp((struct Utmp *)value);
 }
 
+void closeAllFds(int *exceptFds, int num) {
+  // Close all file handles. If possible, scan through "/proc/self/fd" as
+  // that is faster than calling close() on all possible file handles.
+  int nullFd  = open("/dev/null", O_RDWR);
+  int dirFd   = !&fdopendir ? -1 : open("/proc/self/fd", O_RDONLY);
+  if (dirFd < 0) {
+    for (int i = sysconf(_SC_OPEN_MAX); --i > 0; ) {
+      if (i != nullFd) {
+        for (int j = 0; j < num; j++) {
+          if (i == exceptFds[j]) {
+            goto no_close_1;
+          }
+        }
+        // Closing handles 0..2 is never a good idea. Instead, redirect them
+        // to /dev/null
+        if (i <= 2) {
+          NOINTR(dup2(nullFd, i));
+        } else {
+          NOINTR(close(i));
+        }
+      }
+    no_close_1:;
+    }
+  } else {
+    DIR *dir;
+    check(dir = fdopendir(dirFd));
+    struct dirent de, *res;
+    while (!readdir_r(dir, &de, &res) && res) {
+      if (res->d_name[0] < '0')
+        continue;
+      int fd  = atoi(res->d_name);
+      if (fd != nullFd && fd != dirFd) {
+        for (int j = 0; j < num; j++) {
+          if (fd == exceptFds[j]) {
+            goto no_close_2;
+          }
+        }
+        // Closing handles 0..2 is never a good idea. Instead, redirect them
+        // to /dev/null
+        if (fd <= 2) {
+          NOINTR(dup2(nullFd, fd));
+        } else {
+          NOINTR(close(fd));
+        }
+      }
+    no_close_2:;
+    }
+    check(!closedir(dir));
+  }
+  if (nullFd > 2) {
+    check(!close(nullFd));
+  }
+}
+
 static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
                    const char *peerName) {
   int slave;
@@ -323,27 +378,7 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
     (*utmp)->utmpx.ut_pid = pid;
     (*utmp)->pty          = slave;
 
-    // Close all file handles. If possible, scan through "/proc/self/fd" as
-    // that is faster than calling close() on all possible file handles.
-    int dirFd             = !&fdopendir ? -1 : open("/proc/self/fd", O_RDONLY);
-    if (dirFd < 0) {
-      for (int i = sysconf(_SC_OPEN_MAX); --i > 0; ) {
-        if (i != slave) {
-          NOINTR(close(i));
-        }
-      }
-    } else {
-      DIR *dir;
-      check(dir           = fdopendir(dirFd));
-      struct dirent de, *res;
-      while (!readdir_r(dir, &de, &res) && res) {
-        int fd            = atoi(res->d_name);
-        if (fd != slave && fd != dirFd) {
-          NOINTR(close(fd));
-        }
-      }
-      check(!closedir(dir));
-    }
+    closeAllFds((int []){ slave }, 1);
 
     // Become the session/process-group leader
     setsid();
@@ -958,7 +993,7 @@ static void launcherDaemon(int fd) {
   _exit(0);
 }
 
-void forkLauncher(void) {
+int forkLauncher(void) {
   int pair[2];
   check(!socketpair(AF_UNIX, SOCK_STREAM, 0, pair));
 
@@ -973,14 +1008,14 @@ void forkLauncher(void) {
     // switch back to root, which is necessary for launching "login".
     lowerPrivileges();
     NOINTR(close(pair[0]));
+    closeAllFds((int []){ pair[1] }, 1);
     launcherDaemon(pair[1]);
     fatal("exit() failed!");
   case -1:
     fatal("fork() failed!");
-    break;
   default:
     NOINTR(close(pair[1]));
     launcher = pair[0];
-    return;
+    return launcher;
   }
 }

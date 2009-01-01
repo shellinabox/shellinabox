@@ -52,6 +52,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 .B shellinaboxd
 [\ \fB-b\fP\ | \fB--background\fP[\fB=\fP\fIpidfile\fP]\ ]
 [\ \fB-c\fP\ | \fB--cert=\fP\fIcertdir\fP\ ]
+[\ \fB--cgi\fP[\fB=\fP\fIportrange\fP]\ ]
 [\ \fB-d\fP\ | \fB--debug\fP\ ]
 [\ \fB-f\fP\ | \fB--static-file=\fP\fIurl\fP:\fIfile\fP\ ]
 [\ \fB-g\fP\ | \fB--group=\fP\fIgid\fP\ ]
@@ -136,6 +137,32 @@ certificate. Due to this usability problem, and due to the perceived
 security implications, the use of auto-generated self-signed
 certificates is intended for testing or in intranet deployments, only.
 .TP
+\fB--cgi\fP[\fB=\fP\fIportrange\fP]
+Instead of running
+.B shellinaboxd
+as a permanent process, it can be demand-loaded as a CGI web server
+extension. When doing so, it will spawn a server that lives for the
+duration of the user's session. If an optional
+.I portrange
+of the form
+.BR MINPORT-MAXPORT
+has been provided, the server limits itself to these port numbers. They
+should be configured to pass through the firewall.
+
+The
+.B --cgi
+option is mutually exclusive with the
+.B --background
+and
+.B --port
+options.
+
+In order to be useful as a CGI script, the
+.B shellinaboxd
+binary probably will have to be made
+.BR setuid-root .
+This is currently a discouraged configuration. Use with care. 
+.TP
 \fB-d\fP\ |\ \fB--debug\fP
 Enables debugging mode, resulting in lots of log messages on
 .IR stderr .
@@ -201,13 +228,8 @@ the server drops most privileges at start up. Unless overridden by the
 option, it switches to
 .BR nogroup .
 
-When already running as an unprivileged user, the group remains
-unchanged, unless a change was explicitly requested with the
-.B --group
-option. On most UNIX systems, the latter is only possible, if the
-binary has been made
-.BR setuid-root .
-This is a non-standard configuration.
+When already running as an unprivileged user, group changes are not
+possible.
 
 If running with SSL/TLS support enabled, the certificates must be
 accessible to the unprivileged user and/or group that the daemon

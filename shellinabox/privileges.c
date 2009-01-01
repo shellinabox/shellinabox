@@ -60,40 +60,48 @@
 
 int   runAsUser  = -1;
 int   runAsGroup = -1;
-uid_t restricted;
 
 
-void removeGroupPrivileges(void) {
+static void removeGroupPrivileges(int showError) {
+  gid_t rg, eg, sg;
+  check(!getresgid(&rg, &eg, &sg));
+
   // Remove all supplementary groups. Allow this command to fail. That could
   // happen if we run as an unprivileged user.
   setgroups(0, (gid_t *)"");
+
   if (runAsGroup >= 0) {
+    uid_t ru, eu, su;
+    getresuid(&ru, &eu, &su);
+
     // Try to switch the user-provided group.
-    if (setresgid(runAsGroup, runAsGroup, runAsGroup)) {
-      if (restricted) {
-        _exit(1);
-      } else {
+    if ((ru && runAsGroup != rg) ||
+        setresgid(runAsGroup, runAsGroup, runAsGroup)) {
+      if (showError) {
         fatal("Only privileged users can change their group memberships");
+      } else {
+        _exit(1);
       }
     }
   } else {
-    gid_t r, e, s;
-    check(!getresgid(&r, &e, &s));
-    if (r) {
+    if (rg) {
       // If we were started as a set-gid binary, drop these permissions, now.
-      check(!setresgid(r, r, r));
+      check(!setresgid(rg, rg, rg));
     } else {
       // If we are running as root, switch to "nogroup"
-      gid_t n = getGroupId("nogroup");
-      check(!setresgid(n, n, n));
+      gid_t ng = getGroupId("nogroup");
+      check(!setresgid(ng, ng, ng));
     }
   }
 }
 
 void lowerPrivileges(void) {
+  uid_t r, e, g;
+  check(!getresuid(&r, &e, &g));
+
   // Permanently lower all group permissions. We do not actually need these,
   // as we still have "root" user privileges in our saved-uid.
-  removeGroupPrivileges();
+  removeGroupPrivileges(0);
 
   // Temporarily lower user privileges. If we used to have "root" privileges,
   // we can later still regain them.
@@ -101,10 +109,11 @@ void lowerPrivileges(void) {
 
   if (runAsUser >= 0) {
     // Try to switch to the user-provided user id.
+    if (r && runAsUser != r) {
+      fatal("Only privileged users can change their user id");
+    }
     check(!setresuid(runAsUser, runAsUser, -1));
   } else {
-    uid_t r, e, s;
-    check(!getresuid(&r, &e, &s));
     if (r) {
       // If we were started as a set-uid binary, temporarily lower these
       // permissions.
@@ -118,17 +127,19 @@ void lowerPrivileges(void) {
 }
 
 void dropPrivileges(void) {
+  uid_t r, e, s;
+  check(!getresuid(&r, &e, &s));
+
   // Drop all group privileges.
-  removeGroupPrivileges();
+  removeGroupPrivileges(1);
 
   if (runAsUser >= 0) {
     // Try to switch to the user-provided user id.
-    if (setresuid(runAsUser, runAsUser, runAsUser)) {
+    if ((r && runAsUser != r) ||
+        setresuid(runAsUser, runAsUser, runAsUser)) {
       fatal("Only privileged users can change their user id.");
     }
   } else {
-    uid_t r, e, s;
-    check(!getresuid(&r, &e, &s));
     if (r) {
       // If we were started as a set-uid binary, permanently drop these
       // permissions.

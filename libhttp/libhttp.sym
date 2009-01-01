@@ -1,5 +1,8 @@
+newCGIServer
 newServer
 deleteServer
+serverGetListeningPort
+serverGetFd
 serverRegisterHttpHandler
 serverRegisterStreamingHttpHandler
 serverAddConnection

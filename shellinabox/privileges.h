@@ -50,9 +50,7 @@
 
 extern int   runAsUser;
 extern int   runAsGroup;
-extern uid_t restricted;
 
-void removeGroupPrivileges(void);
 void lowerPrivileges(void);
 void dropPrivileges(void);
 const char *getUserName(uid_t uid);

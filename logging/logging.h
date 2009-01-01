@@ -74,7 +74,8 @@ void info(const char *fmt, ...)    __attribute__((format(printf, 1, 2)));
 void warn(const char *fmt, ...)    __attribute__((format(printf, 1, 2)));
 void error(const char *fmt, ...)   __attribute__((format(printf, 1, 2)));
 void message(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-void fatal(const char *fmt, ...)   __attribute__((format(printf, 1, 2)));
+void fatal(const char *fmt, ...)   __attribute__((format(printf, 1, 2),
+                                                  noreturn));
 int logIsDebug(void);
 int logIsInfo(void);
 int logIsWarn(void);

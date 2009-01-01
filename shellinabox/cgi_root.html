@@ -48,31 +48,22 @@
     http://shellinabox.com
     -->
     <title>Shell In A Box</title>
-    <link rel="stylesheet" href="styles.css" type="text/css">
     <script type="text/javascript"><!--
-      // We would like to hide overflowing lines as this can lead to
-      // visually jarring results if the browser substitutes oversized
-      // Unicode characters from different fonts. Unfortunately, a bug
-      // in Firefox prevents it from allowing multi-line text
-      // selections whenever we change the "overflow" style. So, only
-      // do so for non-Netscape browsers.
-      if (typeof navigator.appName == 'undefined' ||
-          navigator.appName != 'Netscape') {
-        document.write('<style type="text/css">' +
-                       '#vt100 #console div, #vt100 #alt_console div {' +
-                       '  overflow: hidden;' +
-                       '}' +
-                       '</style>');
-      }
+    (function() {
+      var url   = document.location.protocol + '//' +
+                  document.location.hostname + ':%d/';
+      var head  = document.getElementsByTagName('head')[0];
+      var link  = document.createElement('link');
+      link.rel  = 'shortcut icon';
+      link.type = 'image/x-icon';
+      link.href = url + 'favicon.ico';
+      head.appendChild(link);
+      document.write('<frameset cols="*">\n' +
+                       '<frame src="' + url +
+                          document.location.search.replace(/^\?/, '') + '#' +
+                          encodeURIComponent(document.location.href) + '">\n' +
+                     '</frameset>');      
+    })();
     --></script>
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
-    <script type="text/javascript" src="ShellInABox.js"></script>
   </head>
-  <!-- Load ShellInABox from a timer as Konqueror sometimes fails to
-       correctly deal with the enclosing frameset (if any), if we do not
-       do this
-   -->
-  <body onload="setTimeout('new ShellInABox()', 100)"
-        scroll="no"><noscript>JavaScript
-    must be enabled for ShellInABox</noscript></body>
 </html>

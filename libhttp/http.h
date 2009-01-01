@@ -64,8 +64,11 @@ typedef struct ServerConnection ServerConnection;
 typedef struct Server Server;
 typedef struct URL URL;
 
+Server *newCGIServer(int portMin, int portMax, int timeout);
 Server *newServer(int port);
 void deleteServer(Server *server);
+int  serverGetListeningPort(Server *server);
+int  serverGetFd(Server *server);
 void serverRegisterHttpHandler(Server *server, const char *url,
                                int (*handler)(HttpConnection *, void *,
                                               const char *, int), void *arg);

@@ -91,11 +91,16 @@ function extend(subClass, baseClass) {
 
 function ShellInABox(url, container) {
   if (url == undefined) {
-    this.url        = document.location.href;
+    this.url        = document.location.href.replace(/[?#].*/, '');
   } else {
     this.url        = url;
   }
-  this.nextUrl      = this.url;
+  if (document.location.hash != '') {
+    this.nextUrl    = decodeURIComponent(document.location.hash).
+                      replace(/^#/, '');
+  } else {
+    this.nextUrl    = this.url;
+  }
   this.session      = null;
   this.pendingKeys  = '';
   this.keysInFlight = false;
@@ -125,15 +130,24 @@ ShellInABox.prototype.sessionClosed = function() {
 ShellInABox.prototype.reconnect = function() {
   this.showReconnect(false);
   if (!this.session) {
-    if (this.url != this.nextUrl) {
-      document.location.replace(this.nextUrl);
+    if (document.location.hash != '') {
+      // A shellinaboxd daemon launched from a CGI only allows a single
+      // session. In order to reconnect, we must reload the frame definition
+      // and obtain a new port number. As this is a different origin, we
+      // need to get enclosing page to help us.
+      parent.location        = this.nextUrl;
     } else {
-      this.pendingKeys  = '';
-      this.keysInFlight = false;
-      this.reset(true);
-      this.sendRequest();
+      if (this.url != this.nextUrl) {
+        document.location.replace(this.nextUrl);
+      } else {
+        this.pendingKeys     = '';
+        this.keysInFlight    = false;
+        this.reset(true);
+        this.sendRequest();
+      }
     }
   }
+  return false;
 };
 
 ShellInABox.prototype.sendRequest = function(request) {
@@ -176,6 +190,7 @@ ShellInABox.prototype.onReadyStateChange = function(request) {
       }
     } else if (request.status == 0) {
       // Time Out
+      this.inspect(request);/***/
       this.sendRequest(request);
     } else {
       this.sessionClosed();
@@ -262,11 +277,22 @@ ShellInABox.prototype.resized = function(w, h) {
 };
 
 ShellInABox.prototype.toggleSSL = function() {
-  this.nextUrl    = this.nextUrl.match(/^https:/)
+  if (document.location.hash != '') {
+    if (this.nextUrl.match(/\?plain$/)) {
+      this.nextUrl    = this.nextUrl.replace(/\?plain$/, '');
+    } else {
+      this.nextUrl    = this.nextUrl.replace(/[?#].*/, '') + '?plain';
+    }
+    if (!this.session) {
+      parent.location = this.nextUrl;
+    }
+  } else {
+    this.nextUrl      = this.nextUrl.match(/^https:/)
            ? this.nextUrl.replace(/^https:/, 'http:').replace(/\/*$/, '/plain')
            : this.nextUrl.replace(/^http/, 'https').replace(/\/*plain$/, '');
+  }
   if (this.nextUrl.match(/^[:]*:\/\/[^/]*$/)) {
-    this.nextUrl += '/';
+    this.nextUrl     += '/';
   }
   if (this.session && this.nextUrl != this.url) {
     alert('This change will take effect the next time you login.');
@@ -290,8 +316,13 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
           // If the server supports both SSL and plain text connections,
           // provide a menu entry to switch between the two.
           var newNode       = document.createElement('li');
-          newNode.innerHTML =
-            (this.nextUrl.match(/^https:/) ? '&#10004; ' : '') + 'Secure';
+          var isSecure;
+          if (document.location.href != '') {
+            isSecure        = !this.nextUrl.match(/\?plain$/);
+          } else {
+            isSecure        =  this.nextUrl.match(/^https:/);
+          }
+          newNode.innerHTML = (isSecure ? '&#10004; ' : '') + 'Secure';
           if (node.nextSibling) {
             entries.insertBefore(newNode, node.nextSibling);
           } else {

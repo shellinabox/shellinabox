@@ -68,6 +68,7 @@ struct Server {
   int                     port;
   int                     looping;
   int                     exitAll;
+  int                     serverTimeout;
   int                     serverFd;
   int                     numericHosts;
   struct pollfd           *pollFds;
@@ -77,10 +78,13 @@ struct Server {
   struct SSLSupport       ssl;
 };
 
+struct Server *newCGIServer(int portMin, int portMax, int timeout);
 struct Server *newServer(int port);
 void initServer(struct Server *server, int port);
 void destroyServer(struct Server *server);
 void deleteServer(struct Server *server);
+int  serverGetListeningPort(struct Server *server);
+int  serverGetFd(struct Server *server);
 void serverRegisterHttpHandler(struct Server *server, const char *url,
                                int (*handler)(struct HttpConnection *, void *,
                                               const char *, int), void *arg);

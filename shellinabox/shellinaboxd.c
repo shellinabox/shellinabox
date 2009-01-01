@@ -55,6 +55,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/prctl.h>
+#include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -70,11 +71,14 @@
 #define PORTNUM           4200
 #define MAX_RESPONSE      2048
 
-static int     port         = PORTNUM;
+static int     port;
+static int     portMin;
+static int     portMax;
 static int     numericHosts = 0;
 static int     enableSSL    = 1;
 static char    *certificateDir;
 static HashMap *externalFiles;
+static Server  *cgiServer;
 
 
 static char *jsonEscape(const char *buf, int len) {
@@ -288,6 +292,10 @@ static int dataHandler(HttpConnection *http, struct Service *service,
   int isNew;
   struct Session *session = findSession(&isNew, http, url);
   if (session == NULL) {
+    if (cgiServer && numSessions() == 0) {
+      // CGI servers only ever serve a single session
+      serverExitLoop(cgiServer, 1);
+    }
     httpSendReply(http, 400, "Bad Request", NULL);
     return HTTP_DONE;
   }
@@ -324,6 +332,11 @@ static int dataHandler(HttpConnection *http, struct Service *service,
 
     // Create a new session, if the client did not provide an existing one
     if (isNew) {
+      if (cgiServer && numSessions() > 1) {
+        deleteSession(session);
+        httpSendReply(http, 400, "Bad Request", NULL);
+        return HTTP_DONE;
+      }
       debug("Creating new child process");
       if (launchChild(service->id, session) < 0) {
         deleteSession(session);
@@ -540,6 +553,7 @@ static void usage(void) {
           "List of command line options:\n"
           "  -b, --background[=PIDFILE]  run in background\n"
           "%s"
+          "      --cgi[=PORTMIN-PORTMAX] run as CGI\n"
           "  -d, --debug                 enable debug mode\n"
           "  -f, --static-file=URL:FILE  serve static file from URL path\n"
           "  -g, --group=GID             switch to this group (default: %s)\n"
@@ -594,16 +608,18 @@ static void parseArgs(int argc, char * const argv[]) {
     enableSSL              = 0;
   }
   int demonize             = 0;
+  int cgi                  = 0;
   const char *pidfile      = NULL;
   int verbosity            = MSG_DEFAULT;
   externalFiles            = newHashMap(destroyExternalFileHashEntry, NULL);
-  HashMap *services        = newHashMap(destroyServiceHashEntry, NULL);
+  HashMap *serviceTable    = newHashMap(destroyServiceHashEntry, NULL);
   for (;;) {
-    static const char optstring[] = "+hbc:df:g:np:s:tqu:v";
+    static const char optstring[] = "+hb::c:df:g:np:s:tqu:v";
     static struct option options[] = {
       { "help",        0, 0, 'h' },
       { "background",  2, 0, 'b' },
       { "cert",        1, 0, 'c' },
+      { "cgi",         2, 0,  0  },
       { "debug",       0, 0, 'd' },
       { "static-file", 1, 0, 'f' },
       { "group",       1, 0, 'g' },
@@ -634,6 +650,9 @@ static void parseArgs(int argc, char * const argv[]) {
       exit(idx != -1);
     } else if (!idx--) {
       // Background
+      if (cgi) {
+        fatal("CGI and background operations are mutually exclusive");
+      }
       demonize            = 1;
       if (optarg && pidfile) {
         fatal("Only one pidfile can be given");
@@ -650,6 +669,25 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Only one certificate directory can be selected");
       }
       check(certificateDir = strdup(optarg));
+    } else if (!idx--) {
+      // CGI
+      if (demonize) {
+        fatal("CGI and background operations are mutually exclusive");
+      }
+      if (port) {
+        fatal("Cannot specify a port for CGI operation");
+      }
+      cgi                  = 1;
+      if (optarg) {
+        char *ptr          = strchr(optarg, '-');
+        if (!ptr) {
+          fatal("Syntax error in port range specification");
+        }
+        *ptr               = '\000';
+        portMin            = strtoint(optarg, 1, 65535);
+        *ptr               = '-';
+        portMax            = strtoint(ptr + 1, portMin, 65535);
+      }
     } else if (!idx--) {
       // Debug
       if (!logIsDefault() && !logIsDebug()) {
@@ -682,15 +720,21 @@ static void parseArgs(int argc, char * const argv[]) {
       numericHosts         = 1;
     } else if (!idx--) {
       // Port
+      if (port) {
+        fatal("Duplicate --port option");
+      }
+      if (cgi) {
+        fatal("Cannot specifiy a port for CGI operation");
+      }
       port = strtoint(optarg, 1, 65535);
     } else if (!idx--) {
       // Service
       struct Service *service;
       service              = newService(optarg);
-      if (getRefFromHashMap(services, service->path)) {
+      if (getRefFromHashMap(serviceTable, service->path)) {
         fatal("Duplicate service description for \"%s\".", service->path);
       }
-      addToHashMap(services, service->path, (char *)service);
+      addToHashMap(serviceTable, service->path, (char *)service);
     } else if (!idx--) {
       // Disable SSL
       if (!hasSSL) {
@@ -735,12 +779,26 @@ static void parseArgs(int argc, char * const argv[]) {
   info("Command line:%s", buf);
   free(buf);
 
-  // If the user did not register any services, provide the default service
-  if (!getHashmapSize(services)) {
-    addToHashMap(services, "/", (char *)newService(":LOGIN"));
+  // If the user did not specify a port, use the default one
+  if (!cgi && !port) {
+    port                   = PORTNUM;
   }
-  enumerateServices(services);
-  deleteHashMap(services);
+
+  // If the user did not register any services, provide the default service
+  if (!getHashmapSize(serviceTable)) {
+    addToHashMap(serviceTable, "/", (char *)newService(":LOGIN"));
+  }
+  enumerateServices(serviceTable);
+  deleteHashMap(serviceTable);
+
+  // Do not allow non-root URLs for CGI operation
+  if (cgi) {
+    for (int i = 0; i < numServices; i++) {
+      if (strcmp(services[i]->path, "/")) {
+        fatal("Non-root service URLs are incompatible with CGI operation");
+      }
+    }
+  }
 
   if (demonize) {
     pid_t pid;
@@ -763,16 +821,34 @@ static void parseArgs(int argc, char * const argv[]) {
   free((char *)pidfile);
 }
 
+static void removeLimits() {
+  static int res[] = { RLIMIT_CPU, RLIMIT_DATA, RLIMIT_FSIZE, RLIMIT_NPROC };
+  for (int i = 0; i < sizeof(res)/sizeof(int); i++) {
+    struct rlimit rl;
+    getrlimit(res[i], &rl);
+    if (rl.rlim_max < RLIM_INFINITY) {
+      rl.rlim_max  = RLIM_INFINITY;
+      setrlimit(res[i], &rl);
+      getrlimit(res[i], &rl);
+    }
+    if (rl.rlim_cur < rl.rlim_max) {
+      rl.rlim_cur  = rl.rlim_max;
+      setrlimit(res[i], &rl);
+    }
+  }
+}
+
 int main(int argc, char * const argv[]) {
   // Disable core files
   prctl(PR_SET_DUMPABLE, 0, 0, 0, 0);
+  removeLimits();
 
   // Parse command line arguments
   parseArgs(argc, argv);
 
   // Fork the launcher process, allowing us to drop privileges in the main
   // process.
-  forkLauncher();
+  int launcherFd  = forkLauncher();
   dropPrivileges();
 
   // Make sure that our timestamps will print in the standard format
@@ -780,7 +856,42 @@ int main(int argc, char * const argv[]) {
 
   // Create a new web server
   Server *server;
-  check(server = newServer(port));
+  if (port) {
+    check(server  = newServer(port));
+  } else {
+    // For CGI operation we fork the new server, so that it runs in the
+    // background.
+    pid_t pid;
+    int   fds[2];
+    check(!pipe(fds));
+    check((pid    = fork()) >= 0);
+    if (pid) {
+      // Wait for child to output initial HTML page
+      char wait;
+      check(!NOINTR(close(fds[1])));
+      check(!NOINTR(read(fds[0], &wait, 1)));
+      check(!NOINTR(close(fds[0])));
+      _exit(0);
+    }
+    check(!NOINTR(close(fds[0])));
+    check(server  = newCGIServer(portMin, portMax, AJAX_TIMEOUT));
+    cgiServer     = server;
+
+    // Output a <frameset> that includes our root page
+    check(port    = serverGetListeningPort(server));
+    extern char cgiRootStart[];
+    extern char cgiRootEnd[];
+    char *cgiRoot;
+    check(cgiRoot = malloc(cgiRootEnd - cgiRootStart + 1));
+    memcpy(cgiRoot, cgiRootStart, cgiRootEnd - cgiRootStart);
+    puts("Content-type: text/html; charset=utf-8\r\n\r");
+    printf(cgiRoot, port);
+    fflush(stdout);
+    free(cgiRoot);
+    check(!NOINTR(close(fds[1])));
+    closeAllFds((int []){ launcherFd, serverGetFd(server) }, 2);
+    logSetLogLevel(MSG_QUIET);
+  }
   serverEnableSSL(server, enableSSL);
 
   // Enable SSL support (if available)
@@ -827,5 +938,5 @@ int main(int argc, char * const argv[]) {
   free(services);
   free(certificateDir);
   info("Done");
-  exit(0);
+  _exit(0);
 }

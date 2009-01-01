@@ -77,5 +77,6 @@ void finishSession(struct Session *session);
 void finishAllSessions(void);
 struct Session *findSession(int *isNew, HttpConnection *http, URL *url);
 void iterateOverSessions(int (*fnc)(void *, const char *, char **), void *arg);
+int  numSessions(void);
 
 #endif /* SESSION_H__ */
