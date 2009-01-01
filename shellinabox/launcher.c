@@ -987,6 +987,7 @@ static void launcherDaemon(int fd) {
       if (NOINTR(sendmsg(fd, &msg, 0)) != sizeof(pid)) {
         break;
       }
+      NOINTR(close(pty));
     }
   }
   deleteHashMap(childProcesses);
