@@ -32,10 +32,6 @@
   z-index:          1;
 }
 
-#vt100 #console div, #vt100 #alt_console div {
-  overflow:         hidden;
-}
-
 #vt100 #cursor.bright { 
   background-color: #e60000;
   color:            white;
