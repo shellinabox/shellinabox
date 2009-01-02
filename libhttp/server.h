@@ -1,5 +1,5 @@
 // server.h -- Generic server that can deal with HTTP connections
-// Copyright (C) 2008 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
