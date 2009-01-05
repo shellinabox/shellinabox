@@ -163,48 +163,51 @@ static void *loadSymbol(const char *lib, const char *fn) {
 static void loadSSL(void) {
   check(!SSL_library_init);
   struct {
-    void       **var;
+    union {
+      void *avoid_gcc_warning_about_type_punning;
+      void **var;
+    };
     const char *fn;
   } symbols[] = {
-    { (void **)&x_BIO_ctrl,                    "BIO_ctrl" },
-    { (void **)&x_BIO_f_buffer,                "BIO_f_buffer" },
-    { (void **)&x_BIO_free_all,                "BIO_free_all" },
-    { (void **)&x_BIO_new,                     "BIO_new" },
-    { (void **)&x_BIO_new_socket,              "BIO_new_socket" },
-    { (void **)&x_BIO_pop,                     "BIO_pop" },
-    { (void **)&x_BIO_push,                    "BIO_push" },
-    { (void **)&x_ERR_clear_error,             "ERR_clear_error" },
-    { (void **)&x_ERR_clear_error,             "ERR_clear_error" },
-    { (void **)&x_ERR_peek_error,              "ERR_peek_error" },
-    { (void **)&x_ERR_peek_error,              "ERR_peek_error" },
-    { (void **)&x_SSL_CTX_callback_ctrl,       "SSL_CTX_callback_ctrl" },
-    { (void **)&x_SSL_CTX_check_private_key,   "SSL_CTX_check_private_key" },
-    { (void **)&x_SSL_CTX_ctrl,                "SSL_CTX_ctrl" },
-    { (void **)&x_SSL_CTX_free,                "SSL_CTX_free" },
-    { (void **)&x_SSL_CTX_new,                 "SSL_CTX_new" },
-    { (void **)&x_SSL_CTX_use_PrivateKey_file, "SSL_CTX_use_PrivateKey_file" },
-    { (void **)&x_SSL_CTX_use_certificate_file,"SSL_CTX_use_certificate_file"},
-    { (void **)&x_SSL_ctrl,                    "SSL_ctrl" },
-    { (void **)&x_SSL_free,                    "SSL_free" },
-    { (void **)&x_SSL_get_error,               "SSL_get_error" },
-    { (void **)&x_SSL_get_ex_data,             "SSL_get_ex_data" },
-    { (void **)&x_SSL_get_rbio,                "SSL_get_rbio" },
+    { { &x_BIO_ctrl },                    "BIO_ctrl" },
+    { { &x_BIO_f_buffer },                "BIO_f_buffer" },
+    { { &x_BIO_free_all },                "BIO_free_all" },
+    { { &x_BIO_new },                     "BIO_new" },
+    { { &x_BIO_new_socket },              "BIO_new_socket" },
+    { { &x_BIO_pop },                     "BIO_pop" },
+    { { &x_BIO_push },                    "BIO_push" },
+    { { &x_ERR_clear_error },             "ERR_clear_error" },
+    { { &x_ERR_clear_error },             "ERR_clear_error" },
+    { { &x_ERR_peek_error },              "ERR_peek_error" },
+    { { &x_ERR_peek_error },              "ERR_peek_error" },
+    { { &x_SSL_CTX_callback_ctrl },       "SSL_CTX_callback_ctrl" },
+    { { &x_SSL_CTX_check_private_key },   "SSL_CTX_check_private_key" },
+    { { &x_SSL_CTX_ctrl },                "SSL_CTX_ctrl" },
+    { { &x_SSL_CTX_free },                "SSL_CTX_free" },
+    { { &x_SSL_CTX_new },                 "SSL_CTX_new" },
+    { { &x_SSL_CTX_use_PrivateKey_file }, "SSL_CTX_use_PrivateKey_file" },
+    { { &x_SSL_CTX_use_certificate_file },"SSL_CTX_use_certificate_file"},
+    { { &x_SSL_ctrl },                    "SSL_ctrl" },
+    { { &x_SSL_free },                    "SSL_free" },
+    { { &x_SSL_get_error },               "SSL_get_error" },
+    { { &x_SSL_get_ex_data },             "SSL_get_ex_data" },
+    { { &x_SSL_get_rbio },                "SSL_get_rbio" },
 #ifdef TLSEXT_NAMETYPE_host_name
-    { (void **)&x_SSL_get_servername,          "SSL_get_servername" },
+    { { &x_SSL_get_servername },          "SSL_get_servername" },
 #endif
-    { (void **)&x_SSL_get_wbio,                "SSL_get_wbio" },
-    { (void **)&x_SSL_library_init,            "SSL_library_init" },
-    { (void **)&x_SSL_new,                     "SSL_new" },
-    { (void **)&x_SSL_read,                    "SSL_read" },
+    { { &x_SSL_get_wbio },                "SSL_get_wbio" },
+    { { &x_SSL_library_init },            "SSL_library_init" },
+    { { &x_SSL_new },                     "SSL_new" },
+    { { &x_SSL_read },                    "SSL_read" },
 #ifdef TLSEXT_NAMETYPE_host_name
-    { (void **)&x_SSL_set_SSL_CTX,             "SSL_set_SSL_CTX" },
+    { { &x_SSL_set_SSL_CTX },             "SSL_set_SSL_CTX" },
 #endif
-    { (void **)&x_SSL_set_accept_state,        "SSL_set_accept_state" },
-    { (void **)&x_SSL_set_bio,                 "SSL_set_bio" },
-    { (void **)&x_SSL_set_ex_data,             "SSL_set_ex_data" },
-    { (void **)&x_SSL_shutdown,                "SSL_shutdown" },
-    { (void **)&x_SSL_write,                   "SSL_write" },
-    { (void **)&x_SSLv23_server_method,        "SSLv23_server_method" }
+    { { &x_SSL_set_accept_state },        "SSL_set_accept_state" },
+    { { &x_SSL_set_bio },                 "SSL_set_bio" },
+    { { &x_SSL_set_ex_data },             "SSL_set_ex_data" },
+    { { &x_SSL_shutdown },                "SSL_shutdown" },
+    { { &x_SSL_write },                   "SSL_write" },
+    { { &x_SSLv23_server_method },        "SSLv23_server_method" }
   };
   for (int i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
     if (!(*symbols[i].var = loadSymbol("libssl.so", symbols[i].fn))) {

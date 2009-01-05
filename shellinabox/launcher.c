@@ -125,19 +125,22 @@ static void loadPAM(void) {
   check(!x_pam_start);
   check(!x_misc_conv);
   struct {
-    void       **var;
+    union {
+      void     *avoid_gcc_warning_about_type_punning;
+      void     **var;
+    };
     const char *lib;
     const char *fn;
   } symbols[] = {
-    { (void **)&x_pam_acct_mgmt,     "libpam.so",      "pam_acct_mgmt"     },
-    { (void **)&x_pam_authenticate,  "libpam.so",      "pam_authenticate"  },
-    { (void **)&x_pam_close_session, "libpam.so",      "pam_close_session" },
-    { (void **)&x_pam_end,           "libpam.so",      "pam_end"           },
-    { (void **)&x_pam_get_item,      "libpam.so",      "pam_get_item"      },
-    { (void **)&x_pam_open_session,  "libpam.so",      "pam_open_session"  },
-    { (void **)&x_pam_set_item,      "libpam.so",      "pam_set_item"      },
-    { (void **)&x_pam_start,         "libpam.so",      "pam_start"         },
-    { (void **)&x_misc_conv,         "libpam_misc.so", "misc_conv"         }
+    { { &x_pam_acct_mgmt },     "libpam.so",      "pam_acct_mgmt"     },
+    { { &x_pam_authenticate },  "libpam.so",      "pam_authenticate"  },
+    { { &x_pam_close_session }, "libpam.so",      "pam_close_session" },
+    { { &x_pam_end },           "libpam.so",      "pam_end"           },
+    { { &x_pam_get_item },      "libpam.so",      "pam_get_item"      },
+    { { &x_pam_open_session },  "libpam.so",      "pam_open_session"  },
+    { { &x_pam_set_item },      "libpam.so",      "pam_set_item"      },
+    { { &x_pam_start },         "libpam.so",      "pam_start"         },
+    { { &x_misc_conv },         "libpam_misc.so", "misc_conv"         }
   };
   for (int i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
     if (!(*symbols[i].var = loadSymbol(symbols[i].lib, symbols[i].fn))) {
