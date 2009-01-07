@@ -204,10 +204,10 @@ static int completePendingRequest(struct Session *session,
                                              "HTTP/1.1 200 OK\r\n"
                                              "Content-Type: application/json; "
                                              "charset=utf-8\r\n"
-                                             "Content-Length: %d\r\n"
+                                             "Content-Length: %ld\r\n"
                                              "\r\n"
                                              "%s",
-                                             strlen(json),
+                                             (long)strlen(json),
                                              strcmp(httpGetMethod(http),
                                                     "HEAD") ? json : "");
     free(json);
@@ -412,9 +412,9 @@ static void serveStaticFile(HttpConnection *http, const char *contentType,
   char *response   = stringPrintf(NULL,
                                   "HTTP/1.1 200 OK\r\n"
                                   "Content-Type: %s\r\n"
-                                  "Content-Length: %d\r\n"
+                                  "Content-Length: %ld\r\n"
                                   "\r\n",
-                                  contentType, end - start);
+                                  contentType, (long)(end - start));
   int len          = strlen(response);
   if (strcmp(httpGetMethod(http), "HEAD")) {
     check(response = realloc(response, len + (end - start)));
