@@ -1277,11 +1277,11 @@ void httpSendReply(struct HttpConnection *http, int code,
                                 "HTTP/1.1 %d %s\r\n"
                                 "%s"
                                 "Content-Type: text/html; charset=utf-8\r\n"
-                                "Content-Length: %d\r\n"
+                                "Content-Length: %ld\r\n"
                                 "\r\n",
                                 code, msg,
                                 code != 200 ? "Connection: close\r\n" : "",
-                                strlen(body));
+                                (long)strlen(body));
   }
   int isHead     = !strcmp(http->method, "HEAD");
   if (!isHead) {
