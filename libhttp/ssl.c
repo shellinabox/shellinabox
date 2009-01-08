@@ -68,49 +68,54 @@ extern int pthread_sigmask(int, const sigset_t *, sigset_t *)
 #endif
 
 // SSL support is optional. Only enable it, if the library can be loaded.
-long          (*x_BIO_ctrl)(BIO *, int, long, void *);
-BIO_METHOD *  (*x_BIO_f_buffer)(void);
-void          (*x_BIO_free_all)(BIO *);
-BIO *         (*x_BIO_new)(BIO_METHOD *);
-BIO *         (*x_BIO_new_socket)(int, int);
-BIO *         (*x_BIO_pop)(BIO *);
-BIO *         (*x_BIO_push)(BIO *, BIO *);
-void          (*x_ERR_clear_error)(void);
-void          (*x_ERR_clear_error)(void);
-unsigned long (*x_ERR_peek_error)(void);
-unsigned long (*x_ERR_peek_error)(void);
-long          (*x_SSL_CTX_callback_ctrl)(SSL_CTX *, int, void (*)(void));
-int           (*x_SSL_CTX_check_private_key)(const SSL_CTX *);
-long          (*x_SSL_CTX_ctrl)(SSL_CTX *, int, long, void *);
-void          (*x_SSL_CTX_free)(SSL_CTX *);
-SSL_CTX *     (*x_SSL_CTX_new)(SSL_METHOD *);
-int           (*x_SSL_CTX_use_PrivateKey_file)(SSL_CTX *, const char *, int);
-int           (*x_SSL_CTX_use_certificate_file)(SSL_CTX *, const char *, int);
-long          (*x_SSL_ctrl)(SSL *, int, long, void *);
-void          (*x_SSL_free)(SSL *);
-int           (*x_SSL_get_error)(const SSL *, int);
-void *        (*x_SSL_get_ex_data)(const SSL *, int);
-BIO *         (*x_SSL_get_rbio)(const SSL *);
-const char *  (*x_SSL_get_servername)(const SSL *, int);
-BIO *         (*x_SSL_get_wbio)(const SSL *);
-int           (*x_SSL_library_init)(void);
-SSL *         (*x_SSL_new)(SSL_CTX *);
-int           (*x_SSL_read)(SSL *, void *, int);
-SSL_CTX *     (*x_SSL_set_SSL_CTX)(SSL *, SSL_CTX *);
-void          (*x_SSL_set_accept_state)(SSL *);
-void          (*x_SSL_set_bio)(SSL *, BIO *, BIO *);
-int           (*x_SSL_set_ex_data)(SSL *, int, void *);
-int           (*x_SSL_shutdown)(SSL *);
-int           (*x_SSL_write)(SSL *, const void *, int);
-SSL_METHOD *  (*x_SSLv23_server_method)(void);
+long          (*BIO_ctrl)(BIO *, int, long, void *);
+BIO_METHOD *  (*BIO_f_buffer)(void);
+void          (*BIO_free_all)(BIO *);
+BIO *         (*BIO_new)(BIO_METHOD *);
+BIO *         (*BIO_new_socket)(int, int);
+BIO *         (*BIO_pop)(BIO *);
+BIO *         (*BIO_push)(BIO *, BIO *);
+void          (*ERR_clear_error)(void);
+void          (*ERR_clear_error)(void);
+unsigned long (*ERR_peek_error)(void);
+unsigned long (*ERR_peek_error)(void);
+long          (*SSL_CTX_callback_ctrl)(SSL_CTX *, int, void (*)(void));
+int           (*SSL_CTX_check_private_key)(const SSL_CTX *);
+long          (*SSL_CTX_ctrl)(SSL_CTX *, int, long, void *);
+void          (*SSL_CTX_free)(SSL_CTX *);
+SSL_CTX *     (*SSL_CTX_new)(SSL_METHOD *);
+int           (*SSL_CTX_use_PrivateKey_file)(SSL_CTX *, const char *, int);
+int           (*SSL_CTX_use_certificate_file)(SSL_CTX *, const char *, int);
+long          (*SSL_ctrl)(SSL *, int, long, void *);
+void          (*SSL_free)(SSL *);
+int           (*SSL_get_error)(const SSL *, int);
+void *        (*SSL_get_ex_data)(const SSL *, int);
+BIO *         (*SSL_get_rbio)(const SSL *);
+const char *  (*SSL_get_servername)(const SSL *, int);
+BIO *         (*SSL_get_wbio)(const SSL *);
+int           (*SSL_library_init)(void);
+SSL *         (*SSL_new)(SSL_CTX *);
+int           (*SSL_read)(SSL *, void *, int);
+SSL_CTX *     (*SSL_set_SSL_CTX)(SSL *, SSL_CTX *);
+void          (*SSL_set_accept_state)(SSL *);
+void          (*SSL_set_bio)(SSL *, BIO *, BIO *);
+int           (*SSL_set_ex_data)(SSL *, int, void *);
+int           (*SSL_shutdown)(SSL *);
+int           (*SSL_write)(SSL *, const void *, int);
+SSL_METHOD *  (*SSLv23_server_method)(void);
 
 
 static void sslDestroyCachedContext(void *ssl_, char *context_) {
   struct SSLSupport *ssl = (struct SSLSupport *)ssl_;
   SSL_CTX *context       = (SSL_CTX *)context_;
+#if defined(HAVE_OPENSSL)
   if (context != ssl->sslContext) {
     SSL_CTX_free(context);
   }
+#else
+  check(!context);
+  check(!ssl->sslContext);
+#endif
 }
 
 struct SSLSupport *newSSL(void) {
@@ -132,10 +137,14 @@ void destroySSL(struct SSLSupport *ssl) {
   if (ssl) {
     free(ssl->sniCertificatePattern);
     destroyTrie(&ssl->sniContexts);
+#if defined(HAVE_OPENSSL)
     if (ssl->sslContext) {
       dcheck(!ERR_peek_error());
       SSL_CTX_free(ssl->sslContext);
     }
+#else
+    check(!ssl->sslContext);
+#endif
   }
 }
 
@@ -169,45 +178,45 @@ static void loadSSL(void) {
     };
     const char *fn;
   } symbols[] = {
-    { { &x_BIO_ctrl },                    "BIO_ctrl" },
-    { { &x_BIO_f_buffer },                "BIO_f_buffer" },
-    { { &x_BIO_free_all },                "BIO_free_all" },
-    { { &x_BIO_new },                     "BIO_new" },
-    { { &x_BIO_new_socket },              "BIO_new_socket" },
-    { { &x_BIO_pop },                     "BIO_pop" },
-    { { &x_BIO_push },                    "BIO_push" },
-    { { &x_ERR_clear_error },             "ERR_clear_error" },
-    { { &x_ERR_clear_error },             "ERR_clear_error" },
-    { { &x_ERR_peek_error },              "ERR_peek_error" },
-    { { &x_ERR_peek_error },              "ERR_peek_error" },
-    { { &x_SSL_CTX_callback_ctrl },       "SSL_CTX_callback_ctrl" },
-    { { &x_SSL_CTX_check_private_key },   "SSL_CTX_check_private_key" },
-    { { &x_SSL_CTX_ctrl },                "SSL_CTX_ctrl" },
-    { { &x_SSL_CTX_free },                "SSL_CTX_free" },
-    { { &x_SSL_CTX_new },                 "SSL_CTX_new" },
-    { { &x_SSL_CTX_use_PrivateKey_file }, "SSL_CTX_use_PrivateKey_file" },
-    { { &x_SSL_CTX_use_certificate_file },"SSL_CTX_use_certificate_file"},
-    { { &x_SSL_ctrl },                    "SSL_ctrl" },
-    { { &x_SSL_free },                    "SSL_free" },
-    { { &x_SSL_get_error },               "SSL_get_error" },
-    { { &x_SSL_get_ex_data },             "SSL_get_ex_data" },
-    { { &x_SSL_get_rbio },                "SSL_get_rbio" },
-#ifdef TLSEXT_NAMETYPE_host_name
-    { { &x_SSL_get_servername },          "SSL_get_servername" },
+    { { &BIO_ctrl },                    "BIO_ctrl" },
+    { { &BIO_f_buffer },                "BIO_f_buffer" },
+    { { &BIO_free_all },                "BIO_free_all" },
+    { { &BIO_new },                     "BIO_new" },
+    { { &BIO_new_socket },              "BIO_new_socket" },
+    { { &BIO_pop },                     "BIO_pop" },
+    { { &BIO_push },                    "BIO_push" },
+    { { &ERR_clear_error },             "ERR_clear_error" },
+    { { &ERR_clear_error },             "ERR_clear_error" },
+    { { &ERR_peek_error },              "ERR_peek_error" },
+    { { &ERR_peek_error },              "ERR_peek_error" },
+    { { &SSL_CTX_callback_ctrl },       "SSL_CTX_callback_ctrl" },
+    { { &SSL_CTX_check_private_key },   "SSL_CTX_check_private_key" },
+    { { &SSL_CTX_ctrl },                "SSL_CTX_ctrl" },
+    { { &SSL_CTX_free },                "SSL_CTX_free" },
+    { { &SSL_CTX_new },                 "SSL_CTX_new" },
+    { { &SSL_CTX_use_PrivateKey_file }, "SSL_CTX_use_PrivateKey_file" },
+    { { &SSL_CTX_use_certificate_file },"SSL_CTX_use_certificate_file"},
+    { { &SSL_ctrl },                    "SSL_ctrl" },
+    { { &SSL_free },                    "SSL_free" },
+    { { &SSL_get_error },               "SSL_get_error" },
+    { { &SSL_get_ex_data },             "SSL_get_ex_data" },
+    { { &SSL_get_rbio },                "SSL_get_rbio" },
+#ifndef OPENSSL_NO_TLSEXT
+    { { &SSL_get_servername },          "SSL_get_servername" },
 #endif
-    { { &x_SSL_get_wbio },                "SSL_get_wbio" },
-    { { &x_SSL_library_init },            "SSL_library_init" },
-    { { &x_SSL_new },                     "SSL_new" },
-    { { &x_SSL_read },                    "SSL_read" },
-#ifdef TLSEXT_NAMETYPE_host_name
-    { { &x_SSL_set_SSL_CTX },             "SSL_set_SSL_CTX" },
+    { { &SSL_get_wbio },                "SSL_get_wbio" },
+    { { &SSL_library_init },            "SSL_library_init" },
+    { { &SSL_new },                     "SSL_new" },
+    { { &SSL_read },                    "SSL_read" },
+#ifndef OPENSSL_NO_TLSEXT
+    { { &SSL_set_SSL_CTX },             "SSL_set_SSL_CTX" },
 #endif
-    { { &x_SSL_set_accept_state },        "SSL_set_accept_state" },
-    { { &x_SSL_set_bio },                 "SSL_set_bio" },
-    { { &x_SSL_set_ex_data },             "SSL_set_ex_data" },
-    { { &x_SSL_shutdown },                "SSL_shutdown" },
-    { { &x_SSL_write },                   "SSL_write" },
-    { { &x_SSLv23_server_method },        "SSLv23_server_method" }
+    { { &SSL_set_accept_state },        "SSL_set_accept_state" },
+    { { &SSL_set_bio },                 "SSL_set_bio" },
+    { { &SSL_set_ex_data },             "SSL_set_ex_data" },
+    { { &SSL_shutdown },                "SSL_shutdown" },
+    { { &SSL_write },                   "SSL_write" },
+    { { &SSLv23_server_method },        "SSLv23_server_method" }
   };
   for (int i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
     if (!(*symbols[i].var = loadSymbol("libssl.so", symbols[i].fn))) {
@@ -251,6 +260,7 @@ int serverSupportsSSL(void) {
 }
 
 void sslGenerateCertificate(const char *certificate, const char *serverName) {
+#if defined(HAVE_OPENSSL)
  debug("Auto-generating missing certificate \"%s\" for \"%s\"",
        certificate, serverName);
   char *cmd         = stringPrintf(NULL,
@@ -265,9 +275,10 @@ void sslGenerateCertificate(const char *certificate, const char *serverName) {
     warn("Failed to generate self-signed certificate \"%s\"", certificate);
   }
   free(cmd);
+#endif
 }
 
-#ifdef TLSEXT_NAMETYPE_host_name
+#ifndef OPENSSL_NO_TLSEXT
 static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
   check(!ERR_peek_error());
   const char *name        = SSL_get_servername(sslHndl,
@@ -388,7 +399,7 @@ void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
  valid_certificate:
   free(defaultCertificate);
 
-#ifdef TLSEXT_NAMETYPE_host_name
+#ifndef OPENSSL_NO_TLSEXT
   if (ptr != NULL) {
     check(ssl->sniCertificatePattern = strdup(filename));
     check(SSL_CTX_set_tlsext_servername_callback(ssl->sslContext,
