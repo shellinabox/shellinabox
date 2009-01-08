@@ -319,7 +319,7 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
       actions[i++]          = oldActions[j++];
       if (node.id == "endconfig") {
         node.id             = '';
-        if (serverSupportsSSL) {
+        if (typeof serverSupportsSSL != 'undefined' && serverSupportsSSL) {
           // If the server supports both SSL and plain text connections,
           // provide a menu entry to switch between the two.
           var newNode       = document.createElement('li');
@@ -349,7 +349,7 @@ ShellInABox.prototype.about = function() {
   alert("Shell In A Box version " + VERSION +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com" +
-        (serverSupportsSSL ?
+        (typeof serverSupportsSSL != 'undefined' && serverSupportsSSL ?
          "\n\n" +
          "This product includes software developed by the OpenSSL Project\n" +
          "for use in the OpenSSL Toolkit. (http://www.openssl.org/)\n" +

@@ -57,6 +57,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 [\ \fB-f\fP\ | \fB--static-file=\fP\fIurl\fP:\fIfile\fP\ ]
 [\ \fB-g\fP\ | \fB--group=\fP\fIgid\fP\ ]
 [\ \fB-h\fP\ | \fB--help\fP\ ]
+[\ \fB--no-beep\fP\ ]
 [\ \fB-n\fP\ | \fB--numeric\fP\ ]
 [\ \fB-p\fP\ | \fB--port=\fP\fIport\fP\ ]
 [\ \fB-s\fP\ | \fB--service=\fP\fIservice\fP\ ]
@@ -237,6 +238,11 @@ runs as.
 .TP
 \fB-h\fP\ |\ \fB--help\fP
 Display a brief usage message showing the valid command line parameters.
+.TP
+\fB--no-beep\fP
+not only are audible signals undesired in some working environments, but
+browser support for media playback is often buggy, too. Setting this option
+suppresses all audio playback and enables the visual bell by default.
 .TP
 \fB-n\fP\ |\ \fB--numeric\fP
 When running in
@@ -580,3 +586,9 @@ Some browsers restrict the number of concurrent connections to a
 server. This restricts how many AJAX terminals can be opened
 simultaneously. If this becomes a problem, users can typically
 reconfigure their browsers to raise the limit.
+.P
+There have been reports of the VLC plugin on Linux/x86_64 crashing Firefox
+when the browser page gets reloaded. Setting the
+.B --no-beep
+option eliminates all references to VLC and thus appears to work around
+this crash.

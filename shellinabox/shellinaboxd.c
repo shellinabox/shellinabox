@@ -74,6 +74,7 @@
 static int     port;
 static int     portMin;
 static int     portMax;
+static int     noBeep       = 0;
 static int     numericHosts = 0;
 static int     enableSSL    = 1;
 static char    *certificateDir;
@@ -485,11 +486,13 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     extern char vt100End[];
     extern char shellInABoxStart[];
     extern char shellInABoxEnd[];
-    char *sslState        = stringPrintf(NULL,
-                                         "serverSupportsSSL = %s;\n\n",
-                                         enableSSL ? "true" : "false");
-    int sslStateLength    = strlen(sslState);
-    int contentLength     = sslStateLength +
+    char *stateVars       = stringPrintf(NULL,
+                                         "serverSupportsSSL = %s;\n"
+                                         "suppressAllAudio  = %d;\n\n",
+                                         enableSSL ? "true" : "false",
+                                         noBeep);
+    int stateVarsLength   = strlen(stateVars);
+    int contentLength     = stateVarsLength +
                             (vt100End - vt100Start) +
                             (shellInABoxEnd - shellInABoxStart);
     char *response        = stringPrintf(NULL,
@@ -502,13 +505,13 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     if (strcmp(httpGetMethod(http), "HEAD")) {
       check(response      = realloc(response, headerLength + contentLength));
       memcpy(memcpy(memcpy(
-          response + headerLength, sslState, sslStateLength) + sslStateLength,
+          response + headerLength, stateVars, stateVarsLength)+stateVarsLength,
         vt100Start, vt100End - vt100Start) + (vt100End - vt100Start),
       shellInABoxStart, shellInABoxEnd - shellInABoxStart);
     } else {
       contentLength       = 0;
     }
-    free(sslState);
+    free(stateVars);
     httpTransfer(http, response, headerLength + contentLength);
   } else if (pathInfoLength == 10 && !memcmp(pathInfo, "styles.css", 10)) {
     // Serve the style sheet.
@@ -558,6 +561,7 @@ static void usage(void) {
           "  -f, --static-file=URL:FILE  serve static file from URL path\n"
           "  -g, --group=GID             switch to this group (default: %s)\n"
           "  -h, --help                  print this message\n"
+          "      --no-beep               suppress all audio output\n"
           "  -n, --numeric               do not resolve hostnames\n"
           "  -p, --port=PORT             select a port (default: %d)\n"
           "  -s, --service=SERVICE       define one or more services\n"
@@ -623,6 +627,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "debug",       0, 0, 'd' },
       { "static-file", 1, 0, 'f' },
       { "group",       1, 0, 'g' },
+      { "no-beep",     0, 0,  0  },
       { "numeric",     0, 0, 'n' },
       { "port",        1, 0, 'p' },
       { "service",     1, 0, 's' },
@@ -715,6 +720,9 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Duplicate --group option.");
       }
       runAsGroup           = parseGroup(optarg, NULL);
+    } else if (!idx--) {
+      // No Beep
+      noBeep               = 1;
     } else if (!idx--) {
       // Numeric
       numericHosts         = 1;

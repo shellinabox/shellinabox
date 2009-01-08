@@ -128,7 +128,8 @@ VT100.prototype.reset = function(clearHistory) {
   this.offsetMode                       = false;
   this.mouseReporting                   = false;
   this.utfEnabled                       = true;
-  this.visibleBell                      = false;
+  this.visualBell                       = suppressAllAudio != 'undefined' &&
+                                          suppressAllAudio;
   this.utfCount                         = 0;
   this.utfChar                          = 0;
   this.style                            = '';
@@ -209,17 +210,17 @@ VT100.prototype.initializeElements = function(container) {
     try {
       if (typeof navigator.mimeTypes["audio/x-wav"].enabledPlugin.name !=
           'undefined') {
-        embed                  =
+        embed                  = suppressAllAudio ? "" :
         '<embed classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B" ' +
-                        'id="beep_embed" ' +
-                        'src="beep.wav" ' +
-                        'autostart="false" ' +
-                        'volume="100" ' +
-                        'enablejavascript="true" ' +
-                        'type="audio/x-wav" ' +
-                        'height="16" ' +
-                        'width="200" ' +
-                        'style="position:absolute;left:-1000px;top:-1000px">';
+                       'id="beep_embed" ' +
+                       'src="beep.wav" ' +
+                       'autostart="false" ' +
+                       'volume="100" ' +
+                       'enablejavascript="true" ' +
+                       'type="audio/x-wav" ' +
+                       'height="16" ' +
+                       'width="200" ' +
+                       'style="position:absolute;left:-1000px;top:-1000px" />';
       }
     } catch (e) {
     }
@@ -240,18 +241,23 @@ VT100.prototype.initializeElements = function(container) {
                          '<input type="textfield" id="input" />' +
                          '<input type="textfield" id="cliphelper" />' +
                          '<span id="attrib">&nbsp;</span>' +
-                         embed + '<bgsound id="beep_bgsound" loop=1 />' +
+                         (suppressAllAudio ? "" :
+                         embed + '<bgsound id="beep_bgsound" loop=1 />') +
                         '</div>';
   }
 
   // Find the object used for playing the "beep" sound, if any.
-  this.beeper                  = this.getChildById(this.container,
-                                                   'beep_embed');
-  if (!this.beeper || !this.beeper.Play) {
+  if (typeof suppressAllAudio != 'undefined' && suppressAllAudio) {
+    this.beeper                = undefined;
+  } else {
     this.beeper                = this.getChildById(this.container,
+                                                   'beep_embed');
+    if (!this.beeper || !this.beeper.Play) {
+      this.beeper              = this.getChildById(this.container,
                                                    'beep_bgsound');
-    if (!this.beeper || typeof this.beeper.src == 'undefined') {
-      this.beeper              = undefined;
+      if (!this.beeper || typeof this.beeper.src == 'undefined') {
+        this.beeper            = undefined;
+      }
     }
   }
 
@@ -1441,7 +1447,7 @@ VT100.prototype.toggleUTF = function() {
 };
 
 VT100.prototype.toggleBell = function() {
-  this.visibleBell = !this.visibleBell;
+  this.visualBell = !this.visualBell;
 };
 
 VT100.prototype.about = function() {
@@ -1475,7 +1481,7 @@ VT100.prototype.showContextMenu = function(x, y) {
           '<li id="beginconfig">' +
              (this.utfEnabled ? '&#10004; ' : '') + 'Unicode</li>' +
           '<li id="endconfig">' +
-             (this.visibleBell ? '&#10004; ' : '') + 'Visible Bell</li>'+
+             (this.visualBell ? '&#10004; ' : '') + 'Visual Bell</li>'+
           '<hr />' +
           '<li id="about">About...</li>' +
         '</ul>' +
@@ -2064,7 +2070,7 @@ VT100.prototype.flashScreen = function() {
 };
 
 VT100.prototype.beep = function() {
-  if (this.visibleBell) {
+  if (this.visualBell) {
     this.flashScreen();
   } else {
     try {
