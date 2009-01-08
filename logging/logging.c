@@ -143,10 +143,15 @@ char *vStringPrintf(char *buf, const char *fmt, va_list ap) {
   int offset    = buf ? strlen(buf) : 0;
   int len       = 80;
   check(buf     = realloc(buf, offset + len));
-  int p         = vsnprintf(buf + offset, len, fmt, ap);
+  va_list aq;
+  va_copy(aq, ap);
+  int p         = vsnprintf(buf + offset, len, fmt, aq);
+  va_end(aq);
   if (p >= len) {
     check(buf   = realloc(buf, offset + p + 1));
-    check(vsnprintf(buf + offset, p + 1, fmt, ap) == p);
+    va_copy(aq, ap);
+    check(vsnprintf(buf + offset, p + 1, fmt, aq) == p);
+    va_end(aq);
   } else if (p < 0) {
     int inc     = 256;
     do {
@@ -156,7 +161,10 @@ char *vStringPrintf(char *buf, const char *fmt, va_list ap) {
         inc   <<= 1;
       }
       check(buf = realloc(buf, offset + len));
-    } while (vsnprintf(buf + offset, len, fmt, ap) < 0);
+      va_copy(aq, ap);
+      p         = vsnprintf(buf + offset, len, fmt, ap);
+      va_end(aq);
+    } while (p < 0 || p >= len);
   }
   return buf;
 }
