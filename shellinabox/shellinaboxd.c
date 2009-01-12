@@ -148,7 +148,7 @@ static char *jsonEscape(const char *buf, int len) {
 }
 
 static int completePendingRequest(struct Session *session,
-                                  char *buf, int len, int maxLength) {
+                                  const char *buf, int len, int maxLength) {
   // If there is no pending HTTP request, save the data and return
   // immediately.
   if (!session->http) {

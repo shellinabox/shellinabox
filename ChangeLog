@@ -1,3 +1,14 @@
+2009-08-01  Markus Gutschke  <markus@shellinabox.com>
+
+	* Released version 2.1
+
+	* Fixed build errors mostly related to x86_64.
+
+	* Added --no-beep command line option to avoid VLC plugin crashing
+	Firefox/x86_64.
+
+	* Fixed multi-line selections in Firefox.
+
 2009-01-01  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added CGI mode for demand-loading the shellinaboxd daemon

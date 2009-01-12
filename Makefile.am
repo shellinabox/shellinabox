@@ -98,7 +98,7 @@ clean-local:
 .css.o:
 	@$(ECHO) objcopy "$<" "$@"
 	@objcopy                                                              \
-	  -I binary `echo "$(build_cpu)" |                                    \
+	  -I binary `echo "$(host_cpu)" |                                     \
 		     grep -q '^i[0-9]86$$' &&                                 \
 		     echo ' -O elf32-i386 -B i386' ||                         \
 		     echo ' -O elf64-x86-64 -B i386:x86-64'`                  \
@@ -120,7 +120,7 @@ clean-local:
 .html.o:
 	@$(ECHO) objcopy "$<" "$@"
 	@objcopy                                                              \
-	  -I binary `echo "$(build_cpu)" |                                    \
+	  -I binary `echo "$(host_cpu)" |                                     \
 		     grep -q '^i[0-9]86$$' &&                                 \
 		     echo ' -O elf32-i386 -B i386' ||                         \
 		     echo ' -O elf64-x86-64 -B i386:x86-64'`                  \
@@ -142,7 +142,7 @@ clean-local:
 .ico.o:
 	@$(ECHO) objcopy "$<" "$@"
 	@objcopy                                                              \
-	  -I binary `echo "$(build_cpu)" |                                    \
+	  -I binary `echo "$(host_cpu)" |                                     \
 		     grep -q '^i[0-9]86$$' &&                                 \
 		     echo ' -O elf32-i386 -B i386' ||                         \
 		     echo ' -O elf64-x86-64 -B i386:x86-64'`                  \
@@ -169,7 +169,7 @@ clean-local:
 		;s/^#/\/\/ #/                                                 \
                 ;s/VERSION/\"@VERSION@\"/g" "$<" >"$@.pre" &&                 \
 objcopy                                                                       \
-	  -I binary `echo $(build_cpu) |                                      \
+	  -I binary `echo $(host_cpu) |                                       \
 		     grep -q '^i[0-9]86$$' &&                                 \
 		     echo ' -O elf32-i386 -B i386' ||                         \
 		     echo ' -O elf64-x86-64 -B i386:x86-64'`                  \
@@ -191,7 +191,7 @@ objcopy                                                                       \
 .wav.o:
 	@$(ECHO) objcopy "$<" "$@"
 	@objcopy                                                              \
-	  -I binary `echo "$(build_cpu)" |                                    \
+	  -I binary `echo "$(host_cpu)" |                                     \
 		     grep -q '^i[0-9]86$$' &&                                 \
 		     echo ' -O elf32-i386 -B i386' ||                         \
 		     echo ' -O elf64-x86-64 -B i386:x86-64'`                  \

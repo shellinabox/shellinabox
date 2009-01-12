@@ -50,6 +50,7 @@
 #include <fcntl.h>
 #include <grp.h>
 #include <pwd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -86,6 +87,7 @@ extern int pthread_once(pthread_once_t *, void (*)(void))__attribute__((weak));
 
 // If PAM support is available, take advantage of it. Otherwise, silently fall
 // back on legacy operations for session management.
+#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
 static int (*x_pam_acct_mgmt)(pam_handle_t *, int);
 static int (*x_pam_authenticate)(pam_handle_t *, int);
 static int (*x_pam_close_session)(pam_handle_t *, int);
@@ -97,6 +99,7 @@ static int (*x_pam_start)(const char *, const char *, const struct pam_conv *,
                           pam_handle_t **);
 static int (*x_misc_conv)(int, const struct pam_message **,
                           struct pam_response **, void *);
+#endif
 
 // Older versions of glibc might not support fdopendir(). That's OK, we can
 // work around the lack of it, at a small performance loss.
@@ -106,6 +109,7 @@ static int   launcher = -1;
 static uid_t restricted;
 
 
+#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
 static void *loadSymbol(const char *lib, const char *fn) {
   void *dl = RTLD_DEFAULT;
   void *rc = dlsym(dl, fn);
@@ -154,6 +158,7 @@ static void loadPAM(void) {
   }
   debug("Loaded PAM suppport");
 }
+#endif
 
 int supportsPAM(void) {
 #if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
@@ -463,6 +468,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   // Use PAM to negotiate user authentication and authorization
   const struct passwd *pw;
   pam_handle_t *pam            = NULL;
+#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
   struct pam_conv conv         = { .conv = x_misc_conv };
   if (service->authUser) {
     check(supportsPAM());
@@ -535,18 +541,28 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
     }
     pw                         = getPWEnt(service->uid);
   }
+#else
+  check(!supportsPAM());
+  pw                           = getPWEnt(service->uid);
+#endif
 
   if (restricted &&
       (service->uid != restricted || service->gid != pw->pw_gid)) {
     puts("\nAccess denied!");
+#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
     x_pam_end(pam, PAM_SUCCESS);
+#endif
     _exit(1);
   }
 
+#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
   if (pam) {
     check(x_pam_set_item(pam, PAM_TTY, (const void **)utmp->utmpx.ut_line) ==
           PAM_SUCCESS);
   }
+#else
+  check(!pam);
+#endif
 
   // Retrieve supplementary group ids.
   int ngroups                  = 0;
@@ -798,7 +814,7 @@ static void childProcess(struct Service *service, int width, int height,
   char **environment;
   check(environment             = malloc(2*sizeof(char *)));
   int numEnvVars                = 1;
-  environment[0]                = "TERM=xterm";
+  check(environment[0]          = strdup("TERM=xterm"));
   if (width > 0 && height > 0) {
     numEnvVars                 += 2;
     check(environment           = realloc(environment,
@@ -854,6 +870,7 @@ static void childProcess(struct Service *service, int width, int height,
   // In that case, we do not bother about session management.
   if (!service->useLogin) {
     pam_handle_t *pam           = internalLogin(service, utmp, &environment);
+#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
     if (pam && !geteuid()) {
       check(x_pam_open_session(pam, PAM_SILENT) == PAM_SUCCESS);
       pid_t pid                 = fork();
@@ -872,6 +889,9 @@ static void childProcess(struct Service *service, int width, int height,
         _exit(WIFEXITED(status) ? WEXITSTATUS(status) : -WTERMSIG(status));
       }
     }
+#else
+    check(!pam);
+#endif
   }
 
   // Change user and group ids
