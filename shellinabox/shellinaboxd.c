@@ -893,7 +893,11 @@ int main(int argc, char * const argv[]) {
     char *cgiRoot;
     check(cgiRoot = malloc(cgiRootEnd - cgiRootStart + 1));
     memcpy(cgiRoot, cgiRootStart, cgiRootEnd - cgiRootStart);
-    puts("Content-type: text/html; charset=utf-8\r\n\r");
+    cgiRoot[cgiRootEnd - cgiRootStart] = '\000';
+    printf("X-ShellInABox-Port: %d\r\n"
+           "X-ShellInABox-Pid: %d\r\n"
+           "Content-type: text/html; charset=utf-8\r\n\r\n",
+           port, pid);
     printf(cgiRoot, port, cgiSessionKey);
     fflush(stdout);
     free(cgiRoot);
