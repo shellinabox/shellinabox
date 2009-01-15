@@ -2518,7 +2518,7 @@ VT100.prototype.doControl = function(ch) {
              this.translate   = this.GMap[1];
              this.dispCtrl    = true;                                   break;
   case 0x0F: this.useGMap     = 0;
-             this.translate   = this.GMap[1];
+             this.translate   = this.GMap[0];
              this.dispCtrl    = false;                                  break;
   case 0x18:
   case 0x1A: this.isEsc       = ESnormal;                               break;
