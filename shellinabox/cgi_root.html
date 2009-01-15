@@ -58,9 +58,15 @@
       link.type = 'image/x-icon';
       link.href = url + 'favicon.ico';
       head.appendChild(link);
+      var query = document.location.search.split('&');
+      for (var i = 0; i < query.length; i++) {
+        if (query[i] == 'plain') {
+          url  += '/plain';
+          break;
+        }
+      }
       document.write('<frameset cols="*">\n' +
-                       '<frame src="' + url +
-                          document.location.search.replace(/^\?/, '') + '#' +
+                       '<frame src="' + url + '#' +
                           encodeURIComponent(document.location.href) +
                           ',%s' + '">\n' +
                      '</frameset>');      
