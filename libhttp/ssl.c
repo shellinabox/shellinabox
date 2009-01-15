@@ -57,6 +57,11 @@
 #include "libhttp/httpconnection.h"
 #include "logging/logging.h"
 
+#if !defined(OPENSSL_NO_TLSEXT) && defined(TLSEXT_NAMETYPE_host_name) && \
+    defined(SSL_TLSEXT_ERR_OK)
+#define HAVE_TLSEXT
+#endif
+
 #if defined(HAVE_PTHREAD_H)
 // Pthread support is optional. Only enable it, if the library has been
 // linked into the program
@@ -201,14 +206,14 @@ static void loadSSL(void) {
     { { &SSL_get_error },               "SSL_get_error" },
     { { &SSL_get_ex_data },             "SSL_get_ex_data" },
     { { &SSL_get_rbio },                "SSL_get_rbio" },
-#ifndef OPENSSL_NO_TLSEXT
+#ifdef HAVE_TLSEXT
     { { &SSL_get_servername },          "SSL_get_servername" },
 #endif
     { { &SSL_get_wbio },                "SSL_get_wbio" },
     { { &SSL_library_init },            "SSL_library_init" },
     { { &SSL_new },                     "SSL_new" },
     { { &SSL_read },                    "SSL_read" },
-#ifndef OPENSSL_NO_TLSEXT
+#ifdef HAVE_TLSEXT
     { { &SSL_set_SSL_CTX },             "SSL_set_SSL_CTX" },
 #endif
     { { &SSL_set_accept_state },        "SSL_set_accept_state" },
@@ -278,7 +283,7 @@ void sslGenerateCertificate(const char *certificate, const char *serverName) {
 #endif
 }
 
-#ifndef OPENSSL_NO_TLSEXT
+#ifdef HAVE_TLSEXT
 static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
   check(!ERR_peek_error());
   const char *name        = SSL_get_servername(sslHndl,
@@ -399,7 +404,7 @@ void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
  valid_certificate:
   free(defaultCertificate);
 
-#ifndef OPENSSL_NO_TLSEXT
+#ifdef HAVE_TLSEXT
   if (ptr != NULL) {
     check(ssl->sniCertificatePattern = strdup(filename));
     check(SSL_CTX_set_tlsext_servername_callback(ssl->sslContext,
