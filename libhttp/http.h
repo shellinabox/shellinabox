@@ -94,6 +94,7 @@ int  serverSupportsSSL();
 void serverEnableSSL(Server *server, int flag);
 void serverSetCertificate(Server *server, const char *filename,
                           int autoGenerateMissing);
+void serverSetCertificateFd(Server *server, int fd);
 void serverSetNumericHosts(Server *server, int numericHosts);
 
 void httpTransfer(HttpConnection *http, char *msg, int len);

@@ -83,7 +83,11 @@ extern long    (*x_SSL_CTX_ctrl)(SSL_CTX *, int, long, void *);
 extern void    (*x_SSL_CTX_free)(SSL_CTX *);
 extern SSL_CTX*(*x_SSL_CTX_new)(SSL_METHOD *);
 extern int     (*x_SSL_CTX_use_PrivateKey_file)(SSL_CTX *, const char *, int);
+extern int     (*x_SSL_CTX_use_PrivateKey_ASN1)(int, SSL_CTX *,
+                                                const unsigned char *, long);
 extern int     (*x_SSL_CTX_use_certificate_file)(SSL_CTX *, const char *, int);
+extern int     (*x_SSL_CTX_use_certificate_ASN1)(SSL_CTX *, long,
+                                                 const unsigned char *);
 extern long    (*x_SSL_ctrl)(SSL *, int, long, void *);
 extern void    (*x_SSL_free)(SSL *);
 extern int     (*x_SSL_get_error)(const SSL *, int);
@@ -119,7 +123,9 @@ extern SSL_METHOD *(*x_SSLv23_server_method)(void);
 #define SSL_CTX_free                 x_SSL_CTX_free
 #define SSL_CTX_new                  x_SSL_CTX_new
 #define SSL_CTX_use_PrivateKey_file  x_SSL_CTX_use_PrivateKey_file
+#define SSL_CTX_use_PrivateKey_ASN1  x_SSL_CTX_use_PrivateKey_ASN1
 #define SSL_CTX_use_certificate_file x_SSL_CTX_use_certificate_file
+#define SSL_CTX_use_certificate_ASN1 x_SSL_CTX_use_certificate_ASN1
 #define SSL_ctrl                     x_SSL_ctrl
 #define SSL_free                     x_SSL_free
 #define SSL_get_error                x_SSL_get_error
@@ -175,6 +181,7 @@ void deleteSSL(struct SSLSupport *ssl);
 void sslGenerateCertificate(const char *certificate, const char *serverName);
 void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
                        int autoGenerateMissing);
+void sslSetCertificateFd(struct SSLSupport *ssl, int fd);
 int  sslEnable(struct SSLSupport *ssl, int enabled);
 void sslBlockSigPipe();
 int  sslUnblockSigPipe();

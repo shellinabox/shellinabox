@@ -90,7 +90,11 @@ long          (*SSL_CTX_ctrl)(SSL_CTX *, int, long, void *);
 void          (*SSL_CTX_free)(SSL_CTX *);
 SSL_CTX *     (*SSL_CTX_new)(SSL_METHOD *);
 int           (*SSL_CTX_use_PrivateKey_file)(SSL_CTX *, const char *, int);
+int           (*SSL_CTX_use_PrivateKey_ASN1)(int, SSL_CTX *,
+                                             const unsigned char *, long);
 int           (*SSL_CTX_use_certificate_file)(SSL_CTX *, const char *, int);
+int           (*SSL_CTX_use_certificate_ASN1)(SSL_CTX *, long,
+                                              const unsigned char *);
 long          (*SSL_ctrl)(SSL *, int, long, void *);
 void          (*SSL_free)(SSL *);
 int           (*SSL_get_error)(const SSL *, int);
@@ -200,7 +204,9 @@ static void loadSSL(void) {
     { { &SSL_CTX_free },                "SSL_CTX_free" },
     { { &SSL_CTX_new },                 "SSL_CTX_new" },
     { { &SSL_CTX_use_PrivateKey_file }, "SSL_CTX_use_PrivateKey_file" },
+    { { &SSL_CTX_use_PrivateKey_ASN1 }, "SSL_CTX_use_PrivateKey_ASN1" },
     { { &SSL_CTX_use_certificate_file },"SSL_CTX_use_certificate_file"},
+    { { &SSL_CTX_use_certificate_ASN1 },"SSL_CTX_use_certificate_ASN1"},
     { { &SSL_ctrl },                    "SSL_ctrl" },
     { { &SSL_free },                    "SSL_free" },
     { { &SSL_get_error },               "SSL_get_error" },
@@ -416,6 +422,156 @@ void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
   ERR_clear_error();
 
   ssl->generateMissing               = autoGenerateMissing;
+#endif
+}
+
+#ifdef HAVE_OPENSSL
+static const unsigned char *sslSecureReadASCIIFileToMem(int fd) {
+  size_t inc          = 16384;
+  size_t bufSize      = inc;
+  size_t len          = 0;
+  unsigned char *buf;
+  check((buf          = malloc(bufSize)) != NULL);
+  for (;;) {
+    check(len < bufSize - 1);
+    size_t  readLen   = bufSize - len - 1;
+    ssize_t bytesRead = NOINTR(read(fd, buf + len, readLen));
+    if (bytesRead > 0) {
+      len            += bytesRead;
+    }
+    if (bytesRead != readLen) {
+      break;
+    }
+
+    // Instead of calling realloc(), allocate a new buffer, copy the data,
+    // and then clear the old buffer. This way, we are not accidentally
+    // leaving key material in memory.
+    unsigned char *newBuf;
+    check((newBuf     = malloc(bufSize + inc)) != NULL);
+    memcpy(newBuf, buf, len);
+    memset(buf, 0, bufSize);
+    free(buf);
+    buf               = newBuf;
+    bufSize          += inc;
+  }
+  check(len < bufSize);
+  buf[len]            = '\000';
+  return buf;
+}
+
+static const unsigned char *sslPEMtoASN1(const unsigned char *pem,
+                                         const char *record,
+                                         long *size) {
+  *size              = -1;
+  char *marker;
+  check((marker      = stringPrintf(NULL, "-----BEGIN %s-----",record))!=NULL);
+  unsigned char *ptr = (unsigned char *)strstr((char *)pem, marker);
+  if (!ptr) {
+    free(marker);
+    return NULL;
+  } else {
+    ptr             += strlen(marker);
+  }
+  *marker            = '\000';
+  check((marker      = stringPrintf(marker, "-----END %s-----",record))!=NULL);
+  unsigned char *end = (unsigned char *)strstr((char *)ptr, marker);
+  free(marker);
+  if (!end) {
+    return NULL;
+  }
+  unsigned char *ret;
+  size_t maxSize     = (((end - ptr)*6)+7)/8;
+  check((ret         = malloc(maxSize)) != NULL);
+  unsigned char *out = ret;
+  unsigned bits      = 0;
+  int count          = 0;
+  while (ptr < end) {
+    unsigned char ch = *ptr++;
+    if (ch >= 'A' && ch <= 'Z') {
+      ch            -= 'A';
+    } else if (ch >= 'a' && ch <= 'z') {
+      ch            -= 'a' - 26;
+    } else if (ch >= '0' && ch <= '9') {
+      ch            += 52 - '0';
+    } else if (ch == '+') {
+      ch            += 62 - '+';
+    } else if (ch == '/') {
+      ch            += 63 - '/';
+    } else if (ch == '=') {
+      while (ptr < end) {
+        if ((ch      = *ptr++) != '=' && ch > ' ') {
+          goto err;
+        }
+      }
+      break;
+    } else if (ch <= ' ') {
+      continue;
+    } else {
+   err:
+      free(ret);
+      return NULL;
+    }
+    check(ch <= 63);
+    check(count >= 0);
+    check(count <= 6);
+    bits             = (bits << 6) | ch;
+    count           += 6;
+    if (count >= 8) {
+      *out++         = (bits >> (count -= 8)) & 0xFF;
+    }
+  }
+  check(out - ret <= maxSize);
+  *size              = out - ret;
+  return ret;
+}
+#endif
+
+void sslSetCertificateFd(struct SSLSupport *ssl, int fd) {
+#ifdef HAVE_OPENSSL
+  check(serverSupportsSSL());
+  check(fd >= 0);
+  check(ssl->sslContext     = SSL_CTX_new(SSLv23_server_method()));
+  const unsigned char *data = sslSecureReadASCIIFileToMem(fd);
+  check(!NOINTR(close(fd)));
+  long dataSize             = (long)strlen((const char *)data);
+  long certSize, rsaSize, dsaSize, ecSize;
+  const unsigned char *cert = sslPEMtoASN1(data, "CERTIFICATE", &certSize);
+  const unsigned char *rsa  = sslPEMtoASN1(data, "RSA PRIVATE KEY", &rsaSize);
+  const unsigned char *dsa  = sslPEMtoASN1(data, "DSA PRIVATE KEY", &dsaSize);
+  const unsigned char *ec   = sslPEMtoASN1(data, "EC PRIVATE KEY",  &ecSize);
+  if (!certSize || !(rsaSize > 0 || dsaSize > 0 || ecSize > 0) ||
+      !SSL_CTX_use_certificate_ASN1(ssl->sslContext, certSize, cert) ||
+      (rsaSize > 0 &&
+       !SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, ssl->sslContext, rsa,
+                                    rsaSize)) ||
+      (dsaSize > 0 &&
+       !SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_DSA, ssl->sslContext, dsa,
+                                    dsaSize)) ||
+      (ecSize > 0 &&
+       !SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_EC, ssl->sslContext, ec,
+                                    ecSize)) ||
+      !SSL_CTX_check_private_key(ssl->sslContext)) {
+    fatal("Cannot read valid certificate from fd %d. Check file format.", fd);
+  }
+  dcheck(!ERR_peek_error());
+  ERR_clear_error();
+  memset((char *)data, 0, dataSize);
+  free((char *)data);
+  memset((char *)cert, 0, certSize);
+  free((char *)cert);
+  if (rsaSize > 0) {
+    memset((char *)rsa, 0, rsaSize);
+    free((char *)rsa);
+  }
+  if (dsaSize > 0) {
+    memset((char *)dsa, 0, dsaSize);
+    free((char *)dsa);
+  }
+  if (ecSize > 0) {
+    memset((char *)ec, 0, ecSize);
+    free((char *)ec);
+  }
+  ssl->generateMissing     = 0;
 #endif
 }
 

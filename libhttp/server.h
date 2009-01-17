@@ -111,6 +111,7 @@ void serverLoop(struct Server *server);
 void serverEnableSSL(struct Server *server, int flag);
 void serverSetCertificate(struct Server *server, const char *filename,
                           int autoGenerateMissing);
+void serverSetCertificateFd(struct Server *server, int fd);
 void serverSetNumericHosts(struct Server *server, int numericHosts);
 struct Trie *serverGetHttpHandlers(struct Server *server);
 

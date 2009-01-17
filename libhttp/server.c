@@ -537,6 +537,10 @@ void serverSetCertificate(struct Server *server, const char *filename,
   sslSetCertificate(&server->ssl, filename, autoGenerateMissing);
 }
 
+void serverSetCertificateFd(struct Server *server, int fd) {
+  sslSetCertificateFd(&server->ssl, fd);
+}
+
 void serverSetNumericHosts(struct Server *server, int numericHosts) {
   server->numericHosts = numericHosts;
 }

@@ -52,6 +52,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 .B shellinaboxd
 [\ \fB-b\fP\ | \fB--background\fP[\fB=\fP\fIpidfile\fP]\ ]
 [\ \fB-c\fP\ | \fB--cert=\fP\fIcertdir\fP\ ]
+[\ \fB-c\fP\ | \fB--cert-fd=\fP\fIfd\fP\ ]
 [\ \fB--cgi\fP[\fB=\fP\fIportrange\fP]\ ]
 [\ \fB-d\fP\ | \fB--debug\fP\ ]
 [\ \fB-f\fP\ | \fB--static-file=\fP\fIurl\fP:\fIfile\fP\ ]
@@ -137,6 +138,16 @@ certificate and then allow the user the option of accepting the
 certificate. Due to this usability problem, and due to the perceived
 security implications, the use of auto-generated self-signed
 certificates is intended for testing or in intranet deployments, only.
+.TP
+\fB--cert-fd=\fP\fIfd\fP
+Instead of providing a
+.B --cert
+directory, it is also possible to provide a filedescriptor
+.I fd
+where the certificate and key can be retrieved. While this option disables
+.B SNI
+support, it does offer an alternative solution for securely providing
+the private key data to the daemon.
 .TP
 \fB--cgi\fP[\fB=\fP\fIportrange\fP]
 Instead of running

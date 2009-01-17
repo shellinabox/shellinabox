@@ -74,10 +74,11 @@
 static int     port;
 static int     portMin;
 static int     portMax;
-static int     noBeep       = 0;
-static int     numericHosts = 0;
-static int     enableSSL    = 1;
+static int     noBeep        = 0;
+static int     numericHosts  = 0;
+static int     enableSSL     = 1;
 static char    *certificateDir;
+static int     certificateFd = -1;
 static HashMap *externalFiles;
 static Server  *cgiServer;
 static char    *cgiSessionKey;
@@ -592,7 +593,8 @@ static void usage(void) {
           "  ${user}    - user name",
           !serverSupportsSSL() ? "" :
           "  -c, --cert=CERTDIR          set certificate dir "
-          "(default: $PWD)\n",
+          "(default: $PWD)\n"
+          "  --cert-fd=FD                set certificate file from fd",
           group, PORTNUM,
           !serverSupportsSSL() ? "" :
           "  -t, --disable-ssl           disable transparent SSL support\n",
@@ -623,6 +625,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "help",        0, 0, 'h' },
       { "background",  2, 0, 'b' },
       { "cert",        1, 0, 'c' },
+      { "cert-fd",     1, 0,  0  },
       { "cgi",         2, 0,  0  },
       { "debug",       0, 0, 'd' },
       { "static-file", 1, 0, 'f' },
@@ -670,10 +673,30 @@ static void parseArgs(int argc, char * const argv[]) {
       if (!hasSSL) {
         warn("Ignoring certificate directory, as SSL support is unavailable");
       }
+      if (certificateFd) {
+        fatal("Cannot set both a certificate directory and file handle");
+      }
       if (certificateDir) {
         fatal("Only one certificate directory can be selected");
       }
       check(certificateDir = strdup(optarg));
+    } else if (!idx--) {
+      // Certificate file descriptor
+      if (!hasSSL) {
+        warn("Ignoring certificate directory, as SSL support is unavailable");
+      }
+      if (certificateDir) {
+        fatal("Cannot set both a certificate directory and file handle");
+      }
+      if (certificateFd >= 0) {
+        fatal("Only one certificate file handle can be provided");
+      }
+      int tmpFd            = strtoint(optarg, 3, INT_MAX);
+      certificateFd        = dup(tmpFd);
+      if (certificateFd < 0) {
+        fatal("Invalid certificate file handle");
+      }
+      check(!NOINTR(close(tmpFd)));
     } else if (!idx--) {
       // CGI
       if (demonize) {
@@ -823,7 +846,7 @@ static void parseArgs(int argc, char * const argv[]) {
       if (fd >= 0) {
         char buf[40];
         NOINTR(write(fd, buf, snprintf(buf, 40, "%d", (int)getpid())));
-        NOINTR(close(fd));
+        check(!NOINTR(close(fd)));
       }
     }
   }
@@ -902,7 +925,8 @@ int main(int argc, char * const argv[]) {
     fflush(stdout);
     free(cgiRoot);
     check(!NOINTR(close(fds[1])));
-    closeAllFds((int []){ launcherFd, serverGetFd(server) }, 2);
+    closeAllFds((int []){ launcherFd, serverGetFd(server),
+                          certificateFd }, certificateFd >= 0 ? 3 : 2);
     logSetLogLevel(MSG_QUIET);
   }
   serverEnableSSL(server, enableSSL);
@@ -910,7 +934,9 @@ int main(int argc, char * const argv[]) {
   // Enable SSL support (if available)
   if (enableSSL) {
     check(serverSupportsSSL());
-    if (certificateDir) {
+    if (certificateFd >= 0) {
+      serverSetCertificateFd(server, certificateFd);
+    } else if (certificateDir) {
       char *tmp;
       if (strchr(certificateDir, '%')) {
         fatal("Invalid certificate directory name \"%s\".", certificateDir);

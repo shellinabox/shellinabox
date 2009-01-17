@@ -1036,7 +1036,6 @@ int forkLauncher(void) {
     // Temporarily drop most permissions. We still retain the ability to
     // switch back to root, which is necessary for launching "login".
     lowerPrivileges();
-    NOINTR(close(pair[0]));
     closeAllFds((int []){ pair[1] }, 1);
     launcherDaemon(pair[1]);
     fatal("exit() failed!");
