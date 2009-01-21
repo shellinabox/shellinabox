@@ -270,7 +270,8 @@ int serverSupportsSSL(void) {
 #endif
 }
 
-void sslGenerateCertificate(const char *certificate, const char *serverName) {
+static void sslGenerateCertificate(const char *certificate,
+                                   const char *serverName) {
 #if defined(HAVE_OPENSSL)
  debug("Auto-generating missing certificate \"%s\" for \"%s\"",
        certificate, serverName);

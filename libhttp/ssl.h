@@ -178,7 +178,6 @@ struct SSLSupport *newSSL();
 void initSSL(struct SSLSupport *ssl);
 void destroySSL(struct SSLSupport *ssl);
 void deleteSSL(struct SSLSupport *ssl);
-void sslGenerateCertificate(const char *certificate, const char *serverName);
 void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
                        int autoGenerateMissing);
 void sslSetCertificateFd(struct SSLSupport *ssl, int fd);
