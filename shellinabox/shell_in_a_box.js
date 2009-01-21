@@ -319,7 +319,8 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
       actions[i++]          = oldActions[j++];
       if (node.id == "endconfig") {
         node.id             = '';
-        if (typeof serverSupportsSSL != 'undefined' && serverSupportsSSL) {
+        if (typeof serverSupportsSSL != 'undefined' && serverSupportsSSL &&
+            !(typeof disableSSLMenu != 'undefined' && disableSSLMenu)) {
           // If the server supports both SSL and plain text connections,
           // provide a menu entry to switch between the two.
           var newNode       = document.createElement('li');

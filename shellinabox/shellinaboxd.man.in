@@ -63,6 +63,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 [\ \fB-p\fP\ | \fB--port=\fP\fIport\fP\ ]
 [\ \fB-s\fP\ | \fB--service=\fP\fIservice\fP\ ]
 [\ \fB-t\fP\ | \fB--disable-ssl\fP\ ]
+[\ \fB--disable-ssl-menu\fP\ ]
 [\ \fB-q\fP\ | \fB--quiet\fP\ ]
 [\ \fB-u\fP\ | \fB--user=\fP\fIuid\fP\ ]
 [\ \fB-v\fP\ | \fB--verbose\fP\ ]
@@ -379,6 +380,11 @@ undesired, this behavior can be disabled.
 
 This option is also useful during testing or for deployment in trusted
 intranets, if SSL certificates are unavailable.
+.TP
+\fB--disable-ssl-menu\fP
+If the user should not be able to switch between HTTP and HTTPS modes, this
+choice can be removed from the context menu. The user can still make this
+choice by directly going to the appropriate URL.
 .TP
 \fB-q\fP\ |\ \fB--quiet\fP
 Surpresses all messages to

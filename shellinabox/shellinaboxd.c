@@ -77,6 +77,7 @@ static int     portMax;
 static int     noBeep        = 0;
 static int     numericHosts  = 0;
 static int     enableSSL     = 1;
+static int     enableSSLMenu = 1;
 static char    *certificateDir;
 static int     certificateFd = -1;
 static HashMap *externalFiles;
@@ -489,9 +490,11 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     extern char shellInABoxEnd[];
     char *stateVars       = stringPrintf(NULL,
                                          "serverSupportsSSL = %s;\n"
-                                         "suppressAllAudio  = %d;\n\n",
-                                         enableSSL ? "true" : "false",
-                                         noBeep);
+                                         "disableSSLMenu    = %s;\n"
+                                         "suppressAllAudio  = %s;\n\n",
+                                         enableSSL      ? "true" : "false",
+                                         !enableSSLMenu ? "true" : "false",
+                                         noBeep         ? "true" : "false");
     int stateVarsLength   = strlen(stateVars);
     int contentLength     = stateVarsLength +
                             (vt100End - vt100Start) +
@@ -597,7 +600,8 @@ static void usage(void) {
           "  --cert-fd=FD                set certificate file from fd",
           group, PORTNUM,
           !serverSupportsSSL() ? "" :
-          "  -t, --disable-ssl           disable transparent SSL support\n",
+          "  -t, --disable-ssl           disable transparent SSL support\n"
+          "  --disable-ssl-menu          disallow changing transport mode\n",
           user, supportsPAM() ? "'AUTH' | " : "");
   free((char *)user);
   free((char *)group);
@@ -622,24 +626,25 @@ static void parseArgs(int argc, char * const argv[]) {
   for (;;) {
     static const char optstring[] = "+hb::c:df:g:np:s:tqu:v";
     static struct option options[] = {
-      { "help",        0, 0, 'h' },
-      { "background",  2, 0, 'b' },
-      { "cert",        1, 0, 'c' },
-      { "cert-fd",     1, 0,  0  },
-      { "cgi",         2, 0,  0  },
-      { "debug",       0, 0, 'd' },
-      { "static-file", 1, 0, 'f' },
-      { "group",       1, 0, 'g' },
-      { "no-beep",     0, 0,  0  },
-      { "numeric",     0, 0, 'n' },
-      { "port",        1, 0, 'p' },
-      { "service",     1, 0, 's' },
-      { "disable-ssl", 0, 0, 't' },
-      { "quiet",       0, 0, 'q' },
-      { "user",        1, 0, 'u' },
-      { "verbose",     0, 0, 'v' },
-      { "version",     0, 0,  0  },
-      { 0,             0, 0,  0  } };
+      { "help",             0, 0, 'h' },
+      { "background",       2, 0, 'b' },
+      { "cert",             1, 0, 'c' },
+      { "cert-fd",          1, 0,  0  },
+      { "cgi",              2, 0,  0  },
+      { "debug",            0, 0, 'd' },
+      { "static-file",      1, 0, 'f' },
+      { "group",            1, 0, 'g' },
+      { "no-beep",          0, 0,  0  },
+      { "numeric",          0, 0, 'n' },
+      { "port",             1, 0, 'p' },
+      { "service",          1, 0, 's' },
+      { "disable-ssl",      0, 0, 't' },
+      { "disable-ssl-menu", 0, 0,  0  },
+      { "quiet",            0, 0, 'q' },
+      { "user",             1, 0, 'u' },
+      { "verbose",          0, 0, 'v' },
+      { "version",          0, 0,  0  },
+      { 0,                  0, 0,  0  } };
     int idx                = -1;
     int c                  = getopt_long(argc, argv, optstring, options, &idx);
     if (c > 0) {
@@ -773,6 +778,13 @@ static void parseArgs(int argc, char * const argv[]) {
       }
       enableSSL            = 0;
     } else if (!idx--) {
+      // Disable SSL Menu
+      if (!hasSSL) {
+        warn("Ignoring disable-ssl-menu option, as SSL support is "
+             "unavailable");
+      }
+      enableSSLMenu        = 0;
+    } else if (!idx--) {
       // Quiet
       if (!logIsDefault() && !logIsQuiet()) {
         fatal("--quiet is mutually exclusive with --debug and --verbose.");
@@ -870,6 +882,28 @@ static void removeLimits() {
   }
 }
 
+static void setUpSSL(Server *server) {
+  serverEnableSSL(server, enableSSL);
+
+  // Enable SSL support (if available)
+  if (enableSSL) {
+    check(serverSupportsSSL());
+    if (certificateFd >= 0) {
+      serverSetCertificateFd(server, certificateFd);
+    } else if (certificateDir) {
+      char *tmp;
+      if (strchr(certificateDir, '%')) {
+        fatal("Invalid certificate directory name \"%s\".", certificateDir);
+      }
+      check(tmp = stringPrintf(NULL, "%s/certificate%%s.pem", certificateDir));
+      serverSetCertificate(server, tmp, 1);
+      free(tmp);
+    } else {
+      serverSetCertificate(server, "certificate%s.pem", 1);
+    }
+  }
+}
+
 int main(int argc, char * const argv[]) {
   // Disable core files
   prctl(PR_SET_DUMPABLE, 0, 0, 0, 0);
@@ -890,6 +924,7 @@ int main(int argc, char * const argv[]) {
   Server *server;
   if (port) {
     check(server  = newServer(port));
+    setUpSSL(server);
   } else {
     // For CGI operation we fork the new server, so that it runs in the
     // background.
@@ -908,6 +943,7 @@ int main(int argc, char * const argv[]) {
     check(!NOINTR(close(fds[0])));
     check(server  = newCGIServer(portMin, portMax, AJAX_TIMEOUT));
     cgiServer     = server;
+    setUpSSL(server);
 
     // Output a <frameset> that includes our root page
     check(port    = serverGetListeningPort(server));
@@ -925,28 +961,8 @@ int main(int argc, char * const argv[]) {
     fflush(stdout);
     free(cgiRoot);
     check(!NOINTR(close(fds[1])));
-    closeAllFds((int []){ launcherFd, serverGetFd(server),
-                          certificateFd }, certificateFd >= 0 ? 3 : 2);
+    closeAllFds((int []){ launcherFd, serverGetFd(server) }, 2);
     logSetLogLevel(MSG_QUIET);
-  }
-  serverEnableSSL(server, enableSSL);
-
-  // Enable SSL support (if available)
-  if (enableSSL) {
-    check(serverSupportsSSL());
-    if (certificateFd >= 0) {
-      serverSetCertificateFd(server, certificateFd);
-    } else if (certificateDir) {
-      char *tmp;
-      if (strchr(certificateDir, '%')) {
-        fatal("Invalid certificate directory name \"%s\".", certificateDir);
-      }
-      check(tmp = stringPrintf(NULL, "%s/certificate%%s.pem", certificateDir));
-      serverSetCertificate(server, tmp, 1);
-      free(tmp);
-    } else {
-      serverSetCertificate(server, "certificate%s.pem", 1);
-    }
   }
 
   // Set log file format

@@ -128,7 +128,8 @@ VT100.prototype.reset = function(clearHistory) {
   this.offsetMode                       = false;
   this.mouseReporting                   = false;
   this.utfEnabled                       = true;
-  this.visualBell                       = suppressAllAudio != 'undefined' &&
+  this.visualBell                       = typeof suppressAllAudio !=
+                                          'undefined' &&
                                           suppressAllAudio;
   this.utfCount                         = 0;
   this.utfChar                          = 0;
@@ -210,7 +211,8 @@ VT100.prototype.initializeElements = function(container) {
     try {
       if (typeof navigator.mimeTypes["audio/x-wav"].enabledPlugin.name !=
           'undefined') {
-        embed                  = suppressAllAudio ? "" :
+        embed                  = typeof suppressAllAudio != 'undefined' &&
+                                 suppressAllAudio ? "" :
         '<embed classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B" ' +
                        'id="beep_embed" ' +
                        'src="beep.wav" ' +
@@ -241,7 +243,8 @@ VT100.prototype.initializeElements = function(container) {
                          '<input type="textfield" id="input" />' +
                          '<input type="textfield" id="cliphelper" />' +
                          '<span id="attrib">&nbsp;</span>' +
-                         (suppressAllAudio ? "" :
+                         (typeof suppressAllAudio != 'undefined' &&
+                          suppressAllAudio ? "" :
                          embed + '<bgsound id="beep_bgsound" loop=1 />') +
                         '</div>';
   }
