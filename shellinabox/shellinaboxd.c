@@ -678,7 +678,7 @@ static void parseArgs(int argc, char * const argv[]) {
       if (!hasSSL) {
         warn("Ignoring certificate directory, as SSL support is unavailable");
       }
-      if (certificateFd) {
+      if (certificateFd >= 0) {
         fatal("Cannot set both a certificate directory and file handle");
       }
       if (certificateDir) {
