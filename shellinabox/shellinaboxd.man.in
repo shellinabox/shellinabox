@@ -52,7 +52,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 .B shellinaboxd
 [\ \fB-b\fP\ | \fB--background\fP[\fB=\fP\fIpidfile\fP]\ ]
 [\ \fB-c\fP\ | \fB--cert=\fP\fIcertdir\fP\ ]
-[\ \fB-c\fP\ | \fB--cert-fd=\fP\fIfd\fP\ ]
+[\ \fB--cert-fd=\fP\fIfd\fP\ ]
 [\ \fB--cgi\fP[\fB=\fP\fIportrange\fP]\ ]
 [\ \fB-d\fP\ | \fB--debug\fP\ ]
 [\ \fB-f\fP\ | \fB--static-file=\fP\fIurl\fP:\fIfile\fP\ ]
