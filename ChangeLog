@@ -1,5 +1,11 @@
 2009-01-21  Markus Gutschke  <markus@shellinabox.com>
 
+	* Released version 2.3
+
+	* Fixed a show-stopper bug that broke the --cert option.
+
+2009-01-21  Markus Gutschke  <markus@shellinabox.com>
+
 	* Released version 2.2
 
 	* Fixed a bug that could result in the font getting corrupted.
