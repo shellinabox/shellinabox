@@ -1,5 +1,5 @@
 AC_PREREQ(2.57)
-AC_INIT(shellinabox, 2.1, markus@shellinabox.com)
+AC_INIT(shellinabox, 2.2, markus@shellinabox.com)
 AM_INIT_AUTOMAKE
 AC_PROG_CC
 AC_PROG_INSTALL

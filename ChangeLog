@@ -1,4 +1,18 @@
-2009-08-01  Markus Gutschke  <markus@shellinabox.com>
+2009-01-21  Markus Gutschke  <markus@shellinabox.com>
+
+	* Released version 2.2
+
+	* Fixed a bug that could result in the font getting corrupted.
+
+	* Improved compatibility with more versions of the OpenSSL library.
+	Previously, the feature test for TLSEXT did not always work correctly,
+	resulting in compilation failures.
+
+	* Improved support for embedding shellinaboxd into existing web
+	services. SSL certificates can now be passed in through a file
+	handle, and port and pid numbers can be retrieved from the CGI header.
+
+2009-01-08  Markus Gutschke  <markus@shellinabox.com>
 
 	* Released version 2.1
 
