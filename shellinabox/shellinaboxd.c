@@ -597,11 +597,11 @@ static void usage(void) {
           !serverSupportsSSL() ? "" :
           "  -c, --cert=CERTDIR          set certificate dir "
           "(default: $PWD)\n"
-          "  --cert-fd=FD                set certificate file from fd",
+          "      --cert-fd=FD            set certificate file from fd\n",
           group, PORTNUM,
           !serverSupportsSSL() ? "" :
           "  -t, --disable-ssl           disable transparent SSL support\n"
-          "  --disable-ssl-menu          disallow changing transport mode\n",
+          "      --disable-ssl-menu      disallow changing transport mode\n",
           user, supportsPAM() ? "'AUTH' | " : "");
   free((char *)user);
   free((char *)group);
