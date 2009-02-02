@@ -366,11 +366,35 @@ void closeAllFds(int *exceptFds, int num) {
   }
 }
 
+#ifndef HAVE_PTSNAME_R
+static int ptsname_r(int fd, char *buf, size_t buflen) {
+  // It is unfortunate that ptsname_r is not universally available.
+  // For the time being, this is not a big problem, as ShellInABox is
+  // single-threaded (and so is the launcher process). But if this
+  // code gets re-used in a multi-threaded application, that could
+  // lead to problems.
+  if (buf == NULL) {
+    errno = EINVAL;
+    return -1;
+  }
+  char *p = ptsname(fd);
+  if (p == NULL) {
+    return -1;
+  }
+  if (buflen < strlen(p) + 1) {
+    errno = ERANGE;
+    return -1;
+  }
+  strcpy(buf, p);
+  return 0;
+} 
+#endif
+
 static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
                    const char *peerName) {
   int slave;
   char ptyPath[PATH_MAX];
-  if ((*pty               = getpt())                                < 0 ||
+  if ((*pty               = posix_openpt(O_RDWR|O_NOCTTY))          < 0 ||
       grantpt(*pty)                                                 < 0 ||
       unlockpt(*pty)                                                < 0 ||
       ptsname_r(*pty, ptyPath, sizeof(ptyPath))                     < 0 ||
@@ -438,7 +462,9 @@ static const struct passwd *getPWEnt(uid_t uid) {
   struct passwd pwbuf, *pw;
   char *buf;
   int len                  = sysconf(_SC_GETPW_R_SIZE_MAX);
-  check(len > 0);
+  if (len <= 0) {
+    len                    = 4096;
+  }
   check(buf                = malloc(len));
   check(!getpwuid_r(uid, &pwbuf, buf, len, &pw) && pw);
   struct passwd *passwd;

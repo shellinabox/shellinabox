@@ -156,7 +156,9 @@ const char *getUserName(uid_t uid) {
   struct passwd pwbuf, *pw;
   char *buf;
   int len      = sysconf(_SC_GETPW_R_SIZE_MAX);
-  check(len > 0);
+  if (len <= 0) {
+    len        = 4096;
+  }
   check(buf    = malloc(len));
   char *user;
   if (getpwuid_r(uid, &pwbuf, buf, len, &pw) || !pw) {
@@ -172,13 +174,15 @@ const char *getUserName(uid_t uid) {
 uid_t getUserId(const char *name) {
   struct passwd pwbuf, *pw;
   char *buf;
-  int len                       = sysconf(_SC_GETPW_R_SIZE_MAX);
-  check(len > 0);
-  check(buf                     = malloc(len));
+  int len   = sysconf(_SC_GETPW_R_SIZE_MAX);
+  if (len <= 0) {
+    len     = 4096;
+  }
+  check(buf = malloc(len));
   if (getpwnam_r(name, &pwbuf, buf, len, &pw) || !pw) {
     fatal("Cannot look up user id \"%s\"", name);
   }
-  uid_t uid                     = pw->pw_uid;
+  uid_t uid = pw->pw_uid;
   free(buf);
   return uid;
 }
@@ -204,7 +208,9 @@ const char *getGroupName(gid_t gid) {
   struct group grbuf, *gr;
   char *buf;
   int len       = sysconf(_SC_GETGR_R_SIZE_MAX);
-  check(len > 0);
+  if (len <= 0) {
+    len         = 4096;
+  }
   check(buf     = malloc(len));
   char *group;
   if (getgrgid_r(gid, &grbuf, buf, len, &gr) || !gr) {
@@ -221,7 +227,9 @@ gid_t getGroupId(const char *name) {
   struct group grbuf, *gr;
   char *buf;
   int len   = sysconf(_SC_GETGR_R_SIZE_MAX);
-  check(len > 0);
+  if (len <= 0) {
+    len     = 4096;
+  }
   check(buf = malloc(len));
   if (getgrnam_r(name, &grbuf, buf, len, &gr) || !gr) {
     fatal("Cannot look up group \"%s\"", name);
