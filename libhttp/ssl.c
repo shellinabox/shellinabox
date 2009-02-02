@@ -167,7 +167,11 @@ static void *loadSymbol(const char *lib, const char *fn) {
   void *dl = RTLD_DEFAULT;
   void *rc = dlsym(dl, fn);
   if (!rc) {
+#ifdef RTLD_NOLOAD
     dl     = dlopen(lib, RTLD_LAZY|RTLD_GLOBAL|RTLD_NOLOAD);
+#else
+    dl     = NULL;
+#endif
     if (dl == NULL) {
       dl   = dlopen(lib, RTLD_LAZY|RTLD_GLOBAL);
     }
@@ -540,7 +544,11 @@ void sslSetCertificateFd(struct SSLSupport *ssl, int fd) {
   const unsigned char *rsa  = sslPEMtoASN1(data, "RSA PRIVATE KEY", &rsaSize);
   const unsigned char *dsa  = sslPEMtoASN1(data, "DSA PRIVATE KEY", &dsaSize);
   const unsigned char *ec   = sslPEMtoASN1(data, "EC PRIVATE KEY",  &ecSize);
-  if (!certSize || !(rsaSize > 0 || dsaSize > 0 || ecSize > 0) ||
+  if (!certSize || !(rsaSize > 0 || dsaSize > 0
+#ifdef EVP_PKEY_EC
+                                                || ecSize > 0
+#endif
+                                                             ) ||
       !SSL_CTX_use_certificate_ASN1(ssl->sslContext, certSize, cert) ||
       (rsaSize > 0 &&
        !SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, ssl->sslContext, rsa,
@@ -548,9 +556,11 @@ void sslSetCertificateFd(struct SSLSupport *ssl, int fd) {
       (dsaSize > 0 &&
        !SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_DSA, ssl->sslContext, dsa,
                                     dsaSize)) ||
+#ifdef EVP_PKEY_EC
       (ecSize > 0 &&
        !SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_EC, ssl->sslContext, ec,
                                     ecSize)) ||
+#endif
       !SSL_CTX_check_private_key(ssl->sslContext)) {
     fatal("Cannot read valid certificate from fd %d. Check file format.", fd);
   }

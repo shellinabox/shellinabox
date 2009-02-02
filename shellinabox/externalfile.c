@@ -58,6 +58,7 @@
 #include "libhttp/server.h"
 #include "logging/logging.h"
 
+static const char *NO_MSG;
 
 static int externalFileHttpHandler(HttpConnection *http, void *arg,
                                    const char *buf, int len) {
@@ -91,7 +92,7 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
         if (*ptr == '.') {
           deleteURL(url);
           free(fn);
-          httpSendReply(http, 404, "File not found", NULL);
+          httpSendReply(http, 404, "File not found", NO_MSG);
           return HTTP_DONE;
         }
         ptr                = strchr(ptr + 1, '/');
@@ -99,6 +100,9 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
     }
   
     // Open file for reading
+#ifndef O_LARGEFILE
+#define O_LARGEFILE 0
+#endif
     int fd                 = NOINTR(open(fn, O_RDONLY|O_LARGEFILE));
 
     // Recognize a couple of common MIME types
@@ -135,20 +139,20 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
 
     if (fd < 0) {
       free(fn);
-      httpSendReply(http, 404, "File not found", NULL);
+      httpSendReply(http, 404, "File not found", NO_MSG);
       return HTTP_DONE;
     }
   
     // We only serve regular files, and restrict the file size to 100MB.
     // As a special-case, we also allow access to /dev/null.
-    struct stat64 sb = { 0 };
+    struct stat sb = { 0 };
     if (strcmp(fn, "/dev/null") &&
-        (fstat64(fd, &sb) ||
+        (fstat(fd, &sb) ||
          !S_ISREG(sb.st_mode) ||
          sb.st_size > (100 << 20))) {
       free(fn);
       NOINTR(close(fd));
-      httpSendReply(http, 404, "File not found", NULL);
+      httpSendReply(http, 404, "File not found", NO_MSG);
       return HTTP_DONE;
     }
     free(fn);
@@ -175,7 +179,7 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
       if (bytes < 0) {
         free(response);
         NOINTR(close(fd));
-        httpSendReply(http, 404, "File not found", NULL);
+        httpSendReply(http, 404, "File not found", NO_MSG);
         return HTTP_DONE;
       }
     }

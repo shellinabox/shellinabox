@@ -8,6 +8,7 @@ AC_SUBST(LIBTOOL_DEPS)
 AC_C_CONST
 AC_PROG_GCC_TRADITIONAL
 AC_CHECK_HEADERS([openssl/bio.h openssl/err.h openssl/ssl.h pthread.h         \
-                  security/pam_appl.h security/pam_misc.h])
+                  security/pam_appl.h security/pam_misc.h sys/prctrl.h        \
+                  utmpx.h])
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

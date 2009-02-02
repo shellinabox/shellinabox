@@ -50,6 +50,7 @@
 #include <fcntl.h>
 #include <grp.h>
 #include <pwd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,7 +63,10 @@
 #include <sys/utsname.h>
 #include <termios.h>
 #include <unistd.h>
+
+#ifdef HAVE_UTMPX_H
 #include <utmpx.h>
+#endif
 
 #if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
 #include <security/pam_appl.h>
@@ -228,7 +232,9 @@ struct Utmp {
   const char   pid[32];
   int          pty;
   int          useLogin;
+#ifdef HAVE_UTMPX_H
   struct utmpx utmpx;
+#endif
 };
 
 static HashMap *childProcesses;
@@ -238,6 +244,7 @@ void initUtmp(struct Utmp *utmp, int useLogin, const char *ptyPath,
   memset(utmp, 0, sizeof(struct Utmp));
   utmp->pty                 = -1;
   utmp->useLogin            = useLogin;
+#ifdef HAVE_UTMPX_H
   utmp->utmpx.ut_type       = useLogin ? LOGIN_PROCESS : USER_PROCESS;
   dcheck(!strncmp(ptyPath, "/dev/pts", 8));
   strncat(&utmp->utmpx.ut_line[0], ptyPath + 5,   sizeof(utmp->utmpx.ut_line));
@@ -248,6 +255,7 @@ void initUtmp(struct Utmp *utmp, int useLogin, const char *ptyPath,
   check(!gettimeofday(&tv, NULL));
   utmp->utmpx.ut_tv.tv_sec  = tv.tv_sec;
   utmp->utmpx.ut_tv.tv_usec = tv.tv_usec;
+#endif
 }
 
 struct Utmp *newUtmp(int useLogin, const char *ptyPath,
@@ -261,6 +269,7 @@ struct Utmp *newUtmp(int useLogin, const char *ptyPath,
 void destroyUtmp(struct Utmp *utmp) {
   if (utmp) {
     if (utmp->pty >= 0) {
+#ifdef HAVE_UTMPX_H
       utmp->utmpx.ut_type = DEAD_PROCESS;
       memset(&utmp->utmpx.ut_user, 0, sizeof(utmp->utmpx.ut_user));
       memset(&utmp->utmpx.ut_host, 0, sizeof(utmp->utmpx.ut_host));
@@ -287,6 +296,7 @@ void destroyUtmp(struct Utmp *utmp) {
       // Switch back to the lower privileges
       check(!setresgid(r_gid, e_gid, s_gid));
       check(!setresuid(r_uid, e_uid, s_uid));
+#endif
 
       NOINTR(close(utmp->pty));
     }
@@ -388,7 +398,9 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
   } else if (pid == 0) {
     pid                   = getpid();
     snprintf((char *)&(*utmp)->pid[0], sizeof((*utmp)->pid), "%d", pid);
+#ifdef HAVE_UTMPX_H
     (*utmp)->utmpx.ut_pid = pid;
+#endif
     (*utmp)->pty          = slave;
 
     closeAllFds((int []){ slave }, 1);
@@ -412,7 +424,9 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
     return 0;
   } else {
     snprintf((char *)&(*utmp)->pid[0], sizeof((*utmp)->pid), "%d", pid);
+#ifdef HAVE_UTMPX_H
     (*utmp)->utmpx.ut_pid = pid;
+#endif
     (*utmp)->pty          = *pty;
     fcntl(*pty, F_SETFL, O_NONBLOCK|O_RDWR);
     NOINTR(close(slave));
@@ -557,8 +571,10 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
 
 #if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
   if (pam) {
+#ifdef HAVE_UTMPX_H
     check(x_pam_set_item(pam, PAM_TTY, (const void **)utmp->utmpx.ut_line) ==
           PAM_SUCCESS);
+#endif
   }
 #else
   check(!pam);
@@ -608,12 +624,14 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   free((void *)pw);
 
   // Update utmp/wtmp entries
+#ifdef HAVE_UTMPX_H
   memset(&utmp->utmpx.ut_user, 0, sizeof(utmp->utmpx.ut_user));
   strncat(&utmp->utmpx.ut_user[0], service->user, sizeof(utmp->utmpx.ut_user));
   setutxent();
   pututxline(&utmp->utmpx);
   endutxent();
   updwtmpx("/var/log/wtmp", &utmp->utmpx);
+#endif
 
   alarm(0);
   return pam;
@@ -849,6 +867,7 @@ static void childProcess(struct Service *service, int width, int height,
   // Assert root privileges in order to update utmp entry.
   setresuid(0, 0, 0);
   setresgid(0, 0, 0);
+#ifdef HAVE_UTMPX_H
   setutxent();
   struct utmpx utmpx            = utmp->utmpx;
   if (service->useLogin || service->authUser) {
@@ -862,6 +881,7 @@ static void childProcess(struct Service *service, int width, int height,
     strncat(&utmpx.ut_user[0], "LOGIN", sizeof(utmpx.ut_user));
     updwtmpx("/var/log/wtmp", &utmpx);
   }
+#endif
 
   // Create session. We might have to fork another process as PAM wants us
   // to close the session when the child terminates. And we must retain

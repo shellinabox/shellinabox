@@ -54,11 +54,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/prctl.h>
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#ifdef HAVE_SYS_PRCTL_H
+#include <sys/prctl.h>
+#endif
 
 #include "libhttp/http.h"
 #include "logging/logging.h"
@@ -70,6 +73,8 @@
 
 #define PORTNUM           4200
 #define MAX_RESPONSE      2048
+
+static const char *NO_MSG;
 
 static int     port;
 static int     portMin;
@@ -296,7 +301,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
   int isNew;
   struct Session *session = findCGISession(&isNew, http, url, cgiSessionKey);
   if (session == NULL) {
-    httpSendReply(http, 400, "Bad Request", NULL);
+    httpSendReply(http, 400, "Bad Request", NO_MSG);
     return HTTP_DONE;
   }
 
@@ -304,7 +309,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
   if (!isNew && strcmp(session->peerName, httpGetPeerName(http))) {
     error("Peername changed from %s to %s",
           session->peerName, httpGetPeerName(http));
-    httpSendReply(http, 400, "Bad Request", NULL);
+    httpSendReply(http, 400, "Bad Request", NO_MSG);
     return HTTP_DONE;
   }
 
@@ -326,13 +331,13 @@ static int dataHandler(HttpConnection *http, struct Service *service,
     if (cgiServer && cgiSessions++) {
       serverExitLoop(cgiServer, 1);
       abandonSession(session);
-      httpSendReply(http, 400, "Bad Request", NULL);
+      httpSendReply(http, 400, "Bad Request", NO_MSG);
       return HTTP_DONE;
     }
     session->http         = http;
     if (launchChild(service->id, session) < 0) {
       abandonSession(session);
-      httpSendReply(http, 500, "Internal Error", NULL);
+      httpSendReply(http, 500, "Internal Error", NO_MSG);
       return HTTP_DONE;
     }
     if (cgiServer) {
@@ -381,7 +386,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
     // queue (or process) a new one.
     if (session->http && session->http != http &&
         !completePendingRequest(session, "", 0, MAX_RESPONSE)) {
-      httpSendReply(http, 400, "Bad Request", NULL);
+      httpSendReply(http, 400, "Bad Request", NO_MSG);
       return HTTP_DONE;
     }
     session->http         = http;
@@ -523,7 +528,7 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     extern char stylesEnd[];
     serveStaticFile(http, "text/css; charset=utf-8", stylesStart, stylesEnd);
   } else {
-    httpSendReply(http, 404, "File not found", NULL);
+    httpSendReply(http, 404, "File not found", NO_MSG);
   }
 
   deleteURL(url);
@@ -852,6 +857,9 @@ static void parseArgs(int argc, char * const argv[]) {
     }
     setsid();
     if (pidfile) {
+#ifndef O_LARGEFILE
+#define O_LARGEFILE 0
+#endif
       int fd               = NOINTR(open(pidfile,
                                          O_WRONLY|O_TRUNC|O_LARGEFILE|O_CREAT,
                                          0644));
@@ -905,8 +913,12 @@ static void setUpSSL(Server *server) {
 }
 
 int main(int argc, char * const argv[]) {
+#ifdef HAVE_SYS_PRCTL_H
   // Disable core files
   prctl(PR_SET_DUMPABLE, 0, 0, 0, 0);
+#endif
+  struct rlimit rl = { 0 };
+  setrlimit(RLIMIT_CORE, &rl);
   removeLimits();
 
   // Parse command line arguments

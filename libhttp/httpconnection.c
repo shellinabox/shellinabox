@@ -51,6 +51,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/poll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "libhttp/httpconnection.h"
@@ -58,6 +60,8 @@
 
 #define MAX_HEADER_LENGTH   (64<<10)
 #define CONNECTION_TIMEOUT  (10*60)
+
+static const char *NO_MSG;
 
 static int httpPromoteToSSL(struct HttpConnection *http, const char *buf,
                             int len) {
@@ -545,10 +549,10 @@ static int httpHandleCommand(struct HttpConnection *http,
              !strcmp(http->method, "DELETE") ||
              !strcmp(http->method, "TRACE")  ||
              !strcmp(http->method, "CONNECT")) {
-    httpSendReply(http, 405, "Method Not Allowed", NULL);
+    httpSendReply(http, 405, "Method Not Allowed", NO_MSG);
     return HTTP_DONE;
   } else {
-    httpSendReply(http, 501, "Method Not Implemented", NULL);
+    httpSendReply(http, 501, "Method Not Implemented", NO_MSG);
     return HTTP_DONE;
   }
   const char *host                         = getFromHashMap(&http->header,
@@ -562,7 +566,7 @@ static int httpHandleCommand(struct HttpConnection *http,
       if (ch != '-' && ch != '.' &&
           (ch < '0' ||(ch > '9' && ch < 'A') ||
           (ch > 'Z' && ch < 'a')|| ch > 'z')) {
-        httpSendReply(http, 400, "Bad Request", NULL);
+        httpSendReply(http, 400, "Bad Request", NO_MSG);
         return HTTP_DONE;
       }
     }
@@ -599,7 +603,7 @@ static int httpHandleCommand(struct HttpConnection *http,
       return h->handler(http, h->arg);
     }
   }
-  httpSendReply(http, 404, "File Not Found", NULL);
+  httpSendReply(http, 404, "File Not Found", NO_MSG);
   return HTTP_DONE;
 }
 
@@ -628,7 +632,7 @@ static int httpParseCommand(struct HttpConnection *http, int offset,
     if (!http->version) {
       http->version    = strdup("");
     }
-    httpSendReply(http, 400, "Bad Request", NULL);
+    httpSendReply(http, 400, "Bad Request", NO_MSG);
     httpSetState(http, COMMAND);
     return 0;
   }
@@ -775,7 +779,7 @@ static int httpParseHeaders(struct HttpConnection *http,
     }
   } else {
     if (colon <= 0) {
-      httpSendReply(http, 400, "Bad Request", NULL);
+      httpSendReply(http, 400, "Bad Request", NO_MSG);
       return 0;
     }
     check(colon < lineLength);
@@ -934,7 +938,7 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
       if (bytes > 0) {
         http->headerLength          += bytes;
         if (http->headerLength > MAX_HEADER_LENGTH) {
-          httpSendReply(http, 413, "Header too big", NULL);
+          httpSendReply(http, 413, "Header too big", NO_MSG);
           bytes                      = 0;
           eof                        = 1;
         }

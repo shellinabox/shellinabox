@@ -45,6 +45,7 @@
 
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/poll.h>
@@ -65,6 +66,8 @@
 // API should be used, instead.
 #define MAX_PAYLOAD_LENGTH (64<<10)
 
+static const char *NO_MSG;
+
 time_t currentTime;
 
 struct PayLoad {
@@ -80,7 +83,7 @@ static int serverCollectFullPayload(struct HttpConnection *http,
   struct PayLoad *payload       = (struct PayLoad *)payload_;
   if (buf && len) {
     if (payload->len + len > MAX_PAYLOAD_LENGTH) {
-      httpSendReply(http, 400, "Bad Request", NULL);
+      httpSendReply(http, 400, "Bad Request", NO_MSG);
       return HTTP_DONE;
     }
     check(len > 0);
@@ -162,7 +165,7 @@ void serverRegisterStreamingHttpHandler(struct Server *server, const char *url,
 }
 
 static int serverQuitHandler(struct HttpConnection *http, void *arg) {
-  httpSendReply(http, 200, "Good Bye", NULL);
+  httpSendReply(http, 200, "Good Bye", NO_MSG);
   httpExitLoop(http, 1);
   return HTTP_DONE;
 }
