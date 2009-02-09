@@ -184,7 +184,7 @@ clean-local:
 	             -e d "$<"`"                                              \
 	     -e "s/^#/\/\/ #/"                                                \
 	     -e "s/VERSION/\"@VERSION@\"/g" "$<" >"$@.pre" &&                 \
-	                                                                      \
+	objcopy                                                               \
 	  -I binary `echo $(host_cpu) |                                       \
 	             grep -q '^i[0-9]86$$' &&                                 \
 	             echo ' -O elf32-i386 -B i386' ||                         \

@@ -1183,7 +1183,8 @@ VT100.prototype.clearRegion = function(x, y, w, h, style) {
   // not have a scrollback buffer. In that case, we should just remove all
   // child nodes.
   if (!this.numScrollbackLines &&
-      w == this.terminalWidth && h == this.terminalHeight) {
+      w == this.terminalWidth && h == this.terminalHeight &&
+      !style) {
     var console = this.console[this.currentScreen];
     while (console.lastChild) {
       console.removeChild(console.lastChild);
@@ -1344,7 +1345,8 @@ VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY, style) {
           if (this.numScrollbackLines > 0 ||
               console.childNodes.length > this.numScrollbackLines+y+h+incY) {
             for (var i = -incY; i-- > 0; ) {
-              this.insertBlankLine(this.numScrollbackLines + y + h + incY);
+              this.insertBlankLine(this.numScrollbackLines + y + h + incY,
+                                   style);
             }
           }
         }
@@ -1356,7 +1358,7 @@ VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY, style) {
           console.removeChild(console.childNodes[this.numScrollbackLines+y+h]);
         }
         for (var i = incY; i--; ) {
-          this.insertBlankLine(this.numScrollbackLines + y);
+          this.insertBlankLine(this.numScrollbackLines + y, style);
         }
       }
     } else {
@@ -1666,7 +1668,7 @@ VT100.prototype.handleKey = function(event) {
       case   9: /* Tab          */ ch = '\u0009';      break;
       case  10: /* Return       */ ch = '\u000A';      break;
       case  13: /* Enter        */ ch = this.crLfMode ?
-                                        '\r\n' : '\n'; break;
+                                        '\r\n' : '\r'; break;
       case  16: /* Shift        */                     return;
       case  17: /* Ctrl         */                     return;
       case  18: /* Alt          */                     return;
@@ -2304,6 +2306,8 @@ VT100.prototype.setMode = function(state) {
       case  9: this.mouseReporting     = state;                      break;
       case 25: if (state) { this.showCursor(); }
                else       { this.hideCursor(); }                     break;
+      case 1047:
+      case 1049:
       case 47: this.enableAlternateScreen(state);                    break;
       default:                                                       break;
       }
