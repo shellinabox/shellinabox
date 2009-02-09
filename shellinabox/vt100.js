@@ -1289,7 +1289,7 @@ VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY, style) {
 
     // Determine original cursor position. Hide cursor temporarily to avoid
     // visual artifacts.
-    var visible        = this.hideCursor();
+    var hidden         = this.hideCursor();
     var cx             = this.cursorX;
     var cy             = this.cursorY;
     var console        = this.console[this.currentScreen];
@@ -1396,7 +1396,7 @@ VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY, style) {
                                 this.cursorHeight + 1;
 
     // Move cursor back to its original position
-    visible ? this.showCursor(cx, cy) : this.putString(cx, cy, '', undefined);
+    hidden ? this.showCursor(cx, cy) : this.putString(cx, cy, '', undefined);
   }
 };
 
@@ -2304,7 +2304,8 @@ VT100.prototype.setMode = function(state) {
       case  7: this.autoWrapMode       = state;                      break;
       case 1000:
       case  9: this.mouseReporting     = state;                      break;
-      case 25: if (state) { this.showCursor(); }
+      case 25: this.cursorNeedsShowing = state;
+               if (state) { this.showCursor(); }
                else       { this.hideCursor(); }                     break;
       case 1047:
       case 1049:
@@ -2827,7 +2828,7 @@ VT100.prototype.renderString = function(s, showCursor) {
 };
 
 VT100.prototype.vt100 = function(s) {
-  var visible             = this.hideCursor();
+  this.cursorNeedsShowing = this.hideCursor();
   this.respondString      = '';
   var lineBuf             = '';
   for (var i = 0; i < s.length; i++) {
@@ -2918,8 +2919,8 @@ VT100.prototype.vt100 = function(s) {
     }
   }
   if (lineBuf) {
-    this.renderString(lineBuf, true);
-  } else if (visible) {
+    this.renderString(lineBuf, this.cursorNeedsShowing);
+  } else if (this.cursorNeedsShowing) {
     this.showCursor();
   }
   return this.respondString;
