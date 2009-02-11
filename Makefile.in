@@ -39,9 +39,9 @@ bin_PROGRAMS = shellinaboxd$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(dist_doc_DATA) \
 	$(noinst_HEADERS) $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
-	TODO config.guess config.sub depcomp install-sh ltmain.sh \
-	missing
+	$(srcdir)/config.h.in $(top_srcdir)/configure AUTHORS COPYING \
+	ChangeLog INSTALL NEWS TODO config.guess config.sub depcomp \
+	install-sh ltmain.sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -49,6 +49,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
+CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libhttp_la_LIBADD =
@@ -265,7 +266,9 @@ EXTRA_DIST = shellinabox/shellinaboxd.man.in                        \
                        debian/shellinabox.postinst                            \
                        debian/shellinabox.postrm
 
-LIBLOGGING_INCLUDES = logging/logging.h
+LIBLOGGING_INCLUDES = logging/logging.h                                      \
+                       config.h
+
 liblogging_la_SOURCES = logging/logging.c                                      \
                        $(LIBLOGGING_INCLUDES)
 
@@ -275,7 +278,8 @@ LIBHTTP_INCLUDES = libhttp/hashmap.h                                      \
                        libhttp/httpconnection.h                               \
                        libhttp/server.h                                       \
                        libhttp/ssl.h                                          \
-                       libhttp/url.h
+                       libhttp/url.h                                          \
+                       config.h
 
 libhttp_la_SOURCES = libhttp/hashmap.c                                      \
                        libhttp/trie.c                                         \
@@ -306,13 +310,15 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/shell_in_a_box.js                          \
                        shellinabox/styles.css                                 \
                        shellinabox/favicon.ico                                \
-                       shellinabox/beep.wav
+                       shellinabox/beep.wav                                   \
+                       config.h
 
 shellinaboxd_LDADD = liblogging.la                                          \
                        libhttp.la
 
 shellinaboxd_LDFLAGS = -static
-all: all-am
+all: config.h
+	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .css .html .ico .js .lo .o .obj .wav
@@ -349,6 +355,23 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(srcdir) && $(AUTOCONF)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
+
+config.h: stamp-h1
+	@if test ! -f $@; then \
+	  rm -f stamp-h1; \
+	  $(MAKE) $(AM_MAKEFLAGS) stamp-h1; \
+	else :; fi
+
+stamp-h1: $(srcdir)/config.h.in $(top_builddir)/config.status
+	@rm -f stamp-h1
+	cd $(top_builddir) && $(SHELL) ./config.status config.h
+$(srcdir)/config.h.in:  $(am__configure_deps) 
+	cd $(top_srcdir) && $(AUTOHEADER)
+	rm -f stamp-h1
+	touch $@
+
+distclean-hdr:
+	-rm -f config.h stamp-h1
 
 clean-noinstLTLIBRARIES:
 	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
@@ -676,11 +699,11 @@ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	mkid -fID $$unique
 tags: TAGS
 
-TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+TAGS:  $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
 	here=`pwd`; \
-	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
+	list='$(SOURCES) $(HEADERS) config.h.in $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
 	  done | \
@@ -692,10 +715,10 @@ TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 	    $$tags $$unique; \
 	fi
 ctags: CTAGS
-CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+CTAGS:  $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
-	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
+	list='$(SOURCES) $(HEADERS) config.h.in $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
 	  done | \
@@ -846,7 +869,8 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(MANS) $(DATA) $(HEADERS)
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(MANS) $(DATA) $(HEADERS) \
+		config.h
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(docdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
@@ -887,7 +911,7 @@ distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
-	distclean-libtool distclean-tags
+	distclean-hdr distclean-libtool distclean-tags
 
 dvi: dvi-am
 
@@ -948,7 +972,7 @@ uninstall-man: uninstall-man1
 	clean-binPROGRAMS clean-generic clean-libtool clean-local \
 	clean-noinstLTLIBRARIES ctags dist dist-all dist-bzip2 \
 	dist-gzip dist-lzma dist-shar dist-tarZ dist-zip distcheck \
-	distclean distclean-compile distclean-generic \
+	distclean distclean-compile distclean-generic distclean-hdr \
 	distclean-libtool distclean-tags distcleancheck distdir \
 	distuninstallcheck dvi dvi-am html html-am info info-am \
 	install install-am install-binPROGRAMS install-data \

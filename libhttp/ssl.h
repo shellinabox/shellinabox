@@ -46,6 +46,8 @@
 #ifndef SSL_H__
 #define SSL_H__
 
+#include "config.h"
+
 #include "libhttp/trie.h"
 
 #if defined(HAVE_OPENSSL_BIO_H) && \

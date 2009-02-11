@@ -1,6 +1,7 @@
 AC_PREREQ(2.57)
 AC_INIT(shellinabox, 2.3, markus@shellinabox.com)
 AM_INIT_AUTOMAKE
+AM_CONFIG_HEADER(config.h)
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL

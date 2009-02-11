@@ -43,6 +43,8 @@
 // The most up-to-date version of this program is always available from
 // http://shellinabox.com
 
+#include "config.h"
+
 #include <errno.h>
 #include <arpa/inet.h>
 #include <netdb.h>

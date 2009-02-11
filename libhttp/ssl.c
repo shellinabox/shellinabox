@@ -44,6 +44,7 @@
 // http://shellinabox.com
 
 #define _GNU_SOURCE
+#include "config.h"
 
 #include <dlfcn.h>
 #include <errno.h>
@@ -57,8 +58,8 @@
 #include "libhttp/httpconnection.h"
 #include "logging/logging.h"
 
-#if !defined(OPENSSL_NO_TLSEXT) && defined(TLSEXT_NAMETYPE_host_name) && \
-    defined(SSL_TLSEXT_ERR_OK)
+#if defined(HAVE_OPENSSL) && !defined(OPENSSL_NO_TLSEXT) &&                   \
+    defined(TLSEXT_NAMETYPE_host_name) && defined(SSL_TLSEXT_ERR_OK)
 #define HAVE_TLSEXT
 #endif
 
@@ -274,9 +275,9 @@ int serverSupportsSSL(void) {
 #endif
 }
 
+#if defined(HAVE_OPENSSL)
 static void sslGenerateCertificate(const char *certificate,
                                    const char *serverName) {
-#if defined(HAVE_OPENSSL)
  debug("Auto-generating missing certificate \"%s\" for \"%s\"",
        certificate, serverName);
   char *cmd         = stringPrintf(NULL,
@@ -291,8 +292,8 @@ static void sslGenerateCertificate(const char *certificate,
     warn("Failed to generate self-signed certificate \"%s\"", certificate);
   }
   free(cmd);
-#endif
 }
+#endif
 
 #ifdef HAVE_TLSEXT
 static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {

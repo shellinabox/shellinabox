@@ -44,6 +44,7 @@
 // http://shellinabox.com
 
 #define _GNU_SOURCE
+#include "config.h"
 
 #include <fcntl.h>
 #include <stdlib.h>

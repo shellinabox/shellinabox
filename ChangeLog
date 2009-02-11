@@ -1,3 +1,20 @@
+2009-02-11  Markus Gutschke  <markus@shellinabox.com>
+
+	* Fixed fatal compiler warning if compiling without SSL support.
+
+	* Fixed cursor hiding and showing
+
+	* Fixed various rendering glitches reported by Phil Endecott of
+	Anyterm (http://anyterm.org) fame.
+
+	* Made code more portable. In particular, fixed sed scripts.
+
+	* Added explicit config.h file, instead of passing configuration
+	options on the compiler's command line.
+
+	* Fixed compilation issues on BSD systems. Code is still untested
+	and unsupport on non-Linux systems at this time.
+
 2009-01-21  Markus Gutschke  <markus@shellinabox.com>
 
 	* Released version 2.3

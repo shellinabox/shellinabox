@@ -29,7 +29,8 @@ EXTRA_DIST           = shellinabox/shellinaboxd.man.in                        \
                        debian/shellinabox.install                             \
                        debian/shellinabox.postinst                            \
                        debian/shellinabox.postrm
-LIBLOGGING_INCLUDES  = logging/logging.h
+LIBLOGGING_INCLUDES  = logging/logging.h                                      \
+                       config.h
 liblogging_la_SOURCES= logging/logging.c                                      \
                        $(LIBLOGGING_INCLUDES)
 liblogging_la_LDFLAGS= -version 1:0:0
@@ -39,7 +40,8 @@ LIBHTTP_INCLUDES     = libhttp/hashmap.h                                      \
                        libhttp/httpconnection.h                               \
                        libhttp/server.h                                       \
                        libhttp/ssl.h                                          \
-                       libhttp/url.h
+                       libhttp/url.h                                          \
+                       config.h
 libhttp_la_SOURCES   = libhttp/hashmap.c                                      \
                        libhttp/trie.c                                         \
                        libhttp/httpconnection.c                               \
@@ -68,7 +70,8 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/shell_in_a_box.js                          \
                        shellinabox/styles.css                                 \
                        shellinabox/favicon.ico                                \
-                       shellinabox/beep.wav
+                       shellinabox/beep.wav                                   \
+                       config.h
 shellinaboxd_LDADD   = liblogging.la                                          \
                        libhttp.la
 shellinaboxd_LDFLAGS = -static
