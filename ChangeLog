@@ -1,3 +1,7 @@
+2009-02-12  Markus Gutschke  <markus@shellinabox.com>
+
+	* Released version 2.4
+
 2009-02-11  Markus Gutschke  <markus@shellinabox.com>
 
 	* Fixed fatal compiler warning if compiling without SSL support.
@@ -13,7 +17,7 @@
 	options on the compiler's command line.
 
 	* Fixed compilation issues on BSD systems. Code is still untested
-	and unsupport on non-Linux systems at this time.
+	and unsupported on non-Linux systems at this time.
 
 2009-01-21  Markus Gutschke  <markus@shellinabox.com>
 
