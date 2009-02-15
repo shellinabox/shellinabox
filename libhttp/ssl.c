@@ -335,8 +335,9 @@ static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
   if (context == NULL) {
     check(context         = SSL_CTX_new(SSLv23_server_method()));
     check(ssl->sniCertificatePattern);
-    char *certificate     = stringPrintf(NULL, ssl->sniCertificatePattern,
-                                         serverName);
+    char *certificate     = stringPrintfUnchecked(NULL,
+                                                  ssl->sniCertificatePattern,
+                                                  serverName);
     if (!SSL_CTX_use_certificate_file(context, certificate, SSL_FILETYPE_PEM)||
         !SSL_CTX_use_PrivateKey_file(context, certificate, SSL_FILETYPE_PEM) ||
         !SSL_CTX_check_private_key(context)) {

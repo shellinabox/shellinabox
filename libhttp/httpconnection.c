@@ -63,8 +63,6 @@
 #define MAX_HEADER_LENGTH   (64<<10)
 #define CONNECTION_TIMEOUT  (10*60)
 
-static const char *NO_MSG;
-
 static int httpPromoteToSSL(struct HttpConnection *http, const char *buf,
                             int len) {
   if (http->ssl->enabled && !http->sslHndl) {
@@ -1253,7 +1251,7 @@ void httpSendReply(struct HttpConnection *http, int code,
   char *body;
   char *title    = code != 200 ? stringPrintf(NULL, "%d %s", code, msg) : NULL;
   char *details  = NULL;
-  if (fmt != NULL) {
+  if (fmt != NULL && strcmp(fmt, NO_MSG)) {
     va_list ap;
     va_start(ap, fmt);
     details      = vStringPrintf(NULL, fmt, ap);
@@ -1274,7 +1272,7 @@ void httpSendReply(struct HttpConnection *http, int code,
      "%s\n"
      "</body>\n"
      "</html>\n",
-     title ? title : msg, fmt ? details : msg);
+     title ? title : msg, fmt && strcmp(fmt, NO_MSG) ? details : msg);
   free(details);
   free(title);
   char *response = NULL;

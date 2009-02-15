@@ -59,8 +59,6 @@
 #include "libhttp/server.h"
 #include "logging/logging.h"
 
-static const char *NO_MSG;
-
 static int externalFileHttpHandler(HttpConnection *http, void *arg,
                                    const char *buf, int len) {
   checkGraveyard();

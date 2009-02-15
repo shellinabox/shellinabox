@@ -68,8 +68,6 @@
 // API should be used, instead.
 #define MAX_PAYLOAD_LENGTH (64<<10)
 
-static const char *NO_MSG;
-
 time_t currentTime;
 
 struct PayLoad {

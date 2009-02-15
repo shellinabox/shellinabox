@@ -52,6 +52,7 @@
 #include <limits.h>
 #include <locale.h>
 #include <poll.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,8 +75,6 @@
 
 #define PORTNUM           4200
 #define MAX_RESPONSE      2048
-
-static const char *NO_MSG;
 
 static int     port;
 static int     portMin;
@@ -153,6 +152,18 @@ static char *jsonEscape(const char *buf, int len) {
   }
   *dst++                      = '\000';
   return result;
+}
+
+static int printfUnchecked(const char *format, ...) {
+  // Some Linux distributions enable -Wformat=2 by default. This is a
+  // very unfortunate decision, as that option generates a lot of false
+  // positives. We try to work around the problem by defining an unchecked
+  // version of "printf()"
+  va_list ap;
+  va_start(ap, format);
+  int rc = vprintf(format, ap);
+  va_end(ap);
+  return rc;
 }
 
 static int completePendingRequest(struct Session *session,
@@ -970,7 +981,7 @@ int main(int argc, char * const argv[]) {
            "X-ShellInABox-Pid: %d\r\n"
            "Content-type: text/html; charset=utf-8\r\n\r\n",
            port, pid);
-    printf(cgiRoot, port, cgiSessionKey);
+    printfUnchecked(cgiRoot, port, cgiSessionKey);
     fflush(stdout);
     free(cgiRoot);
     check(!NOINTR(close(fds[1])));

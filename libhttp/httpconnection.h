@@ -60,6 +60,8 @@
 #define HTTP_SUSPEND       3
 #define HTTP_PARTIAL_REPLY 4
 
+#define NO_MSG             "\001"
+
 struct HttpConnection {
   struct Server           *server;
   struct ServerConnection *connection;

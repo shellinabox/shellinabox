@@ -178,3 +178,6 @@ char *stringPrintf(char *buf, const char *fmt, ...) {
   va_end(ap);
   return s;
 }
+
+char *stringPrintfUnchecked(char *buf, const char *fmt, ...)
+  __attribute__((alias("stringPrintf")));

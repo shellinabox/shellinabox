@@ -89,5 +89,6 @@ void logSetLogLevel(int level);
 char *vStringPrintf(char *buf, const char *fmt, va_list ap);
 char *stringPrintf(char *buf, const char *fmt, ...)
   __attribute__((format(printf, 2, 3)));
+char *stringPrintfUnchecked(char *buf, const char *fmt, ...);
 
 #endif /* LOGGING_H__ */

@@ -56,6 +56,8 @@
 #define HTTP_SUSPEND       3
 #define HTTP_PARTIAL_REPLY 4
 
+#define NO_MSG             "\001"
+
 #define NOINTR(x) ({ int i__; while ((i__ = (x)) < 0 && errno == EINTR); i__;})
 
 typedef struct HashMap HashMap;
