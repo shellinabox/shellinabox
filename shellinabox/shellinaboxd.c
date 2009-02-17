@@ -823,7 +823,7 @@ static void parseArgs(int argc, char * const argv[]) {
       logSetLogLevel(verbosity);
     } else if (!idx--) {
       // Version
-      message("ShellInABox version " VERSION);
+      message("ShellInABox version " VERSION " (revision " VCS_REVISION ")");
       exit(0);
     }
   }

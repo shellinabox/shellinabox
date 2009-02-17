@@ -2,6 +2,10 @@ AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
 AC_INIT(shellinabox, 2.4, markus@shellinabox.com)
+VCS_REVISION=`echo '$Revision: 66$'|sed 's/.Revision: \(.*\)./\1/'`
+AC_SUBST(VCS_REVISION)
+AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
+                   [Most recent revision number in the version control system])
 
 dnl Set up autoconf/automake for building C libraries and binaries with GCC
 AM_INIT_AUTOMAKE

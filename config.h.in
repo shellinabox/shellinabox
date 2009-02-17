@@ -93,6 +93,9 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* Most recent revision number in the version control system */
+#undef VCS_REVISION
+
 /* Version number of package */
 #undef VERSION
 

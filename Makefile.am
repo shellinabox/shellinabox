@@ -195,7 +195,8 @@ clean-local:
 	             -e t                                                     \
 	             -e d "$<"`"                                              \
 	     -e "s/^#/\/\/ #/"                                                \
-	     -e "s/VERSION/\"@VERSION@\"/g" "$<" >"$@.pre" &&                 \
+	     -e "s/VERSION/\"@VERSION@ (revision @VCS_REVISION@)\"/g"         \
+	                                                    "$<" >"$@.pre" && \
 	objcopy                                                               \
 	  -I binary `echo $(host_cpu) |                                       \
 	             grep -q '^i[0-9]86$$' &&                                 \
