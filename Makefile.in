@@ -1101,6 +1101,8 @@ clean-local:
 	    -e 's/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                           \
 	  "$<" "$@"
 
+shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
+
 .js.o:
 	@$(ECHO) preprocess "$<" \| objcopy "$@"
 	@trap 'rm -f "$@.pre"' EXIT INT TERM QUIT;                            \
