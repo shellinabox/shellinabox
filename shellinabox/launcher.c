@@ -179,11 +179,13 @@ static int read_string(int echo, const char *prompt, char **retstr) {
   return nc;
 }
 
+#if defined(HAVE_SECURITY_PAM_CLIENT_H)
 static pamc_bp_t *p(pamc_bp_t *p) {
   // GCC is too smart for its own good, and triggers a warning in
   // PAM_BP_RENEW, unless we pass the first argument through a function.
   return p;
 }
+#endif
 
 static int my_misc_conv(int num_msg, const struct pam_message **msgm,
                         struct pam_response **response, void *appdata_ptr) {
