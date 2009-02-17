@@ -256,7 +256,8 @@ int serverSupportsSSL(void) {
   // this is straight-forward. For threaded applications, we need to call
   // pthread_once(), instead. We perform run-time checks for whether we are
   // single- or multi-threaded, so that the same code can be used.
-#if defined(HAVE_PTHREAD_H)
+  // This currently only works on Linux.
+#if defined(HAVE_PTHREAD_H) && defined(__linux__)
   if (!!&pthread_once) {
     static pthread_once_t once = PTHREAD_ONCE_INIT;
     pthread_once(&once, loadSSL);

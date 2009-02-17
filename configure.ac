@@ -8,11 +8,17 @@ AC_PROG_LIBTOOL
 AC_SUBST(LIBTOOL_DEPS)
 AC_C_CONST
 AC_PROG_GCC_TRADITIONAL
-AC_CHECK_HEADERS([openssl/bio.h openssl/err.h openssl/ssl.h pthread.h         \
-                  security/pam_appl.h security/pam_misc.h sys/prctrl.h        \
-                  utmpx.h])
+AC_CHECK_HEADERS([libutil.h openssl/bio.h openssl/err.h openssl/ssl.h         \
+                  pthread.h security/pam_appl.h security/pam_client.h         \
+                  security/pam_misc.h sys/prctrl.h utmp.h utmpx.h])
 AC_CHECK_FUNCS(dlopen, [],
-               [AC_CHECK_LIB(dl, dlopen, LIBS="-ldl $LIBS")])
+               [AC_CHECK_LIB(dl, dlopen,
+                [LIBS="-ldl $LIBS"
+                 AC_DEFINE(HAVE_DLOPEN)])])
+AC_CHECK_FUNCS(login_tty, [],
+               [AC_CHECK_LIB(util, login_tty,
+                [LIBS="-lutil $LIBS"
+                 AC_DEFINE(HAVE_LOGIN_TTY)])])
 AC_TRY_LINK([#ifndef _XOPEN_SOURCE
              #define _XOPEN_SOURCE
              #endif

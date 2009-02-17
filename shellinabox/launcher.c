@@ -65,13 +65,24 @@
 #include <termios.h>
 #include <unistd.h>
 
+#ifdef HAVE_LIBUTIL_H
+#include <libutil.h>
+#endif
+
+#ifdef HAVE_UTMP_H
+#include <utmp.h>
+#endif
+
 #ifdef HAVE_UTMPX_H
 #include <utmpx.h>
 #endif
 
-#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
+#if defined(HAVE_SECURITY_PAM_APPL_H)
 #include <security/pam_appl.h>
+
+#if defined(HAVE_SECURITY_PAM_MISC_H)
 #include <security/pam_misc.h>
+#endif
 #else
 struct pam_message;
 struct pam_response;
@@ -92,9 +103,12 @@ extern int pthread_once(pthread_once_t *, void (*)(void))__attribute__((weak));
 
 // If PAM support is available, take advantage of it. Otherwise, silently fall
 // back on legacy operations for session management.
-#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
+#if defined(HAVE_SECURITY_PAM_APPL_H)
 static int (*x_pam_acct_mgmt)(pam_handle_t *, int);
 static int (*x_pam_authenticate)(pam_handle_t *, int);
+#if defined(HAVE_SECURITY_PAM_CLIENT_H)
+static int (**x_pam_binary_handler_fn)(void *, pamc_bp_t *);
+#endif
 static int (*x_pam_close_session)(pam_handle_t *, int);
 static int (*x_pam_end)(pam_handle_t *, int);
 static int (*x_pam_get_item)(const pam_handle_t *, int, const void **);
@@ -114,12 +128,133 @@ static int   launcher = -1;
 static uid_t restricted;
 
 
-#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
+#if defined(HAVE_SECURITY_PAM_APPL_H)
+
+// If the PAM misc library cannot be found, we have to provide our own basic
+// conversation function. As we know that this code is only ever called from
+// ShellInABox, it can be kept significantly simpler than the more generic
+// code that the PAM library implements.
+
+static int read_string(int echo, const char *prompt, char **retstr) {
+  *retstr                = NULL;
+  struct termios term_before, term_tmp;
+  if (tcgetattr(0, &term_before) != 0) {
+    return -1;
+  }
+  memcpy(&term_tmp, &term_before, sizeof(term_tmp));
+  if (!echo) {
+    term_tmp.c_lflag    &= ~ECHO;
+  }
+  int nc;
+  for (;;) {
+    tcsetattr(0, TCSAFLUSH, &term_tmp);
+    fprintf(stderr, "%s", prompt);
+    char *line;
+    const int lineLength = 512;
+    check(line           = calloc(1, lineLength));
+    nc                   = read(0, line, lineLength - 1);
+    tcsetattr(0, TCSADRAIN, &term_before);
+    if (!echo) {
+      fprintf(stderr, "\n");
+    }
+    if (nc > 0) {
+      if (line[nc-1] == '\n') {
+        nc--;
+      } else if (echo) {
+        fprintf(stderr, "\n");
+      }
+      line[nc]           = '\000';
+      check(*retstr      = line);
+      break;
+    } else {
+      memset(line, 0, lineLength);
+      free(line);
+      if (echo) {
+        fprintf(stderr, "\n");
+      }
+      break;
+    }
+  }
+  tcsetattr(0, TCSADRAIN, &term_before);
+  return nc;
+}
+
+static pamc_bp_t *p(pamc_bp_t *p) {
+  // GCC is too smart for its own good, and triggers a warning in
+  // PAM_BP_RENEW, unless we pass the first argument through a function.
+  return p;
+}
+
+static int my_misc_conv(int num_msg, const struct pam_message **msgm,
+                        struct pam_response **response, void *appdata_ptr) {
+  if (num_msg <= 0) {
+    return PAM_CONV_ERR;
+  }
+  struct pam_response *reply;
+  check(reply = (struct pam_response *)calloc(num_msg,
+                                              sizeof(struct pam_response)));
+  for (int count = 0; count < num_msg; count++) {
+    char *string                 = NULL;
+    switch(msgm[count]->msg_style) {
+      case PAM_PROMPT_ECHO_OFF:
+        if (read_string(0, msgm[count]->msg, &string) < 0) {
+          goto failed_conversation;
+        }
+        break;
+      case PAM_PROMPT_ECHO_ON:
+        if (read_string(1, msgm[count]->msg, &string) < 0) {
+          goto failed_conversation;
+        }
+        break;
+      case PAM_ERROR_MSG:
+        if (fprintf(stderr, "%s\n", msgm[count]->msg) < 0) {
+          goto failed_conversation;
+        }
+        break;
+      case PAM_TEXT_INFO:
+        if (fprintf(stdout, "%s\n", msgm[count]->msg) < 0) {
+          goto failed_conversation;
+        }
+        break;
+#if defined(HAVE_SECURITY_PAM_CLIENT_H)
+      case PAM_BINARY_PROMPT: {
+        pamc_bp_t binary_prompt = NULL;
+        if (!msgm[count]->msg || !*x_pam_binary_handler_fn) {
+          goto failed_conversation;
+        }
+        PAM_BP_RENEW(p(&binary_prompt), PAM_BP_RCONTROL(msgm[count]->msg),
+                     PAM_BP_LENGTH(msgm[count]->msg));
+        PAM_BP_FILL(binary_prompt, 0, PAM_BP_LENGTH(msgm[count]->msg),
+                    PAM_BP_RDATA(msgm[count]->msg));
+        if ((*x_pam_binary_handler_fn)(appdata_ptr, &binary_prompt) !=
+            PAM_SUCCESS || !binary_prompt) {
+          goto failed_conversation;
+        }
+        string                  = (char *)binary_prompt;
+        break; }
+#endif
+      default:
+        goto failed_conversation;
+    }
+    if (string) {
+      reply[count].resp_retcode = 0;
+      reply[count].resp         = string;
+    }
+  }
+failed_conversation:
+  *response                     = reply;
+  return PAM_SUCCESS;
+}
+
 static void *loadSymbol(const char *lib, const char *fn) {
   void *dl = RTLD_DEFAULT;
   void *rc = dlsym(dl, fn);
   if (!rc) {
+#ifdef RTLD_NOLOAD
     dl     = dlopen(lib, RTLD_LAZY|RTLD_GLOBAL|RTLD_NOLOAD);
+#else
+    dl     = NULL;
+#endif
     if (dl == NULL) {
       dl   = dlopen(lib, RTLD_LAZY|RTLD_GLOBAL);
     }
@@ -141,18 +276,32 @@ static void loadPAM(void) {
     const char *lib;
     const char *fn;
   } symbols[] = {
-    { { &x_pam_acct_mgmt },     "libpam.so",      "pam_acct_mgmt"     },
-    { { &x_pam_authenticate },  "libpam.so",      "pam_authenticate"  },
-    { { &x_pam_close_session }, "libpam.so",      "pam_close_session" },
-    { { &x_pam_end },           "libpam.so",      "pam_end"           },
-    { { &x_pam_get_item },      "libpam.so",      "pam_get_item"      },
-    { { &x_pam_open_session },  "libpam.so",      "pam_open_session"  },
-    { { &x_pam_set_item },      "libpam.so",      "pam_set_item"      },
-    { { &x_pam_start },         "libpam.so",      "pam_start"         },
-    { { &x_misc_conv },         "libpam_misc.so", "misc_conv"         }
+    { { &x_pam_acct_mgmt },         "libpam.so",      "pam_acct_mgmt"     },
+    { { &x_pam_authenticate },      "libpam.so",      "pam_authenticate"  },
+#if defined(HAVE_SECURITY_PAM_CLIENT_H)
+    { { &x_pam_binary_handler_fn }, "libpam_misc.so", "pam_binary_handler_fn"},
+#endif
+    { { &x_pam_close_session },     "libpam.so",      "pam_close_session" },
+    { { &x_pam_end },               "libpam.so",      "pam_end"           },
+    { { &x_pam_get_item },          "libpam.so",      "pam_get_item"      },
+    { { &x_pam_open_session },      "libpam.so",      "pam_open_session"  },
+    { { &x_pam_set_item },          "libpam.so",      "pam_set_item"      },
+    { { &x_pam_start },             "libpam.so",      "pam_start"         },
+    { { &x_misc_conv },             "libpam_misc.so", "misc_conv"         }
   };
   for (int i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
     if (!(*symbols[i].var = loadSymbol(symbols[i].lib, symbols[i].fn))) {
+#if defined(HAVE_SECURITY_PAM_CLIENT_H)
+      if (!strcmp(symbols[i].fn, "pam_binary_handler_fn")) {
+        // Binary conversation support is optional
+        continue;
+      } else
+#endif
+      if (!strcmp(symbols[i].fn, "misc_conv")) {
+        // PAM misc is optional
+        *symbols[i].var = (void *)my_misc_conv;
+        continue;
+      }
       debug("Failed to load PAM support. Could not find \"%s\"",
             symbols[i].fn);
       for (int j = 0; j < sizeof(symbols)/sizeof(symbols[0]); j++) {
@@ -166,13 +315,14 @@ static void loadPAM(void) {
 #endif
 
 int supportsPAM(void) {
-#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
+#if defined(HAVE_SECURITY_PAM_APPL_H)
 
   // We want to call loadPAM() exactly once. For single-threaded applications,
   // this is straight-forward. For threaded applications, we need to call
   // pthread_once(), instead. We perform run-time checks for whether we are
   // single- or multi-threaded, so that the same code can be used.
-#if defined(HAVE_PTHREAD_H)
+  // This currently only works on Linux.
+#if defined(HAVE_PTHREAD_H) && defined(__linux__)
   if (!!&pthread_once) {
     static pthread_once_t once = PTHREAD_ONCE_INIT;
     pthread_once(&once, loadPAM);
@@ -430,6 +580,9 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
 
     closeAllFds((int []){ slave }, 1);
 
+#ifdef HAVE_LOGIN_TTY
+    login_tty(slave);
+#else
     // Become the session/process-group leader
     setsid();
     setpgid(0, 0);
@@ -441,6 +594,7 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
     if (slave > 2) {
       NOINTR(close(slave));
     }
+#endif
     *pty                  = 0;
 
     // Force the pty to be our control terminal
@@ -509,7 +663,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   // Use PAM to negotiate user authentication and authorization
   const struct passwd *pw;
   pam_handle_t *pam            = NULL;
-#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
+#if defined(HAVE_SECURITY_PAM_APPL_H)
   struct pam_conv conv         = { .conv = x_misc_conv };
   if (service->authUser) {
     check(supportsPAM());
@@ -590,13 +744,13 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   if (restricted &&
       (service->uid != restricted || service->gid != pw->pw_gid)) {
     puts("\nAccess denied!");
-#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
+#if defined(HAVE_SECURITY_PAM_APPL_H)
     x_pam_end(pam, PAM_SUCCESS);
 #endif
     _exit(1);
   }
 
-#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
+#if defined(HAVE_SECURITY_PAM_APPL_H)
   if (pam) {
 #ifdef HAVE_UTMPX_H
     check(x_pam_set_item(pam, PAM_TTY, (const void **)utmp->utmpx.ut_line) ==
@@ -608,22 +762,27 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
 #endif
 
   // Retrieve supplementary group ids.
-  int ngroups                  = 0;
+  int ngroups;
+#if defined(__linux__)
+  // On Linux, we can query the number of supplementary groups. On all other
+  // platforms, we play it safe and just assume a fixed upper bound.
+  ngroups                      = 0;
   getgrouplist(service->user, pw->pw_gid, NULL, &ngroups);
+#else
+  ngroups                      = 128;
+#endif
   check(ngroups >= 0);
   if (ngroups > 0) {
     // Set supplementary group ids
     gid_t *groups;
     check(groups               = malloc((ngroups + 1) * sizeof(gid_t)));
-    groups[ngroups]            = service->gid;
-    check(getgrouplist(service->user, pw->pw_gid, groups, &ngroups) ==
-          ngroups);
+    check(getgrouplist(service->user, pw->pw_gid, groups, &ngroups) >= 0);
 
     // Make sure that any group that was requested on the command line is
     // included, if it is not one of the normal groups for this user.
     for (int i = 0; ; i++) {
       if (i == ngroups) {
-        ngroups++;
+        groups[ngroups++]      = service->gid;
         break;
       } else if (groups[i] == service->gid) {
         break;
@@ -917,7 +1076,7 @@ static void childProcess(struct Service *service, int width, int height,
   // In that case, we do not bother about session management.
   if (!service->useLogin) {
     pam_handle_t *pam           = internalLogin(service, utmp, &environment);
-#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_SECURITY_PAM_MISC_H)
+#if defined(HAVE_SECURITY_PAM_APPL_H)
     if (pam && !geteuid()) {
       check(x_pam_open_session(pam, PAM_SILENT) == PAM_SUCCESS);
       pid_t pid                 = fork();
@@ -929,7 +1088,7 @@ static void childProcess(struct Service *service, int width, int height,
       default:;
         // Finish all pending PAM operations.
         int status, rc;
-        check(waitpid(pid, &status, 0) == pid);
+        check(NOINTR(waitpid(pid, &status, 0)) == pid);
         check((rc               = x_pam_close_session(pam, PAM_SILENT)) ==
               PAM_SUCCESS);
         check(x_pam_end(pam, rc) == PAM_SUCCESS);
@@ -971,6 +1130,7 @@ static void childProcess(struct Service *service, int width, int height,
   // Finally, launch the child process.
   if (service->useLogin) {
     execle("/bin/login", "login", "-p", "-h", peerName, NULL, environment);
+    execle("/usr/bin/login", "login", "-p", "-h", peerName, NULL, environment);
   } else {
     execService(width, height, service, peerName, environment);
   }

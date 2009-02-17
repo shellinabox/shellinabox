@@ -5,10 +5,16 @@
 #define HAVE_DLFCN_H 1
 
 /* Define to 1 if you have the `dlopen' function. */
-/* #undef HAVE_DLOPEN */
+#define HAVE_DLOPEN 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
+
+/* Define to 1 if you have the <libutil.h> header file. */
+/* #undef HAVE_LIBUTIL_H */
+
+/* Define to 1 if you have the `login_tty' function. */
+#define HAVE_LOGIN_TTY 1
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
@@ -30,6 +36,9 @@
 
 /* Define to 1 if you have the <security/pam_appl.h> header file. */
 #define HAVE_SECURITY_PAM_APPL_H 1
+
+/* Define to 1 if you have the <security/pam_client.h> header file. */
+#define HAVE_SECURITY_PAM_CLIENT_H 1
 
 /* Define to 1 if you have the <security/pam_misc.h> header file. */
 #define HAVE_SECURITY_PAM_MISC_H 1
@@ -60,6 +69,9 @@
 
 /* Define to 1 if you have the <utmpx.h> header file. */
 #define HAVE_UTMPX_H 1
+
+/* Define to 1 if you have the <utmp.h> header file. */
+#define HAVE_UTMP_H 1
 
 /* Name of package */
 #define PACKAGE "shellinabox"
