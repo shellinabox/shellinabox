@@ -67,12 +67,15 @@
 // Pthread support is optional. Only enable it, if the library has been
 // linked into the program
 #include <pthread.h>
+#if defined(__linux__)
 extern int pthread_once(pthread_once_t *, void (*)(void))__attribute__((weak));
+#endif
 extern int pthread_sigmask(int, const sigset_t *, sigset_t *)
                                                          __attribute__((weak));
 
 #endif
 
+#if defined(HAVE_DLOPEN)
 // SSL support is optional. Only enable it, if the library can be loaded.
 long          (*BIO_ctrl)(BIO *, int, long, void *);
 BIO_METHOD *  (*BIO_f_buffer)(void);
@@ -113,7 +116,7 @@ int           (*SSL_set_ex_data)(SSL *, int, void *);
 int           (*SSL_shutdown)(SSL *);
 int           (*SSL_write)(SSL *, const void *, int);
 SSL_METHOD *  (*SSLv23_server_method)(void);
-
+#endif
 
 static void sslDestroyCachedContext(void *ssl_, char *context_) {
   struct SSLSupport *ssl = (struct SSLSupport *)ssl_;
@@ -163,7 +166,7 @@ void deleteSSL(struct SSLSupport *ssl) {
   free(ssl);
 }
 
-#if defined(HAVE_OPENSSL)
+#if defined(HAVE_OPENSSL) && defined(HAVE_DLOPEN)
 static void *loadSymbol(const char *lib, const char *fn) {
   void *dl = RTLD_DEFAULT;
   void *rc = dlsym(dl, fn);
@@ -251,6 +254,9 @@ static void loadSSL(void) {
 #endif
 
 int serverSupportsSSL(void) {
+#if defined(HAVE_OPENSSL) && !defined(HAVE_DLOPEN)
+  return SSL_library_init();
+#else
 #if defined(HAVE_OPENSSL)
   // We want to call loadSSL() exactly once. For single-threaded applications,
   // this is straight-forward. For threaded applications, we need to call
@@ -273,6 +279,7 @@ int serverSupportsSSL(void) {
   return !!SSL_library_init;
 #else
   return 0;
+#endif
 #endif
 }
 

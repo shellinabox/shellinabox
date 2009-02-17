@@ -991,19 +991,28 @@ uninstall-man: uninstall-man1
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status --recheck
 
-shellinaboxd.1: shellinabox/shellinaboxd.man.in
+shellinaboxd.1: shellinabox/shellinaboxd.man.in $(top_srcdir)/config.h
 	@src="${top_srcdir}/shellinabox/shellinaboxd.man.in";                 \
 	echo preprocess  "$$src" '>'"$@";                                     \
-	if echo " $(DEFS)" | grep HAVE_OPENSSL_BIO_H |                        \
-	                      grep HAVE_OPENSSL_ERR_H |                       \
-	                      grep -q HAVE_OPENSSL_SSL_H; then                \
+	if [ `sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d                   \
+                                                   "${top_srcdir}/config.h" | \
+             egrep 'HAVE_OPENSSL_BIO_H|HAVE_OPENSSL_ERR_H|HAVE_OPENSSL_SSL_H'|\
+             wc -l` -eq 3 ]; then                                             \
 	  sed -e '/^#ifdef  *HAVE_OPENSSL$$/d'                                \
 	      -e '/^#endif$$/d' "$$src" >"$@";                                \
 	else                                                                  \
 	  sed -e '/^#ifdef  *HAVE_OPENSSL$$/,/^#endif$$/d' "$$src" >"$@";     \
+	fi;                                                                   \
+	if sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d                      \
+                                                   "${top_srcdir}/config.h" | \
+             grep 'HAVE_SECURITY_PAM_APPL_H' >/dev/null 2>&1; then            \
+	  sed -e '/^#ifdef  *HAVE_PAM$$/d'                                    \
+	      -e '/^#endif$$/d' "$$src" >"$@";                                \
+	else                                                                  \
+	  sed -e '/^#ifdef  *HAVE_PAM$$/,/^#endif$$/d' "$$src" >"$@";         \
 	fi
-	@man -Tps "./$@" >`echo "$@" 2>/dev/null|sed -e 's/\.[^.]*$$/.ps/'`   \
-	 || true
+	@out=`echo "$@" 2>/dev/null|sed -e 's/\.[^.]*$$/.ps/'`;               \
+	man -Tps "./$@" >"$${out}" 2>/dev/null || rm -f "$${out}"
 
 clean-local:
 	-rm -rf shellinaboxd.1                                                \

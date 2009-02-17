@@ -50,6 +50,7 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <grp.h>
+#include <limits.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -90,7 +91,7 @@ struct pam_conv;
 typedef struct pam_handle pam_handle_t;
 #endif
 
-#if defined(HAVE_PTHREAD_H)
+#if defined(HAVE_PTHREAD_H) && defined(__linux__)
 #include <pthread.h>
 extern int pthread_once(pthread_once_t *, void (*)(void))__attribute__((weak));
 #endif
@@ -103,7 +104,7 @@ extern int pthread_once(pthread_once_t *, void (*)(void))__attribute__((weak));
 
 // If PAM support is available, take advantage of it. Otherwise, silently fall
 // back on legacy operations for session management.
-#if defined(HAVE_SECURITY_PAM_APPL_H)
+#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_DLOPEN)
 static int (*x_pam_acct_mgmt)(pam_handle_t *, int);
 static int (*x_pam_authenticate)(pam_handle_t *, int);
 #if defined(HAVE_SECURITY_PAM_CLIENT_H)
@@ -118,6 +119,17 @@ static int (*x_pam_start)(const char *, const char *, const struct pam_conv *,
                           pam_handle_t **);
 static int (*x_misc_conv)(int, const struct pam_message **,
                           struct pam_response **, void *);
+
+#define pam_acct_mgmt         x_pam_acct_mgmt
+#define pam_authenticate      x_pam_authenticate
+#define pam_binary_handler_fn x_pam_binary_handler_fn
+#define pam_close_session     x_pam_close_session
+#define pam_end               x_pam_end
+#define pam_get_item          x_pam_get_item
+#define pam_open_session      x_pam_open_session
+#define pam_set_item          x_pam_set_item
+#define pam_start             x_pam_start
+#define misc_conv             x_misc_conv
 #endif
 
 // Older versions of glibc might not support fdopendir(). That's OK, we can
@@ -128,7 +140,7 @@ static int   launcher = -1;
 static uid_t restricted;
 
 
-#if defined(HAVE_SECURITY_PAM_APPL_H)
+#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_DLOPEN)
 
 // If the PAM misc library cannot be found, we have to provide our own basic
 // conversation function. As we know that this code is only ever called from
@@ -221,14 +233,14 @@ static int my_misc_conv(int num_msg, const struct pam_message **msgm,
 #if defined(HAVE_SECURITY_PAM_CLIENT_H)
       case PAM_BINARY_PROMPT: {
         pamc_bp_t binary_prompt = NULL;
-        if (!msgm[count]->msg || !*x_pam_binary_handler_fn) {
+        if (!msgm[count]->msg || !*pam_binary_handler_fn) {
           goto failed_conversation;
         }
         PAM_BP_RENEW(p(&binary_prompt), PAM_BP_RCONTROL(msgm[count]->msg),
                      PAM_BP_LENGTH(msgm[count]->msg));
         PAM_BP_FILL(binary_prompt, 0, PAM_BP_LENGTH(msgm[count]->msg),
                     PAM_BP_RDATA(msgm[count]->msg));
-        if ((*x_pam_binary_handler_fn)(appdata_ptr, &binary_prompt) !=
+        if ((*pam_binary_handler_fn)(appdata_ptr, &binary_prompt) !=
             PAM_SUCCESS || !binary_prompt) {
           goto failed_conversation;
         }
@@ -268,8 +280,8 @@ static void *loadSymbol(const char *lib, const char *fn) {
 }
 
 static void loadPAM(void) {
-  check(!x_pam_start);
-  check(!x_misc_conv);
+  check(!pam_start);
+  check(!misc_conv);
   struct {
     union {
       void     *avoid_gcc_warning_about_type_punning;
@@ -278,18 +290,18 @@ static void loadPAM(void) {
     const char *lib;
     const char *fn;
   } symbols[] = {
-    { { &x_pam_acct_mgmt },         "libpam.so",      "pam_acct_mgmt"     },
-    { { &x_pam_authenticate },      "libpam.so",      "pam_authenticate"  },
+    { { &pam_acct_mgmt },         "libpam.so",      "pam_acct_mgmt"     },
+    { { &pam_authenticate },      "libpam.so",      "pam_authenticate"  },
 #if defined(HAVE_SECURITY_PAM_CLIENT_H)
-    { { &x_pam_binary_handler_fn }, "libpam_misc.so", "pam_binary_handler_fn"},
+    { { &pam_binary_handler_fn }, "libpam_misc.so", "pam_binary_handler_fn" },
 #endif
-    { { &x_pam_close_session },     "libpam.so",      "pam_close_session" },
-    { { &x_pam_end },               "libpam.so",      "pam_end"           },
-    { { &x_pam_get_item },          "libpam.so",      "pam_get_item"      },
-    { { &x_pam_open_session },      "libpam.so",      "pam_open_session"  },
-    { { &x_pam_set_item },          "libpam.so",      "pam_set_item"      },
-    { { &x_pam_start },             "libpam.so",      "pam_start"         },
-    { { &x_misc_conv },             "libpam_misc.so", "misc_conv"         }
+    { { &pam_close_session },     "libpam.so",      "pam_close_session" },
+    { { &pam_end },               "libpam.so",      "pam_end"           },
+    { { &pam_get_item },          "libpam.so",      "pam_get_item"      },
+    { { &pam_open_session },      "libpam.so",      "pam_open_session"  },
+    { { &pam_set_item },          "libpam.so",      "pam_set_item"      },
+    { { &pam_start },             "libpam.so",      "pam_start"         },
+    { { &misc_conv },             "libpam_misc.so", "misc_conv"         }
   };
   for (int i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
     if (!(*symbols[i].var = loadSymbol(symbols[i].lib, symbols[i].fn))) {
@@ -317,6 +329,9 @@ static void loadPAM(void) {
 #endif
 
 int supportsPAM(void) {
+#if defined(HAVE_SECURITY_PAM_APPL_H) && !defined(HAVE_DLOPEN)
+  return 1;
+#else
 #if defined(HAVE_SECURITY_PAM_APPL_H)
 
   // We want to call loadPAM() exactly once. For single-threaded applications,
@@ -337,9 +352,10 @@ int supportsPAM(void) {
       loadPAM();
     }
   }
-  return x_misc_conv && x_pam_start;
+  return misc_conv && pam_start;
 #else
   return 0;
+#endif
 #endif
 }
 
@@ -540,7 +556,7 @@ static int ptsname_r(int fd, char *buf, size_t buflen) {
   }
   strcpy(buf, p);
   return 0;
-} 
+}
 #endif
 
 static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
@@ -666,48 +682,48 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   const struct passwd *pw;
   pam_handle_t *pam            = NULL;
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-  struct pam_conv conv         = { .conv = x_misc_conv };
+  struct pam_conv conv         = { .conv = misc_conv };
   if (service->authUser) {
     check(supportsPAM());
-    check(x_pam_start("shellinabox", NULL, &conv, &pam) == PAM_SUCCESS);
+    check(pam_start("shellinabox", NULL, &conv, &pam) == PAM_SUCCESS);
 
     // Change the prompt to include the host name
     struct utsname uts;
     check(!uname(&uts));
     const char *origPrompt;
-    check(x_pam_get_item(pam, PAM_USER_PROMPT, (void *)&origPrompt) ==
+    check(pam_get_item(pam, PAM_USER_PROMPT, (void *)&origPrompt) ==
           PAM_SUCCESS);
     char *prompt;
     check(prompt               = stringPrintf(NULL, "%s %s", uts.nodename,
                                          origPrompt ? origPrompt : "login: "));
-    check(x_pam_set_item(pam, PAM_USER_PROMPT, prompt) == PAM_SUCCESS);
+    check(pam_set_item(pam, PAM_USER_PROMPT, prompt) == PAM_SUCCESS);
 
     // Up to three attempts to enter the user id and password
     for (int i = 0;;) {
-      check(x_pam_set_item(pam, PAM_USER, NULL) == PAM_SUCCESS);
+      check(pam_set_item(pam, PAM_USER, NULL) == PAM_SUCCESS);
       int rc;
-      if ((rc                  = x_pam_authenticate(pam, PAM_SILENT)) ==
+      if ((rc                  = pam_authenticate(pam, PAM_SILENT)) ==
           PAM_SUCCESS &&
           (geteuid() ||
-          (rc                  = x_pam_acct_mgmt(pam, PAM_SILENT)) ==
+          (rc                  = pam_acct_mgmt(pam, PAM_SILENT)) ==
            PAM_SUCCESS)) {
         break;
       }
       if (++i == 3) {
         // Quit if login failed.
         puts("\nMaximum number of tries exceeded (3)");
-        x_pam_end(pam, rc);
+        pam_end(pam, rc);
         _exit(1);
       } else {
         puts("\nLogin incorrect");
       }
     }
-    check(x_pam_set_item(pam, PAM_USER_PROMPT, "login: ") == PAM_SUCCESS);
+    check(pam_set_item(pam, PAM_USER_PROMPT, "login: ") == PAM_SUCCESS);
     free(prompt);
 
     // Retrieve user id, and group id.
     const char *name;
-    check(x_pam_get_item(pam, PAM_USER, (void *)&name) == PAM_SUCCESS);
+    check(pam_get_item(pam, PAM_USER, (void *)&name) == PAM_SUCCESS);
     pw                         = getPWEnt(getUserId(name));
     check(service->uid < 0);
     check(service->gid < 0);
@@ -723,16 +739,16 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
     check(service->user);
     check(service->group);
     if (supportsPAM()) {
-      check(x_pam_start("shellinabox", service->user, &conv, &pam) ==
+      check(pam_start("shellinabox", service->user, &conv, &pam) ==
             PAM_SUCCESS);
       int rc;
 
       // PAM account management requires root access. Just skip it, if we
       // are running with lower privileges.
       if (geteuid() &&
-          (rc                  = x_pam_acct_mgmt(pam, PAM_SILENT)) !=
+          (rc                  = pam_acct_mgmt(pam, PAM_SILENT)) !=
           PAM_SUCCESS) {
-        x_pam_end(pam, rc);
+        pam_end(pam, rc);
         _exit(1);
       }
     }
@@ -747,7 +763,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
       (service->uid != restricted || service->gid != pw->pw_gid)) {
     puts("\nAccess denied!");
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-    x_pam_end(pam, PAM_SUCCESS);
+    pam_end(pam, PAM_SUCCESS);
 #endif
     _exit(1);
   }
@@ -755,7 +771,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
 #if defined(HAVE_SECURITY_PAM_APPL_H)
   if (pam) {
 #ifdef HAVE_UTMPX_H
-    check(x_pam_set_item(pam, PAM_TTY, (const void **)utmp->utmpx.ut_line) ==
+    check(pam_set_item(pam, PAM_TTY, (const void **)utmp->utmpx.ut_line) ==
           PAM_SUCCESS);
 #endif
   }
@@ -1080,7 +1096,7 @@ static void childProcess(struct Service *service, int width, int height,
     pam_handle_t *pam           = internalLogin(service, utmp, &environment);
 #if defined(HAVE_SECURITY_PAM_APPL_H)
     if (pam && !geteuid()) {
-      check(x_pam_open_session(pam, PAM_SILENT) == PAM_SUCCESS);
+      check(pam_open_session(pam, PAM_SILENT) == PAM_SUCCESS);
       pid_t pid                 = fork();
       switch (pid) {
       case -1:
@@ -1091,9 +1107,9 @@ static void childProcess(struct Service *service, int width, int height,
         // Finish all pending PAM operations.
         int status, rc;
         check(NOINTR(waitpid(pid, &status, 0)) == pid);
-        check((rc               = x_pam_close_session(pam, PAM_SILENT)) ==
+        check((rc               = pam_close_session(pam, PAM_SILENT)) ==
               PAM_SUCCESS);
-        check(x_pam_end(pam, rc) == PAM_SUCCESS);
+        check(pam_end(pam, rc) == PAM_SUCCESS);
         _exit(WIFEXITED(status) ? WEXITSTATUS(status) : -WTERMSIG(status));
       }
     }

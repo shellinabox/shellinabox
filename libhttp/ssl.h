@@ -68,6 +68,7 @@ typedef struct SSL_METHOD SSL_METHOD;
 #define SSL_ERROR_WANT_WRITE 3
 #endif
 
+#if defined(HAVE_DLOPEN)
 extern long    (*x_BIO_ctrl)(BIO *, int, long, void *);
 extern BIO_METHOD *(*x_BIO_f_buffer)(void);
 extern void    (*x_BIO_free_all)(BIO *);
@@ -166,6 +167,7 @@ extern SSL_METHOD *(*x_SSLv23_server_method)(void);
 #define SSL_get_app_data(s)      (x_SSL_get_ex_data(s, 0))
 #define SSL_set_app_data(s, arg) (x_SSL_set_ex_data(s, 0, (char *)arg))
 #define SSL_set_mode(ssl, op)    (x_SSL_ctrl((ssl), SSL_CTRL_MODE, (op), NULL))
+#endif
 
 struct SSLSupport {
   int         enabled;

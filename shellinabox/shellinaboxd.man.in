@@ -300,13 +300,19 @@ Alternatively, an \fIapplication\fP can be specified by providing a
 \fIuser\fP description, a working directory, and a command line:
 .in +4
 \fIAPPLICATION\fP := 'LOGIN' | \fIUSER\fP ':' \fICWD\fP ':' <cmdline>
-.in
 
+#ifdef HAVE_PAM
+.in
 The keyword 'AUTH' indicates that the \fIuser\fP information should
 be requested interactively, instead of being provided as part of the
 \fIservice\fP description:
 .in +4
-\fIUSER\fP := 'AUTH' | <username> ':' <groupname>
+#endif
+\fIUSER\fP :=
+#ifdef HAVE_PAM
+'AUTH' |
+#endif
+<username> ':' <groupname>
 .in
 
 The working directory can either be given as an absolute path, or it
