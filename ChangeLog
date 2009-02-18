@@ -1,11 +1,13 @@
 2009-02-16  Markus Gutschke  <markus@shellinabox.com>
 
-	* Fixed various bugs that prevents ShellInABox from running on
-	FreeBSD
+	* Include VCS revision number in user-visible version string.
 
 	* Allow "configure" to select whether OpenSSL and PAM libraries
 	should be used at all, dynamically searched-for at run-time, or
 	linked as a regular dynamic library.
+
+	* Fixed various bugs that prevents ShellInABox from running on
+	FreeBSD
 
 2009-02-12  Markus Gutschke  <markus@shellinabox.com>
 
