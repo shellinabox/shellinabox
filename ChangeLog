@@ -1,5 +1,7 @@
 2009-02-27  Markus Gutschke  <markus@shellinabox.com>
 
+	* Added fallback on old-style pty's, if /dev/pts is not mounted.
+
 	* Work-around for systems that don't define a "nogroup" group.
 
 	* Remove the dependency on fdopendir, which does not exist

@@ -557,38 +557,65 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
                    const char *peerName) {
   int slave;
   char ptyPath[PATH_MAX];
-  if ((*pty               = posix_openpt(O_RDWR|O_NOCTTY))          < 0 ||
-      grantpt(*pty)                                                 < 0 ||
-      unlockpt(*pty)                                                < 0 ||
-      ptsname_r(*pty, ptyPath, sizeof(ptyPath))                     < 0 ||
-      (slave              = NOINTR(open(ptyPath, O_RDWR|O_NOCTTY))) < 0) {
+  if ((*pty                 = posix_openpt(O_RDWR|O_NOCTTY))          < 0 ||
+      grantpt(*pty)                                                   < 0 ||
+      unlockpt(*pty)                                                  < 0 ||
+      ptsname_r(*pty, ptyPath, sizeof(ptyPath))                       < 0 ||
+      (slave                = NOINTR(open(ptyPath, O_RDWR|O_NOCTTY))) < 0) {
     if (*pty >= 0) {
       NOINTR(close(*pty));
     }
-    *pty                  = -1;
-    *utmp                 = NULL;
+
+    // Try old-style pty handling
+    char fname[40]          = "/dev/ptyXX";
+    for (const char *ptr1   = "pqrstuvwxyzabcde"; *ptr1; ptr1++) {
+      fname[8]              = *ptr1;
+      for (const char *ptr2 = "0123456789abcdef"; *ptr2; ptr2++) {
+        fname[9]            = *ptr2;
+        if ((*pty           = NOINTR(open(fname, O_RDWR, 0))) < 0) {
+          if (errno == ENOENT) {
+            goto failure;
+          }
+        }
+        grantpt(*pty);
+        unlockpt(*pty);
+        if (ptsname_r(*pty, ptyPath, sizeof(ptyPath)) < 0) {
+          strcpy(ptyPath, fname);
+          ptyPath[5]        = 't';
+        }
+        if ((slave          = NOINTR(open(ptyPath, O_RDWR|O_NOCTTY))) >= 0) {
+          debug("Opened old-style pty: %s", ptyPath);
+          goto success;
+        }
+        NOINTR(close(*pty));
+      }
+    }
+ failure:
+    *pty                    = -1;
+    *utmp                   = NULL;
     return -1;
   }
+ success:
 
   // Fill in utmp entry
-  *utmp                   = newUtmp(useLogin, ptyPath, peerName);
+  *utmp                     = newUtmp(useLogin, ptyPath, peerName);
 
   // Now, fork off the child process
   pid_t pid;
-  if ((pid                = fork()) < 0) {
+  if ((pid                  = fork()) < 0) {
     NOINTR(close(slave));
     NOINTR(close(*pty));
-    *pty                  = -1;
+    *pty                    = -1;
     deleteUtmp(*utmp);
-    *utmp                 = NULL;
+    *utmp                   = NULL;
     return -1;
   } else if (pid == 0) {
-    pid                   = getpid();
+    pid                     = getpid();
     snprintf((char *)&(*utmp)->pid[0], sizeof((*utmp)->pid), "%d", pid);
 #ifdef HAVE_UTMPX_H
-    (*utmp)->utmpx.ut_pid = pid;
+    (*utmp)->utmpx.ut_pid   = pid;
 #endif
-    (*utmp)->pty          = slave;
+    (*utmp)->pty            = slave;
 
     closeAllFds((int []){ slave }, 1);
 
@@ -607,7 +634,7 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
       NOINTR(close(slave));
     }
 #endif
-    *pty                  = 0;
+    *pty                    = 0;
 
     // Force the pty to be our control terminal
     NOINTR(close(NOINTR(open(ptyPath, O_RDWR))));
@@ -616,9 +643,9 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
   } else {
     snprintf((char *)&(*utmp)->pid[0], sizeof((*utmp)->pid), "%d", pid);
 #ifdef HAVE_UTMPX_H
-    (*utmp)->utmpx.ut_pid = pid;
+    (*utmp)->utmpx.ut_pid   = pid;
 #endif
-    (*utmp)->pty          = *pty;
+    (*utmp)->pty            = *pty;
     fcntl(*pty, F_SETFL, O_NONBLOCK|O_RDWR);
     NOINTR(close(slave));
     return pid;
