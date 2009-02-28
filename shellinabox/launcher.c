@@ -574,7 +574,7 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
         fname[9]            = *ptr2;
         if ((*pty           = NOINTR(open(fname, O_RDWR, 0))) < 0) {
           if (errno == ENOENT) {
-            goto failure;
+            continue;
           }
         }
         grantpt(*pty);
@@ -590,7 +590,6 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
         NOINTR(close(*pty));
       }
     }
- failure:
     *pty                    = -1;
     *utmp                   = NULL;
     return -1;
@@ -1229,18 +1228,27 @@ static void launcherDaemon(int fd) {
     struct Utmp *utmp;
     if ((pid                  = forkPty(&pty,
                                         services[request.service]->useLogin,
-                                        &utmp, request.peerName)) < 0) {
-    } else if (pid == 0) {
+                                        &utmp, request.peerName)) == 0) {
       childProcess(services[request.service], request.width, request.height,
                    utmp, request.peerName);
       _exit(1);
     } else {
       // Remember the utmp entry so that we can clean up when the child
       // terminates.
-      if (!childProcesses) {
-        childProcesses        = newHashMap(destroyUtmpHashEntry, NULL);
+      if (pid > 0) {
+        if (!childProcesses) {
+          childProcesses      = newHashMap(destroyUtmpHashEntry, NULL);
+        }
+        addToHashMap(childProcesses, utmp->pid, (char *)utmp);
+      } else {
+        int fds[2];
+        if (!pipe(fds)) {
+          write(fds[1], "forkpty() failed\r\n", 18);
+          NOINTR(close(fds[1]));
+          pty                 = fds[0];
+          pid                 = 0;
+        }
       }
-      addToHashMap(childProcesses, utmp->pid, (char *)utmp);
 
       // Send file handle and process id back to parent
       char cmsg_buf[CMSG_SPACE(sizeof(int))];
