@@ -132,10 +132,6 @@ static int (*x_misc_conv)(int, const struct pam_message **,
 #define misc_conv             x_misc_conv
 #endif
 
-// Older versions of glibc might not support fdopendir(). That's OK, we can
-// work around the lack of it, at a small performance loss.
-extern DIR *fdopendir(int) __attribute__((weak));
-
 static int   launcher = -1;
 static uid_t restricted;
 
@@ -485,8 +481,8 @@ void closeAllFds(int *exceptFds, int num) {
   // Close all file handles. If possible, scan through "/proc/self/fd" as
   // that is faster than calling close() on all possible file handles.
   int nullFd  = open("/dev/null", O_RDWR);
-  int dirFd   = !&fdopendir ? -1 : open("/proc/self/fd", O_RDONLY);
-  if (dirFd < 0) {
+  DIR *dir    = opendir("/proc/self/fd");
+  if (dir == 0) {
     for (int i = sysconf(_SC_OPEN_MAX); --i > 0; ) {
       if (i != nullFd) {
         for (int j = 0; j < num; j++) {
@@ -505,14 +501,12 @@ void closeAllFds(int *exceptFds, int num) {
     no_close_1:;
     }
   } else {
-    DIR *dir;
-    check(dir = fdopendir(dirFd));
     struct dirent de, *res;
     while (!readdir_r(dir, &de, &res) && res) {
       if (res->d_name[0] < '0')
         continue;
       int fd  = atoi(res->d_name);
-      if (fd != nullFd && fd != dirFd) {
+      if (fd != nullFd && fd != dirfd(dir)) {
         for (int j = 0; j < num; j++) {
           if (fd == exceptFds[j]) {
             goto no_close_2;

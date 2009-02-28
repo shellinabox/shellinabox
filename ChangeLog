@@ -1,3 +1,8 @@
+2009-02-27  Markus Gutschke  <markus@shellinabox.com>
+
+	* Remove the dependency on fdopendir, which does not exist
+	everywhere.
+
 2009-02-16  Markus Gutschke  <markus@shellinabox.com>
 
 	* Include VCS revision number in user-visible version string.
