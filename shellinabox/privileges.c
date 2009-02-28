@@ -227,12 +227,30 @@ const char *getGroupName(gid_t gid) {
 gid_t getGroupId(const char *name) {
   struct group grbuf, *gr;
   char *buf;
-  int len   = sysconf(_SC_GETGR_R_SIZE_MAX);
-  if (len <= 0) {
-    len     = 4096;
+  int gr_len      = sysconf(_SC_GETGR_R_SIZE_MAX);
+  if (gr_len <= 0) {
+    gr_len        = 4096;
   }
-  check(buf = malloc(len));
-  if (getgrnam_r(name, &grbuf, buf, len, &gr) || !gr) {
+  check(buf       = malloc(gr_len));
+  if (getgrnam_r(name, &grbuf, buf, gr_len, &gr) || !gr) {
+    // Maybe, this system does not have a "nogroup" group. Substitute the
+    // group of the "nobody" user.
+    if (!strcmp(name, "nogroup")) {
+      struct passwd pwbuf, *pw;
+      int pw_len  = sysconf(_SC_GETPW_R_SIZE_MAX);
+      if (pw_len <= 0) {
+        pw_len    = 4096;
+      }
+      if (pw_len > gr_len) {
+        check(buf = realloc(buf, pw_len));
+      }
+      if (!getpwnam_r("nobody", &pwbuf, buf, pw_len, &pw) && pw) {
+        debug("Substituting \"nobody's\" primary group for \"nogroup\"");
+        gid_t gid = pw->pw_gid;
+        free(buf);
+        return gid;
+      }
+    }
     fatal("Cannot look up group \"%s\"", name);
   }
   gid_t gid = gr->gr_gid;
