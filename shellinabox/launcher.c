@@ -366,7 +366,7 @@ int launchChild(int service, struct Session *session) {
     .width             = session->width,
     .height            = session->height };
   strncat(request.peerName, httpGetPeerName(session->http),
-          sizeof(request.peerName));
+          sizeof(request.peerName) - 1);
   if (NOINTR(write(launcher, &request, sizeof(request))) != sizeof(request)) {
     return -1;
   }
@@ -1243,7 +1243,7 @@ static void launcherDaemon(int fd) {
       } else {
         int fds[2];
         if (!pipe(fds)) {
-          write(fds[1], "forkpty() failed\r\n", 18);
+          NOINTR(write(fds[1], "forkpty() failed\r\n", 18));
           NOINTR(close(fds[1]));
           pty                 = fds[0];
           pid                 = 0;

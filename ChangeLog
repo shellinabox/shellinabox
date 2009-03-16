@@ -1,3 +1,7 @@
+2009-03-16  Markus Gutschke  <markus@shellinabox.com>
+
+	* Fixed some compiler warnings, that newer versions of GCC issue.
+
 2009-02-27  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added fallback on old-style pty's, if /dev/pts is not mounted.

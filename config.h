@@ -20,13 +20,13 @@
 #define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the <openssl/bio.h> header file. */
-#define HAVE_OPENSSL_BIO_H 1
+/* #undef HAVE_OPENSSL_BIO_H */
 
 /* Define to 1 if you have the <openssl/err.h> header file. */
-#define HAVE_OPENSSL_ERR_H 1
+/* #undef HAVE_OPENSSL_ERR_H */
 
 /* Define to 1 if you have the <openssl/ssl.h> header file. */
-#define HAVE_OPENSSL_SSL_H 1
+/* #undef HAVE_OPENSSL_SSL_H */
 
 /* Define to 1 if you have the <pthread.h> header file. */
 #define HAVE_PTHREAD_H 1
@@ -35,13 +35,13 @@
 #define HAVE_PTSNAME_R 1
 
 /* Define to 1 if you have the <security/pam_appl.h> header file. */
-#define HAVE_SECURITY_PAM_APPL_H 1
+/* #undef HAVE_SECURITY_PAM_APPL_H */
 
 /* Define to 1 if you have the <security/pam_client.h> header file. */
-#define HAVE_SECURITY_PAM_CLIENT_H 1
+/* #undef HAVE_SECURITY_PAM_CLIENT_H */
 
 /* Define to 1 if you have the <security/pam_misc.h> header file. */
-#define HAVE_SECURITY_PAM_MISC_H 1
+/* #undef HAVE_SECURITY_PAM_MISC_H */
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
