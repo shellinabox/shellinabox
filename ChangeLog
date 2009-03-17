@@ -1,3 +1,9 @@
+2009-03-17  Markus Gutschke  <markus@shellinabox.com>
+
+	* Fixed IE6 support.
+
+	* Fixed possible memory corruption, when sessions time out.
+
 2009-03-16  Markus Gutschke  <markus@shellinabox.com>
 
 	* Fixed some compiler warnings, that newer versions of GCC issue.

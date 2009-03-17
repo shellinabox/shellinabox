@@ -35,13 +35,13 @@
 #define HAVE_PTSNAME_R 1
 
 /* Define to 1 if you have the <security/pam_appl.h> header file. */
-/* #undef HAVE_SECURITY_PAM_APPL_H */
+#define HAVE_SECURITY_PAM_APPL_H 1
 
 /* Define to 1 if you have the <security/pam_client.h> header file. */
-/* #undef HAVE_SECURITY_PAM_CLIENT_H */
+#define HAVE_SECURITY_PAM_CLIENT_H 1
 
 /* Define to 1 if you have the <security/pam_misc.h> header file. */
-/* #undef HAVE_SECURITY_PAM_MISC_H */
+#define HAVE_SECURITY_PAM_MISC_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
@@ -95,7 +95,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "76"
+#define VCS_REVISION "77"
 
 /* Version number of package */
 #define VERSION "2.4"

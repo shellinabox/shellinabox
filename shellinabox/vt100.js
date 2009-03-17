@@ -226,6 +226,7 @@ VT100.prototype.initializeElements = function(container) {
       }
     } catch (e) {
     }
+
     this.container.innerHTML   =
                        '<div id="reconnect" style="visibility: hidden">' +
                          '<input type="button" value="Connect" ' +
@@ -308,7 +309,8 @@ VT100.prototype.initializeElements = function(container) {
   this.isEmbedded              = marginTop != y ||
                                  marginLeft != x ||
                                  (window.innerWidth ||
-                                  document.documentElement.clientWidth) -
+                                  document.documentElement.clientWidth ||
+                                  document.body.clientWidth) -
                                  marginRight != x + this.container.offsetWidth;
   if (!this.isEmbedded) {
     this.addListener(window, 'resize', 
@@ -485,13 +487,15 @@ VT100.prototype.resizer = function() {
   var console                  = this.console[this.currentScreen];
   var height                   = (this.isEmbedded ? this.container.clientHeight
                                   : (window.innerHeight ||
-                                     document.documentElement.clientHeight))-1;
+                                     document.documentElement.clientHeight ||
+                                     document.body.clientHeight))-1;
   var partial                  = height % this.cursorHeight;
-  this.scrollable.style.height = height + 'px';
-  this.padding.style.height    = partial + 'px';
+  this.scrollable.style.height = (height > 0 ? height : 0) + 'px';
+  this.padding.style.height    = (partial > 0 ? partial : 0) + 'px';
   var oldTerminalHeight        = this.terminalHeight;
   this.updateWidth();
   this.updateHeight();
+
   // Clip the cursor to the visible screen.
   var cx                       = this.cursorX;
   var cy                       = this.cursorY + this.numScrollbackLines;
@@ -746,7 +750,8 @@ VT100.prototype.updateHeight = function() {
   } else {
     // Use the full browser window.
     this.terminalHeight = Math.floor(((window.innerHeight ||
-                                     document.documentElement.clientHeight)-1)/
+                                       document.documentElement.clientHeight ||
+                                       document.body.clientHeight)-1)/
                                      this.cursorHeight);
   }
   return this.terminalHeight;

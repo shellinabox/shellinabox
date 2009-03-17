@@ -1077,7 +1077,7 @@ static void childProcess(struct Service *service, int width, int height,
   environment[numEnvVars]       = NULL;
 
   // Set initial terminal settings
-  struct termios tt;
+  struct termios tt = { 0 };
   tcgetattr(0, &tt);
   cfsetispeed(&tt, 38400);
   cfsetospeed(&tt, 38400);

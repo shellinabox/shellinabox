@@ -158,9 +158,18 @@ ShellInABox.prototype.sendRequest = function(request) {
   if (request == undefined) {
     request                  = new XMLHttpRequest();
   }
-  request.open('POST', this.url, true);
+  request.open(this.session ? 'POST' : 'GET', this.url, true);
   request.setRequestHeader('Content-Type',
                            'application/x-www-form-urlencoded; charset=utf-8');
+  var content                = this.session ?
+                               ('width=' + this.terminalWidth +
+                                '&height=' + this.terminalHeight +
+                                '&session=' +
+                                encodeURIComponent(this.session)) : '';
+  if (this.session) {
+    request.setRequestHeader('Content-Length', content.length);
+  }
+
   request.onreadystatechange = function(shellInABox) {
     return function() {
              try {
@@ -170,10 +179,15 @@ ShellInABox.prototype.sendRequest = function(request) {
              }
            }
     }(this);
-  request.send(
-    'width=' + this.terminalWidth +
-    '&height=' + this.terminalHeight +
-    (this.session ? "&session=" + encodeURIComponent(this.session) : ""));
+  try {
+    if (this.session) {
+      request.send(content);
+    } else {
+      request.send();
+    }
+  } catch (e) {
+    alert('' + e + '\n' + this.url + '\n' + content);
+  }
 };
 
 ShellInABox.prototype.onReadyStateChange = function(request) {

@@ -273,6 +273,10 @@ static int handleSession(struct ServerConnection *connection, void *arg,
     }
     check(!session->done);
     check(completePendingRequest(session, buf, bytes, MAX_RESPONSE));
+    connection                  = serverGetConnection(session->server,
+                                                      connection,
+                                                      session->pty);
+    session->connection         = connection;
     if (session->len >= MAX_RESPONSE) {
       serverConnectionSetEvents(session->server, connection, 0);
     }
