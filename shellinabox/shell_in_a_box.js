@@ -179,14 +179,10 @@ ShellInABox.prototype.sendRequest = function(request) {
              }
            }
     }(this);
-  try {
-    if (this.session) {
-      request.send(content);
-    } else {
-      request.send();
-    }
-  } catch (e) {
-    alert('' + e + '\n' + this.url + '\n' + content);
+  if (this.session) {
+    request.send(content);
+  } else {
+    request.send();
   }
 };
 
