@@ -20,13 +20,13 @@
 #define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the <openssl/bio.h> header file. */
-/* #undef HAVE_OPENSSL_BIO_H */
+#define HAVE_OPENSSL_BIO_H 1
 
 /* Define to 1 if you have the <openssl/err.h> header file. */
-/* #undef HAVE_OPENSSL_ERR_H */
+#define HAVE_OPENSSL_ERR_H 1
 
 /* Define to 1 if you have the <openssl/ssl.h> header file. */
-/* #undef HAVE_OPENSSL_SSL_H */
+#define HAVE_OPENSSL_SSL_H 1
 
 /* Define to 1 if you have the <pthread.h> header file. */
 #define HAVE_PTHREAD_H 1
@@ -95,7 +95,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "77"
+#define VCS_REVISION "78"
 
 /* Version number of package */
 #define VERSION "2.4"

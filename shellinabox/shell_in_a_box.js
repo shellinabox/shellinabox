@@ -182,7 +182,7 @@ ShellInABox.prototype.sendRequest = function(request) {
   if (this.session) {
     request.send(content);
   } else {
-    request.send();
+    request.send('');
   }
 };
 
