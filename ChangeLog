@@ -1,5 +1,9 @@
 2009-03-17  Markus Gutschke  <markus@shellinabox.com>
 
+	* Allow root to bind to privileged port.
+
+2009-03-17  Markus Gutschke  <markus@shellinabox.com>
+
 	* Fixed IE6 support.
 
 	* Fixed possible memory corruption, when sessions time out.

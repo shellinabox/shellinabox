@@ -120,15 +120,18 @@ function ShellInABox(url, container) {
 extend(ShellInABox, VT100);
 
 ShellInABox.prototype.sessionClosed = function() {
-  this.connected    = false;
-  if (this.session) {
-    this.session    = undefined;
-    if (this.cursorX > 0) {
-      this.vt100('\r\n');
+  try {
+    this.connected    = false;
+    if (this.session) {
+      this.session    = undefined;
+      if (this.cursorX > 0) {
+        this.vt100('\r\n');
+      }
+      this.vt100('Session closed.');
     }
-    this.vt100('Session closed.');
+    this.showReconnect(true);
+  } catch (e) {
   }
-  this.showReconnect(true);
 };
 
 ShellInABox.prototype.reconnect = function() {
@@ -158,17 +161,15 @@ ShellInABox.prototype.sendRequest = function(request) {
   if (request == undefined) {
     request                  = new XMLHttpRequest();
   }
-  request.open(this.session ? 'POST' : 'GET', this.url, true);
+  request.open('POST', this.url + '?', true);
+  request.setRequestHeader('Cache-Control', 'no-cache');
   request.setRequestHeader('Content-Type',
                            'application/x-www-form-urlencoded; charset=utf-8');
-  var content                = this.session ?
-                               ('width=' + this.terminalWidth +
-                                '&height=' + this.terminalHeight +
-                                '&session=' +
-                                encodeURIComponent(this.session)) : '';
-  if (this.session) {
-    request.setRequestHeader('Content-Length', content.length);
-  }
+  var content                = 'width=' + this.terminalWidth +
+                               '&height=' + this.terminalHeight +
+                               (this.session ? '&session=' +
+                                encodeURIComponent(this.session) : '');
+  request.setRequestHeader('Content-Length', content.length);
 
   request.onreadystatechange = function(shellInABox) {
     return function() {
@@ -179,11 +180,7 @@ ShellInABox.prototype.sendRequest = function(request) {
              }
            }
     }(this);
-  if (this.session) {
-    request.send(content);
-  } else {
-    request.send('');
-  }
+  request.send(content);
 };
 
 ShellInABox.prototype.onReadyStateChange = function(request) {
@@ -191,7 +188,6 @@ ShellInABox.prototype.onReadyStateChange = function(request) {
     if (request.status == 200) {
       this.connected = true;
       var response   = eval('(' + request.responseText + ')');
-
       if (response.data) {
         this.vt100(response.data);
       }
@@ -223,9 +219,15 @@ ShellInABox.prototype.sendKeys = function(keys) {
     keys                       = this.pendingKeys + keys;
     this.pendingKeys           = '';
     var request                = new XMLHttpRequest();
-    request.open('POST', this.url, true);
+    request.open('POST', this.url + '?', true);
+    request.setRequestHeader('Cache-Control', 'no-cache');
     request.setRequestHeader('Content-Type',
                            'application/x-www-form-urlencoded; charset=utf-8');
+    var content                = 'width=' + this.terminalWidth +
+                                 '&height=' + this.terminalHeight +
+                                 '&session=' +encodeURIComponent(this.session)+
+                                 '&keys=' + encodeURIComponent(keys);
+    request.setRequestHeader('Content-Length', content.length);
     request.onreadystatechange = function(shellInABox) {
       return function() {
                try {
@@ -234,11 +236,7 @@ ShellInABox.prototype.sendKeys = function(keys) {
                }
              }
       }(this);
-    request.send(
-      'width=' + this.terminalWidth +
-      '&height=' + this.terminalHeight +
-      "&session=" + encodeURIComponent(this.session) +
-      "&keys=" + encodeURIComponent(keys));
+    request.send(content);
   }
 };
 

@@ -80,7 +80,7 @@ struct Server {
 
 struct Server *newCGIServer(int portMin, int portMax, int timeout);
 struct Server *newServer(int port);
-void initServer(struct Server *server, int port);
+void initServer(struct Server *server, int portMin, int portMax, int timeout);
 void destroyServer(struct Server *server);
 void deleteServer(struct Server *server);
 int  serverGetListeningPort(struct Server *server);

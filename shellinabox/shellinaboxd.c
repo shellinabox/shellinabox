@@ -466,7 +466,7 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
        endPathInfo++) {
   }
   int pathInfoLength      = endPathInfo - pathInfo;
-  
+
   // The root page either serves the AJAX application or redirects to the
   // secure HTTPS URL.
   if (!pathInfoLength ||
@@ -943,7 +943,6 @@ int main(int argc, char * const argv[]) {
   // Fork the launcher process, allowing us to drop privileges in the main
   // process.
   int launcherFd  = forkLauncher();
-  dropPrivileges();
 
   // Make sure that our timestamps will print in the standard format
   setlocale(LC_TIME, "POSIX");
@@ -952,12 +951,14 @@ int main(int argc, char * const argv[]) {
   Server *server;
   if (port) {
     check(server  = newServer(port));
+    dropPrivileges();
     setUpSSL(server);
   } else {
     // For CGI operation we fork the new server, so that it runs in the
     // background.
     pid_t pid;
     int   fds[2];
+    dropPrivileges();
     check(!pipe(fds));
     check((pid    = fork()) >= 0);
     if (pid) {

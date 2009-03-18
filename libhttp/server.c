@@ -171,8 +171,24 @@ static int serverQuitHandler(struct HttpConnection *http, void *arg) {
 }
 
 struct Server *newCGIServer(int portMin, int portMax, int timeout) {
-  struct Server *server         = newServer(0);
+  struct Server *server;
+  check(server = malloc(sizeof(struct Server)));
+  initServer(server, portMin, portMax, timeout);
+  return server;
+}
+
+struct Server *newServer(int port) {
+  return newCGIServer(port, port, -1);
+}
+
+void initServer(struct Server *server, int portMin, int portMax, int timeout) {
+  server->looping               = 0;
+  server->exitAll               = 0;
   server->serverTimeout         = timeout;
+  server->numericHosts          = 0;
+  server->connections           = NULL;
+  server->numConnections        = 0;
+
   int true                      = 1;
   server->serverFd              = socket(PF_INET, SOCK_STREAM, 0);
   check(server->serverFd >= 0);
@@ -219,26 +235,6 @@ struct Server *newCGIServer(int portMin, int portMax, int timeout) {
   server->pollFds->fd           = server->serverFd;
   server->pollFds->events       = POLLIN;
 
-  return server;
-}
-
-struct Server *newServer(int port) {
-  struct Server *server;
-  check(server = malloc(sizeof(struct Server)));
-  initServer(server, port);
-  return server;
-}
-
-void initServer(struct Server *server, int port) {
-  server->port                  = port;
-  server->looping               = 0;
-  server->exitAll               = 0;
-  server->serverTimeout         = -1;
-  server->serverFd              = -1;
-  server->numericHosts          = 0;
-  server->pollFds               = NULL;
-  server->connections           = NULL;
-  server->numConnections        = 0;
   initTrie(&server->handlers, serverDestroyHandlers, NULL);
   serverRegisterStreamingHttpHandler(server, "/quit", serverQuitHandler, NULL);
   initSSL(&server->ssl);
@@ -370,29 +366,7 @@ void serverExitLoop(struct Server *server, int exitAll) {
 }
 
 void serverLoop(struct Server *server) {
-  if (server->serverFd < 0) {
-    int true                              = 1;
-    server->serverFd                      = socket(PF_INET, SOCK_STREAM, 0);
-    check(server->serverFd >= 0);
-    check(!setsockopt(server->serverFd, SOL_SOCKET, SO_REUSEADDR,
-                      &true, sizeof(true)));
-    struct sockaddr_in serverAddr         = { 0 };
-    serverAddr.sin_family                 = AF_INET;
-    serverAddr.sin_addr.s_addr            = INADDR_ANY;
-    serverAddr.sin_port                   = htons(server->port);
-    if (bind(server->serverFd, (struct sockaddr *)&serverAddr,
-             sizeof(serverAddr))) {
-      fatal("Failed to bind to port %d. Maybe, another server is already "
-            "running?", server->port);
-    }
-    check(!listen(server->serverFd, SOMAXCONN));
-    info("Listening on port %d", server->port);
-    check(!server->pollFds);
-    check(!server->numConnections);
-    check(server->pollFds                 = malloc(sizeof(struct pollfd)));
-    server->pollFds->fd                   = server->serverFd;
-    server->pollFds->events               = POLLIN;
-  }
+  check(server->serverFd >= 0);
   time_t lastTime;
   currentTime                             = time(&lastTime);
   int loopDepth                           = ++server->looping;
