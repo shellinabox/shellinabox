@@ -234,11 +234,11 @@ VT100.prototype.initializeElements = function(container) {
                        '</div>' +
                        '<div id="menu"></div>' +
                        '<div id="scrollable">' +
+                         '<pre id="lineheight">&nbsp;</pre>' +
                          '<pre id="console"></pre>' +
                          '<pre id="alt_console" style="display: none"></pre>' +
                          '<div id="padding"></div>' +
-                         '<pre id="cursor">&nbsp;</pre>' +
-                         '<pre id="lineheight">&nbsp;</pre>' +
+                         '<pre id="cursor">X</pre>' +
                        '</div>' +
                        '<div class="hidden">' +
                          '<input type="textfield" id="input" />' +
@@ -982,28 +982,54 @@ VT100.prototype.putString = function(x, y, text, style) {
       this.cursorX                  = 0;
     }
   }
+  var pixelX                        = -1;
+  var pixelY                        = -1;
   if (!this.cursor.style.visibility) {
     var idx                         = this.cursorX - xPos;
     if (span) {
-      var nxtIdx                    = idx - this.getTextContent(span).length;
+      // If we are in a non-empty line, take the cursor Y position from the
+      // other elements in this line. If dealing with broken, non-proportional
+      // fonts, this is likely to yield better results.
+      pixelY                        = span.offsetTop;
+
+      s                             = this.getTextContent(span);
+      var nxtIdx                    = idx - s.length;
       if (nxtIdx < 0) {
-        this.setTextContent(this.cursor,
-                            this.getTextContent(span).charAt(idx));
-      } else if (span.nextSibling) {
-        this.setTextContent(this.cursor,
-                         this.getTextContent(span.nextSibling).charAt(nxtIdx));
+        this.setTextContent(this.cursor, s.charAt(idx));
+        pixelX                      = span.offsetLeft +
+                                      idx*span.offsetWidth / s.length;
       } else {
-        this.setTextContent(this.cursor, ' ');
+        if (nxtIdx == 0) {
+          pixelX                    = span.offsetLeft + span.offsetWidth;
+        }
+        if (span.nextSibling) {
+          s                         = this.getTextContent(span.nextSibling);
+          this.setTextContent(this.cursor, s.charAt(nxtIdx));
+          if (pixelX < 0) {
+            pixelX                  = span.nextSibling.offsetLeft +
+                                      nxtIdx*span.offsetWidth / s.length;
+          }
+        } else {
+          this.setTextContent(this.cursor, ' ');
+        }
       }
     } else {
       this.setTextContent(this.cursor, ' ');
     }
   }
-  this.cursor.style.left            = this.cursorX*this.cursorWidth +
+  if (pixelX >= 0) {
+    this.cursor.style.left          = pixelX + 'px';
+  } else {
+    this.cursor.style.left          = this.cursorX*this.cursorWidth +
                                       console.offsetLeft + 'px';
+  }
   this.cursorY                      = yIdx - this.numScrollbackLines;
-  this.cursor.style.top             = yIdx*this.cursorHeight +
+  if (pixelY >= 0) {
+    this.cursor.style.top           = pixelY + 'px';
+  } else {
+    this.cursor.style.top           = yIdx*this.cursorHeight +
                                       console.offsetTop + 'px';
+  }
 
   if (text.length) {
     // Merge <span> with previous sibling, if styles are identical

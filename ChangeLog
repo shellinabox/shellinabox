@@ -1,3 +1,11 @@
+2009-03-19  Markus Gutschke  <markus@shellinabox.com>
+
+	* Fixed cursor positioning. Hopefully, more browsers will be happy
+	with this, now.
+
+	* Explicitly added no-cache headers to our responses. This might help
+	with the IE6 problems.
+
 2009-03-17  Markus Gutschke  <markus@shellinabox.com>
 
 	* Allow root to bind to privileged port.

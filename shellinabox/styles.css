@@ -20,8 +20,13 @@
   padding:          1px;
 }
 
-#vt100 #console, #vt100 #alt_console, #vt100 #cursor { 
+#vt100 #console, #vt100 #alt_console, #vt100 #cursor, #vt100 #lineheight { 
   font-family:      "DejaVu Sans Mono", "Everson Mono", FreeMono, "Andale Mono", "Lucida Console", monospace;
+}
+
+#vt100 #lineheight { 
+  position:         absolute;
+  visibility:       hidden;
 }
 
 #vt100 #cursor {

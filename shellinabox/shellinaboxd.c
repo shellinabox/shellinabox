@@ -225,6 +225,7 @@ static int completePendingRequest(struct Session *session,
                                              "Content-Type: application/json; "
                                              "charset=utf-8\r\n"
                                              "Content-Length: %ld\r\n"
+                                             "Cache-Control: no-cache\r\n"
                                              "\r\n"
                                              "%s",
                                              (long)strlen(json),
