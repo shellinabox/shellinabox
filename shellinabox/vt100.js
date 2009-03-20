@@ -990,8 +990,8 @@ VT100.prototype.putString = function(x, y, text, style) {
       // If we are in a non-empty line, take the cursor Y position from the
       // other elements in this line. If dealing with broken, non-proportional
       // fonts, this is likely to yield better results.
-      pixelY                        = span.offsetTop;
-
+      pixelY                        = span.offsetTop +
+                                      span.offsetParent.offsetTop;
       s                             = this.getTextContent(span);
       var nxtIdx                    = idx - s.length;
       if (nxtIdx < 0) {
