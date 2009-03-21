@@ -2,6 +2,8 @@
 
 	* Possible fix for IE problems with horizontal positioning of
 	cursor if the line ends in spaces.
+
+	* Work-around for an IE6 bug when doing HTTPS through proxies.
 	
 2009-03-21  Markus Gutschke  <markus@shellinabox.com>
 

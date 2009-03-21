@@ -183,7 +183,6 @@ static int httpShutdown(struct HttpConnection *http, int how) {
       }
       sslFreeHndl(&http->sslHndl);
     }
-    return rc;
   }
   return shutdown(http->fd, how);
 }
@@ -449,6 +448,18 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
     http->msgLength        = len;
   }
 
+  // Internet Explorer prior to version 7 has a bug when send XMLHttpRequests
+  // over HTTPS that go through a proxy. It won't see the reply until we
+  // close the connection.
+  int ieBug                = 0;
+  if (http->sslHndl) {
+    const char *userAgent  = getFromHashMap(&http->header, "user-agent");
+    const char *msie       = userAgent ? strstr(userAgent, "MSIE ") : NULL;
+    if (msie && msie[5] >= '4' && msie[5] <= '6') {
+      ieBug++;
+    }
+  }
+
   // The caller can suspend the connection, so that it can send an
   // asynchronous reply. Once the reply has been sent, the connection
   // gets reactivated. Normally, this means it would go back to listening
@@ -493,6 +504,10 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
                                   http->msgLength ? POLLIN|POLLOUT : POLLIN);
       }
     }
+  }
+
+  if (ieBug) {
+    httpCloseRead(http);
   }
 }
 
