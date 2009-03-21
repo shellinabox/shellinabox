@@ -198,6 +198,7 @@ VT100.prototype.initializeElements = function(container) {
       !this.getChildById(this.container, 'scrollable')  ||
       !this.getChildById(this.container, 'console')     ||
       !this.getChildById(this.container, 'alt_console') ||
+      !this.getChildById(this.container, 'ieprobe')     ||
       !this.getChildById(this.container, 'padding')     ||
       !this.getChildById(this.container, 'cursor')      ||
       !this.getChildById(this.container, 'lineheight')  ||
@@ -235,10 +236,13 @@ VT100.prototype.initializeElements = function(container) {
                        '<div id="menu"></div>' +
                        '<div id="scrollable">' +
                          '<pre id="lineheight">&nbsp;</pre>' +
-                         '<pre id="console"></pre>' +
+                         '<pre id="console">' +
+                           '<pre></pre>' +
+                           '<div id="ieprobe"><span>&nbsp;</span></div>' +
+                         '</pre>' +
                          '<pre id="alt_console" style="display: none"></pre>' +
                          '<div id="padding"></div>' +
-                         '<pre id="cursor">X</pre>' +
+                         '<pre id="cursor">&nbsp;</pre>' +
                        '</div>' +
                        '<div class="hidden">' +
                          '<input type="textfield" id="input" />' +
@@ -274,6 +278,7 @@ VT100.prototype.initializeElements = function(container) {
   this.console                 =
                           [ this.getChildById(this.container, 'console'),
                             this.getChildById(this.container, 'alt_console') ];
+  var ieProbe                  = this.getChildById(this.container, 'ieprobe');
   this.cursor                  = this.getChildById(this.container, 'cursor');
   this.lineheight              = this.getChildById(this.container,
                                                                  'lineheight');
@@ -288,8 +293,12 @@ VT100.prototype.initializeElements = function(container) {
   // but it turns out that browsers sometimes invalidate these values
   // (e.g. while displaying a print preview screen).
   this.cursorWidth             = this.cursor.clientWidth;
-  this.cursorHeight            = this.lineheight.clientHeight ||
-                                 this.cursor.clientHeight;
+  this.cursorHeight            = this.lineheight.clientHeight;
+
+  // IE has a slightly different boxing model, that we need to compensate for
+  this.isIE                    = ieProbe.offsetTop > 1;
+  ieProbe                      = undefined;
+  this.console.innerHTML       = '';
 
   // Determine if the terminal window is positioned at the beginning of the
   // page, or if it is embedded somewhere else in the page. For full-screen
@@ -1018,7 +1027,7 @@ VT100.prototype.putString = function(x, y, text, style) {
     }
   }
   if (pixelX >= 0) {
-    this.cursor.style.left          = pixelX + 'px';
+    this.cursor.style.left          = (pixelX + (this.isIE ? 1 : 0))  + 'px';
   } else {
     this.cursor.style.left          = this.cursorX*this.cursorWidth +
                                       console.offsetLeft + 'px';
