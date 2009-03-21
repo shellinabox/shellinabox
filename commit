@@ -1,0 +1,57 @@
+#!/bin/bash -e
+
+trap 'tput bel || :; echo Failed! >&2' EXIT
+
+yes_no() {
+  local c
+  while :; do
+    c="$(set +e
+         trap 'stty echo -iuclc icanon 2>/dev/null' EXIT INT TERM QUIT
+         stty -echo iuclc -icanon 2>/dev/null
+         dd count=1 bs=1 2>/dev/null | od -An -tx1)"
+    case "$c" in
+      " 0a") if [ -n "$1" ]; then
+               [ $1 -eq 0 ] && echo "Y" || echo "N"
+               return $1
+             fi
+             ;;
+      " 79") echo "Y"
+             return 0
+             ;;
+      " 6e") echo "N"
+             return 1
+             ;;
+      "")    echo "Aborted" >&2
+             exit 1
+             ;;
+      *)     # The user pressed an unrecognized key. As we are not echoing
+             # any incorrect user input, alert the user by ringing the bell.
+             (tput bel) 2>/dev/null || :
+             ;;
+    esac
+  done
+}
+
+test -r configure.ac
+svn update
+rev=$(($(svn info | sed -e 's/^Revision: \(.*\)/\1/;t1;d;:1;q')+1))
+prj="$(sed -e 's/^AC_INIT(\([^,]*\),.*/\1/;t1;d;:1;q' configure.ac)"
+ver="$(sed -e 's/^AC_INIT([^,]*, *\([^,]*\),.*/\1/;t1;d;:1;q' configure.ac)"
+sed -ie 's/^\(VCS_REVISION=\).*/\1'"${rev}"'/' configure.ac
+make all distcheck
+( trap 'rm -rf "${prj}-${ver}"' EXIT
+  rm -f "${prj}-${ver}" &&
+  tar zfx "${prj}-${ver}.tar.gz" &&
+  cd "${prj}-${ver}" &&
+  { fakeroot dpkg-buildpackage || :; } &&
+  cd .. &&
+  rm -f $(ls "${prj}_${ver}-"*.* | egrep -v '.deb$') ) || :
+svn diff $(svn st |
+           egrep -v ' configure$| aclocal.m4$|^[?]' |
+           sed -e 's/^[^ ]* *//') | less
+echo -n 'Commit these changes (Y/n): '
+yes_no 0 || exit 1
+svn commit
+
+trap '' EXIT
+exit 0

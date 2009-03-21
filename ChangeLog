@@ -1,3 +1,9 @@
+2009-03-21  Markus Gutschke  <markus@shellinabox.com>
+
+	* Released version 2.5
+
+	* More testing on older IE versions.
+
 2009-03-19  Markus Gutschke  <markus@shellinabox.com>
 
 	* Fixed cursor positioning. Hopefully, more browsers will be happy
