@@ -202,6 +202,7 @@ VT100.prototype.initializeElements = function(container) {
       !this.getChildById(this.container, 'padding')     ||
       !this.getChildById(this.container, 'cursor')      ||
       !this.getChildById(this.container, 'lineheight')  ||
+      !this.getChildById(this.container, 'space')       ||
       !this.getChildById(this.container, 'input')       ||
       !this.getChildById(this.container, 'cliphelper')  ||
       !this.getChildById(this.container, 'attrib')) {
@@ -245,6 +246,7 @@ VT100.prototype.initializeElements = function(container) {
                          '<pre id="cursor">&nbsp;</pre>' +
                        '</div>' +
                        '<div class="hidden">' +
+                         '<pre><div><span id="space"></span></div></pre>' +
                          '<input type="textfield" id="input" />' +
                          '<input type="textfield" id="cliphelper" />' +
                          '<span id="attrib">&nbsp;</span>' +
@@ -275,14 +277,15 @@ VT100.prototype.initializeElements = function(container) {
   this.menu                    = this.getChildById(this.container, 'menu');
   this.scrollable              = this.getChildById(this.container,
                                                                  'scrollable');
+  this.lineheight              = this.getChildById(this.container,
+                                                                 'lineheight');
   this.console                 =
                           [ this.getChildById(this.container, 'console'),
                             this.getChildById(this.container, 'alt_console') ];
   var ieProbe                  = this.getChildById(this.container, 'ieprobe');
-  this.cursor                  = this.getChildById(this.container, 'cursor');
-  this.lineheight              = this.getChildById(this.container,
-                                                                 'lineheight');
   this.padding                 = this.getChildById(this.container, 'padding');
+  this.cursor                  = this.getChildById(this.container, 'cursor');
+  this.space                   = this.getChildById(this.container, 'space');
   this.input                   = this.getChildById(this.container, 'input');
   this.cliphelper              = this.getChildById(this.container,
                                                                  'cliphelper');
@@ -1029,7 +1032,8 @@ VT100.prototype.putString = function(x, y, text, style) {
   if (pixelX >= 0) {
     this.cursor.style.left          = (pixelX + (this.isIE ? 1 : 0))  + 'px';
   } else {
-    this.cursor.style.left          = this.cursorX*this.cursorWidth +
+    this.setTextContent(this.space, this.spaces(this.cursorX));
+    this.cursor.style.left          = this.space.offsetWidth +
                                       console.offsetLeft + 'px';
   }
   this.cursorY                      = yIdx - this.numScrollbackLines;

@@ -1,5 +1,10 @@
 2009-03-21  Markus Gutschke  <markus@shellinabox.com>
 
+	* Possible fix for IE problems with horizontal positioning of
+	cursor if the line ends in spaces.
+	
+2009-03-21  Markus Gutschke  <markus@shellinabox.com>
+
 	* Released version 2.5
 
 	* More testing on older IE versions.
