@@ -1,3 +1,8 @@
+2009-03-23  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added an INSTALL.Debian file with Debian-specific instructions on
+	how to build and install a package file.
+
 2009-03-21  Markus Gutschke  <markus@shellinabox.com>
 
 	* Possible fix for IE problems with horizontal positioning of

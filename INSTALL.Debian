@@ -1,0 +1,62 @@
+You can build package files for Debian based distributions (including Ubuntu)
+by running the standard build commands:
+
+  # Install build dependencies
+  i="$(dpkg-checkbuilddeps 2>&1 | sed -e 's/.*dependencies: //;t;d')"
+  [ -n "$i" ] && sudo apt-get install $i
+
+  # Build package files
+  dpkg-buildpackage
+
+These commands replace "./configure" and "make", which you would run on
+non-Debian systems.
+
+If you have a very old Debian system, you might have to use "fakeroot
+dpkg-buildpackage", instead of just "dpkg-buildpackage".
+
+If you want HTTPS support, and if you want the ability to run "shellinaboxd"
+as a non-privileged user, you should now install these run-time libraries:
+
+  sudo apt-get install libssl0.9.8 libpam0g openssl
+
+Running "dpkg-buildpackage" puts package files into your parent directory.
+You can install them with:
+
+  sudo dpkg -i ../shellinabox_*.deb
+
+You can now connect to your new shell at:
+
+  http://localhost:4200
+
+In contrast to installation by "make install", this package file creates
+files that are manage by the system tools. This allows it to install
+configuration files in "/etc" and to automatically start the daemon.
+
+You can configure the daemon process by editing "/etc/default/shellinabox".
+
+You can also provide SSL certificates for your site by installing them in
+"/var/lib/shellinabox". By default, the system will install self-signed
+certificates for you. These certificates are likely to raise warnings when
+you point your browser to the site.
+
+At the very least, you need a file called "certificate.pem" that includes
+both the private key and the public certificate PEM (i.e. ASCII) format.
+Additionally, you should create files for each of the publically visible
+hostnames that your machine has. These are named "certificate-${FQDN}.pem".
+You probably also want "certificate-localhost.pem".
+
+After you make any configuration changes, you need to restart the daemon by
+running:
+
+  sudo /etc/init.d/shellinabox restart
+
+If you want to know which files were installed by the package, run
+
+  dpkg -L shellinabox
+
+If you want to uninstall it again, run:
+
+  sudo apt-get remove shellinabox
+
+For all other administrative tasks, refer to the documentation that came
+with your system.
