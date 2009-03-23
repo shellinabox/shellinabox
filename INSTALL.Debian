@@ -29,7 +29,7 @@ You can now connect to your new shell at:
   http://localhost:4200
 
 In contrast to installation by "make install", this package file creates
-files that are manage by the system tools. This allows it to install
+files that are managed by the system tools. This allows it to install
 configuration files in "/etc" and to automatically start the daemon.
 
 You can configure the daemon process by editing "/etc/default/shellinabox".
@@ -40,7 +40,7 @@ certificates for you. These certificates are likely to raise warnings when
 you point your browser to the site.
 
 At the very least, you need a file called "certificate.pem" that includes
-both the private key and the public certificate PEM (i.e. ASCII) format.
+both the private key and the public certificate in PEM (i.e. ASCII) format.
 Additionally, you should create files for each of the publically visible
 hostnames that your machine has. These are named "certificate-${FQDN}.pem".
 You probably also want "certificate-localhost.pem".
