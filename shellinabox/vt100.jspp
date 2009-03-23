@@ -63,37 +63,37 @@
 // If in doubt, consult a legal professional familiar with the laws that
 // apply in your country.
 
-// #define ESnormal        0
-// #define ESesc           1
-// #define ESsquare        2
-// #define ESgetpars       3
-// #define ESgotpars       4
-// #define ESdeviceattr    5
-// #define ESfunckey       6
-// #define EShash          7
-// #define ESsetG0         8
-// #define ESsetG1         9
-// #define ESsetG2        10
-// #define ESsetG3        11
-// #define ESbang         12
-// #define ESpercent      13
-// #define ESignore       14
-// #define ESnonstd       15
-// #define ESpalette      16
-// #define ESstatus       17
-// #define ESss2          18
-// #define ESss3          19
+#define ESnormal        0
+#define ESesc           1
+#define ESsquare        2
+#define ESgetpars       3
+#define ESgotpars       4
+#define ESdeviceattr    5
+#define ESfunckey       6
+#define EShash          7
+#define ESsetG0         8
+#define ESsetG1         9
+#define ESsetG2        10
+#define ESsetG3        11
+#define ESbang         12
+#define ESpercent      13
+#define ESignore       14
+#define ESnonstd       15
+#define ESpalette      16
+#define ESstatus       17
+#define ESss2          18
+#define ESss3          19
 
-// #define ATTR_DEFAULT   0x00F0
-// #define ATTR_REVERSE   0x0100
-// #define ATTR_UNDERLINE 0x0200
-// #define ATTR_DIM       0x0400
-// #define ATTR_BRIGHT    0x0800
-// #define ATTR_BLINK     0x1000
+#define ATTR_DEFAULT   0x00F0
+#define ATTR_REVERSE   0x0100
+#define ATTR_UNDERLINE 0x0200
+#define ATTR_DIM       0x0400
+#define ATTR_BRIGHT    0x0800
+#define ATTR_BLINK     0x1000
 
-// #define MOUSE_DOWN     0
-// #define MOUSE_UP       1
-// #define MOUSE_CLICK    2
+#define MOUSE_DOWN     0
+#define MOUSE_UP       1
+#define MOUSE_CLICK    2
 
 function VT100(container) {
   this.initializeElements(container);
@@ -116,7 +116,7 @@ function VT100(container) {
 }
 
 VT100.prototype.reset = function(clearHistory) {
-  this.isEsc                            = 0 /* ESnormal */;
+  this.isEsc                            = ESnormal;
   this.needWrap                         = false;
   this.autoWrapMode                     = true;
   this.dispCtrl                         = false;
@@ -134,7 +134,7 @@ VT100.prototype.reset = function(clearHistory) {
   this.utfCount                         = 0;
   this.utfChar                          = 0;
   this.style                            = '';
-  this.attr                             = 0x00F0 /* ATTR_DEFAULT */;
+  this.attr                             = ATTR_DEFAULT;
   this.useGMap                          = 0;
   this.GMap                             = [ this.Latin1Map,
                                             this.VT100GraphicsMap,
@@ -383,9 +383,9 @@ VT100.prototype.initializeElements = function(container) {
       return vt100.mouseEvent(e, type);
     };
   };
-  this.addListener(this.scrollable,'mousedown',mouseEvent(this, 0 /* MOUSE_DOWN */));
-  this.addListener(this.scrollable,'mouseup',  mouseEvent(this, 1 /* MOUSE_UP */));
-  this.addListener(this.scrollable,'click',    mouseEvent(this, 2 /* MOUSE_CLICK */));
+  this.addListener(this.scrollable,'mousedown',mouseEvent(this, MOUSE_DOWN));
+  this.addListener(this.scrollable,'mouseup',  mouseEvent(this, MOUSE_UP));
+  this.addListener(this.scrollable,'click',    mouseEvent(this, MOUSE_CLICK));
 
   // Initialize the blank terminal window.
   this.currentScreen           = 0;
@@ -607,7 +607,7 @@ VT100.prototype.mouseEvent = function(event, type) {
   // If any text is currently selected, do not move the focus as that would
   // invalidate the selection.
   var selection    = this.selection();
-  if ((type == 1 /* MOUSE_UP */ || type == 2 /* MOUSE_CLICK */) && !selection.length) {
+  if ((type == MOUSE_UP || type == MOUSE_CLICK) && !selection.length) {
     this.input.focus();
   }
 
@@ -640,7 +640,7 @@ VT100.prototype.mouseEvent = function(event, type) {
   }
 
   // Compute button number and modifier keys.
-  var button       = type != 0 /* MOUSE_DOWN */ ? 3 :
+  var button       = type != MOUSE_DOWN ? 3 :
                      typeof event.pageX != 'undefined' ? event.button :
                      [ undefined, 0, 2, 0, 1, 0, 1, 0  ][event.button];
   if (button != undefined) {
@@ -659,13 +659,13 @@ VT100.prototype.mouseEvent = function(event, type) {
   // with the SHIFT key unpressed. Both of these restrictions do not apply
   // for button releases, as we always want to report those.
   if (this.mouseReporting && !selection.length &&
-      (type != 0 /* MOUSE_DOWN */ || !event.shiftKey)) {
-    if (inside || type != 0 /* MOUSE_DOWN */) {
+      (type != MOUSE_DOWN || !event.shiftKey)) {
+    if (inside || type != MOUSE_DOWN) {
       if (button != undefined) {
         var report = '\u001B[M' + String.fromCharCode(button + 32) +
                                   String.fromCharCode(x      + 33) +
                                   String.fromCharCode(y      + 33);
-        if (type != 2 /* MOUSE_CLICK */) {
+        if (type != MOUSE_CLICK) {
           this.keysPressed(report);
         }
 
@@ -679,7 +679,7 @@ VT100.prototype.mouseEvent = function(event, type) {
 
   // Bring up context menu.
   if (button == 2 && !event.shiftKey) {
-    if (type == 0 /* MOUSE_DOWN */) {
+    if (type == MOUSE_DOWN) {
       this.showContextMenu(event.clientX - offsetX, event.clientY - offsetY);
     }
     return this.cancelEvent(event);
@@ -1500,7 +1500,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.5 (revision 88)" +
+  alert("VT100 Terminal Emulator " + VERSION +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -2261,22 +2261,22 @@ VT100.prototype.respondSecondaryDA = function() {
 
 VT100.prototype.updateStyle = function() {
   var style  = '';
-  if (this.attr & 0x0200 /* ATTR_UNDERLINE */) {
+  if (this.attr & ATTR_UNDERLINE) {
     style   += 'text-decoration:underline;';
   }
   var bg     = (this.attr >> 4) & 0xF;
   var fg     =  this.attr       & 0xF;
-  if (this.attr & 0x0100 /* ATTR_REVERSE */) {
+  if (this.attr & ATTR_REVERSE) {
     var tmp  = bg;
     bg       = fg;
     fg       = tmp;
   }
-  if ((this.attr & (0x0100 /* ATTR_REVERSE */ | 0x0400 /* ATTR_DIM */)) == 0x0400 /* ATTR_DIM */) {
+  if ((this.attr & (ATTR_REVERSE | ATTR_DIM)) == ATTR_DIM) {
     fg       = 8; // Dark grey
-  } else if (this.attr & 0x0800 /* ATTR_BRIGHT */) {
+  } else if (this.attr & ATTR_BRIGHT) {
     fg      |= 8;
   }
-  if (this.attr & 0x1000 /* ATTR_BLINK */) {
+  if (this.attr & ATTR_BLINK) {
     bg      ^= 8;
   }
   // Make some readability enhancements. Most notably, disallow identical
@@ -2480,12 +2480,12 @@ VT100.prototype.csiM = function(number) {
 VT100.prototype.csim = function() {
   for (var i = 0; i <= this.npar; i++) {
     switch (this.par[i]) {
-    case 0:  this.attr  = 0x00F0 /* ATTR_DEFAULT */;                                break;
-    case 1:  this.attr  = (this.attr & ~0x0400 /* ATTR_DIM */)|0x0800 /* ATTR_BRIGHT */;         break;
-    case 2:  this.attr  = (this.attr & ~0x0800 /* ATTR_BRIGHT */)|0x0400 /* ATTR_DIM */;         break;
-    case 4:  this.attr |= 0x0200 /* ATTR_UNDERLINE */;                              break;
-    case 5:  this.attr |= 0x1000 /* ATTR_BLINK */;                                  break;
-    case 7:  this.attr |= 0x0100 /* ATTR_REVERSE */;                                break;
+    case 0:  this.attr  = ATTR_DEFAULT;                                break;
+    case 1:  this.attr  = (this.attr & ~ATTR_DIM)|ATTR_BRIGHT;         break;
+    case 2:  this.attr  = (this.attr & ~ATTR_BRIGHT)|ATTR_DIM;         break;
+    case 4:  this.attr |= ATTR_UNDERLINE;                              break;
+    case 5:  this.attr |= ATTR_BLINK;                                  break;
+    case 7:  this.attr |= ATTR_REVERSE;                                break;
     case 10:
       this.translate    = this.GMap[this.useGMap];
       this.dispCtrl     = false;
@@ -2502,13 +2502,13 @@ VT100.prototype.csim = function() {
       this.toggleMeta   = true;
       break;
     case 21:
-    case 22: this.attr &= ~(0x0800 /* ATTR_BRIGHT */|0x0400 /* ATTR_DIM */);                     break;
-    case 24: this.attr &= ~ 0x0200 /* ATTR_UNDERLINE */;                            break;
-    case 25: this.attr &= ~ 0x1000 /* ATTR_BLINK */;                                break;
-    case 27: this.attr &= ~ 0x0100 /* ATTR_REVERSE */;                              break;
-    case 38: this.attr  = (this.attr & ~(0x0400 /* ATTR_DIM */|0x0800 /* ATTR_BRIGHT */|0x0F))|
-                          0x0200 /* ATTR_UNDERLINE */;                              break;
-    case 39: this.attr &= ~(0x0400 /* ATTR_DIM */|0x0800 /* ATTR_BRIGHT */|0x0200 /* ATTR_UNDERLINE */|0x0F); break;
+    case 22: this.attr &= ~(ATTR_BRIGHT|ATTR_DIM);                     break;
+    case 24: this.attr &= ~ ATTR_UNDERLINE;                            break;
+    case 25: this.attr &= ~ ATTR_BLINK;                                break;
+    case 27: this.attr &= ~ ATTR_REVERSE;                              break;
+    case 38: this.attr  = (this.attr & ~(ATTR_DIM|ATTR_BRIGHT|0x0F))|
+                          ATTR_UNDERLINE;                              break;
+    case 39: this.attr &= ~(ATTR_DIM|ATTR_BRIGHT|ATTR_UNDERLINE|0x0F); break;
     case 49: this.attr |= 0xF0;                                        break;
     default:
       if (this.par[i] >= 30 && this.par[i] <= 37) {
@@ -2573,32 +2573,32 @@ VT100.prototype.doControl = function(ch) {
              this.translate   = this.GMap[0];
              this.dispCtrl    = false;                                  break;
   case 0x18:
-  case 0x1A: this.isEsc       = 0 /* ESnormal */;                               break;
-  case 0x1B: this.isEsc       = 1 /* ESesc */;                                  break;
+  case 0x1A: this.isEsc       = ESnormal;                               break;
+  case 0x1B: this.isEsc       = ESesc;                                  break;
   case 0x7F: /* ignored */                                              break;
   case 0x88: this.userTabStop[this.cursorX] = true;                     break;
   case 0x8D: this.ri();                                                 break;
-  case 0x8E: this.isEsc       = 18 /* ESss2 */;                                  break;
-  case 0x8F: this.isEsc       = 19 /* ESss3 */;                                  break;
+  case 0x8E: this.isEsc       = ESss2;                                  break;
+  case 0x8F: this.isEsc       = ESss3;                                  break;
   case 0x9A: this.respondID();                                          break;
-  case 0x9B: this.isEsc       = 2 /* ESsquare */;                               break;
-  case 0x07: if (this.isEsc != 17 /* ESstatus */) {
+  case 0x9B: this.isEsc       = ESsquare;                               break;
+  case 0x07: if (this.isEsc != ESstatus) {
                this.beep();                                             break;
              }
              /* fall thru */
   default:   switch (this.isEsc) {
-    case 1 /* ESesc */:
-      this.isEsc              = 0 /* ESnormal */;
+    case ESesc:
+      this.isEsc              = ESnormal;
       switch (ch) {
-/*%*/ case 0x25: this.isEsc   = 13 /* ESpercent */;                              break;
-/*(*/ case 0x28: this.isEsc   = 8 /* ESsetG0 */;                                break;
+/*%*/ case 0x25: this.isEsc   = ESpercent;                              break;
+/*(*/ case 0x28: this.isEsc   = ESsetG0;                                break;
 /*-*/ case 0x2D:
-/*)*/ case 0x29: this.isEsc   = 9 /* ESsetG1 */;                                break;
+/*)*/ case 0x29: this.isEsc   = ESsetG1;                                break;
 /*.*/ case 0x2E:
-/***/ case 0x2A: this.isEsc   = 10 /* ESsetG2 */;                                break;
+/***/ case 0x2A: this.isEsc   = ESsetG2;                                break;
 /*/*/ case 0x2F:
-/*+*/ case 0x2B: this.isEsc   = 11 /* ESsetG3 */;                                break;
-/*#*/ case 0x23: this.isEsc   = 7 /* EShash */;                                 break;
+/*+*/ case 0x2B: this.isEsc   = ESsetG3;                                break;
+/*#*/ case 0x23: this.isEsc   = EShash;                                 break;
 /*7*/ case 0x37: this.saveCursor();                                     break;
 /*8*/ case 0x38: this.restoreCursor();                                  break;
 /*>*/ case 0x3E: this.applKeyMode = false;                              break;
@@ -2606,30 +2606,30 @@ VT100.prototype.doControl = function(ch) {
 /*D*/ case 0x44: this.lf();                                             break;
 /*E*/ case 0x45: this.cr(); this.lf();                                  break;
 /*M*/ case 0x4D: this.ri();                                             break;
-/*N*/ case 0x4E: this.isEsc   = 18 /* ESss2 */;                                  break;
-/*O*/ case 0x4F: this.isEsc   = 19 /* ESss3 */;                                  break;
+/*N*/ case 0x4E: this.isEsc   = ESss2;                                  break;
+/*O*/ case 0x4F: this.isEsc   = ESss3;                                  break;
 /*H*/ case 0x48: this.userTabStop[this.cursorX] = true;                 break;
 /*Z*/ case 0x5A: this.respondID();                                      break;
-/*[*/ case 0x5B: this.isEsc   = 2 /* ESsquare */;                               break;
-/*]*/ case 0x5D: this.isEsc   = 15 /* ESnonstd */;                               break;
+/*[*/ case 0x5B: this.isEsc   = ESsquare;                               break;
+/*]*/ case 0x5D: this.isEsc   = ESnonstd;                               break;
 /*c*/ case 0x63: this.reset();                                          break;
 /*g*/ case 0x67: this.flashScreen();                                    break;
       default:                                                          break;
       }
       break;
-    case 15 /* ESnonstd */:
+    case ESnonstd:
       switch (ch) {
 /*0*/ case 0x30:
 /*1*/ case 0x31:
-/*2*/ case 0x32: this.statusString = ''; this.isEsc  = 17 /* ESstatus */;        break;
+/*2*/ case 0x32: this.statusString = ''; this.isEsc  = ESstatus;        break;
 /*P*/ case 0x50: this.npar    = 0; this.par = [ 0, 0, 0, 0, 0, 0, 0 ];
-                 this.isEsc   = 16 /* ESpalette */;                              break;
+                 this.isEsc   = ESpalette;                              break;
 /*R*/ case 0x52: // Palette support is not implemented
-                 this.isEsc   = 0 /* ESnormal */;                               break;
-      default:   this.isEsc   = 0 /* ESnormal */;                               break;
+                 this.isEsc   = ESnormal;                               break;
+      default:   this.isEsc   = ESnormal;                               break;
       }
       break;
-    case 16 /* ESpalette */:
+    case ESpalette:
       if ((ch >= 0x30 /*0*/ && ch <= 0x39 /*9*/) ||
           (ch >= 0x41 /*A*/ && ch <= 0x46 /*F*/) ||
           (ch >= 0x61 /*a*/ && ch <= 0x66 /*f*/)) {
@@ -2637,19 +2637,19 @@ VT100.prototype.doControl = function(ch) {
                                                 : (ch & 0xF);
         if (this.npar == 7) {
           // Palette support is not implemented
-          this.isEsc          = 0 /* ESnormal */;
+          this.isEsc          = ESnormal;
         }
       } else {
-        this.isEsc            = 0 /* ESnormal */;
+        this.isEsc            = ESnormal;
       }
       break;
-    case 2 /* ESsquare */:
+    case ESsquare:
       this.npar               = 0;
       this.par                = [ 0, 0, 0, 0, 0, 0, 0, 0,
                                   0, 0, 0, 0, 0, 0, 0, 0 ];
-      this.isEsc              = 3 /* ESgetpars */;
+      this.isEsc              = ESgetpars;
 /*[*/ if (ch == 0x5B) { // Function key
-        this.isEsc            = 6 /* ESfunckey */;
+        this.isEsc            = ESfunckey;
         break;
       } else {
 /*?*/   this.isQuestionMark   = ch == 0x3F;
@@ -2658,8 +2658,8 @@ VT100.prototype.doControl = function(ch) {
         }
       }
       // Fall through
-    case 5 /* ESdeviceattr */:
-    case 3 /* ESgetpars */: 
+    case ESdeviceattr:
+    case ESgetpars: 
 /*;*/ if (ch == 0x3B) {
         this.npar++;
         break;
@@ -2670,7 +2670,7 @@ VT100.prototype.doControl = function(ch) {
         }
         this.par[this.npar]   = 10*par + (ch & 0xF);
         break;
-      } else if (this.isEsc == 5 /* ESdeviceattr */) {
+      } else if (this.isEsc == ESdeviceattr) {
         switch (ch) {
 /*c*/   case 0x63: if (this.par[0] == 0) this.respondSecondaryDA();     break;
 /*m*/   case 0x6D: /* (re)set key modifier resource values */           break;
@@ -2678,14 +2678,14 @@ VT100.prototype.doControl = function(ch) {
 /*p*/   case 0x70: /* set pointer mode resource value */                break;
         default:                                                        break;
         }
-        this.isEsc            = 0 /* ESnormal */;
+        this.isEsc            = ESnormal;
         break;
       } else {
-        this.isEsc            = 4 /* ESgotpars */;
+        this.isEsc            = ESgotpars;
       }
       // Fall through
-    case 4 /* ESgotpars */:
-      this.isEsc              = 0 /* ESnormal */;
+    case ESgotpars:
+      this.isEsc              = ESnormal;
       if (this.isQuestionMark) {
         switch (ch) {
 /*h*/   case 0x68: this.setMode(true);                                  break;
@@ -2697,8 +2697,8 @@ VT100.prototype.doControl = function(ch) {
         break;
       }
       switch (ch) {
-/*!*/ case 0x21: this.isEsc   = 12 /* ESbang */;                                 break;
-/*>*/ case 0x3E: if (!this.npar) this.isEsc  = 5 /* ESdeviceattr */;            break;
+/*!*/ case 0x21: this.isEsc   = ESbang;                                 break;
+/*>*/ case 0x3E: if (!this.npar) this.isEsc  = ESdeviceattr;            break;
 /*G*/ case 0x47:
 /*`*/ case 0x60: this.gotoXY(this.par[0] - 1, this.cursorY);            break;
 /*A*/ case 0x41: this.gotoXY(this.cursorX,
@@ -2775,14 +2775,14 @@ VT100.prototype.doControl = function(ch) {
       default:                                                          break;
       }
       break;
-    case 12 /* ESbang */:
+    case ESbang:
       if (ch == 'p') {
         this.reset();
       }
-      this.isEsc              = 0 /* ESnormal */;
+      this.isEsc              = ESnormal;
       break;
-    case 13 /* ESpercent */:
-      this.isEsc              = 0 /* ESnormal */;
+    case ESpercent:
+      this.isEsc              = ESnormal;
       switch (ch) {
 /*@*/ case 0x40: this.utfEnabled = false;                               break;
 /*G*/ case 0x47:
@@ -2790,20 +2790,20 @@ VT100.prototype.doControl = function(ch) {
       default:                                                          break;
       }
       break;
-    case 6 /* ESfunckey */:
-      this.isEsc              = 0 /* ESnormal */;                               break;
-    case 7 /* EShash */:
-      this.isEsc              = 0 /* ESnormal */;
+    case ESfunckey:
+      this.isEsc              = ESnormal;                               break;
+    case EShash:
+      this.isEsc              = ESnormal;
 /*8*/ if (ch == 0x38) {
         // Screen alignment test not implemented
       }
       break;
-    case 8 /* ESsetG0 */:
-    case 9 /* ESsetG1 */:
-    case 10 /* ESsetG2 */:
-    case 11 /* ESsetG3 */:
-      var g                   = this.isEsc - 8 /* ESsetG0 */;
-      this.isEsc              = 0 /* ESnormal */;
+    case ESsetG0:
+    case ESsetG1:
+    case ESsetG2:
+    case ESsetG3:
+      var g                   = this.isEsc - ESsetG0;
+      this.isEsc              = ESnormal;
       switch (ch) {
 /*0*/ case 0x30: this.GMap[g] = this.VT100GraphicsMap;                  break;
 /*A*/ case 0x42:
@@ -2816,7 +2816,7 @@ VT100.prototype.doControl = function(ch) {
         this.translate        = this.GMap[g];
       }
       break;
-    case 17 /* ESstatus */:
+    case ESstatus:
       if (ch == 0x07) {
         if (this.statusString && this.statusString.charAt(0) == ';') {
           this.statusString   = this.statusString.substr(1);
@@ -2825,27 +2825,27 @@ VT100.prototype.doControl = function(ch) {
           window.status       = this.statusString;
         } catch (e) {
         }
-        this.isEsc            = 0 /* ESnormal */;
+        this.isEsc            = ESnormal;
       } else {
         this.statusString    += String.fromCharCode(ch);
       }
       break;
-    case 18 /* ESss2 */:
-    case 19 /* ESss3 */:
+    case ESss2:
+    case ESss3:
       if (ch < 256) {
-          ch                  = this.GMap[this.isEsc - 18 /* ESss2 */ + 2]
+          ch                  = this.GMap[this.isEsc - ESss2 + 2]
                                          [this.toggleMeta ? (ch | 0x80) : ch];
         if ((ch & 0xFF00) == 0xF000) {
           ch                  = ch & 0xFF;
         } else if (ch == 0xFEFF || (ch >= 0x200A && ch <= 0x200F)) {
-          this.isEsc         = 0 /* ESnormal */;                                break;
+          this.isEsc         = ESnormal;                                break;
         }
       }
       this.lastCharacter      = String.fromCharCode(ch);
       lineBuf                += this.lastCharacter;
-      this.isEsc              = 0 /* ESnormal */;                               break;
+      this.isEsc              = ESnormal;                               break;
     default:
-      this.isEsc              = 0 /* ESnormal */;                               break;
+      this.isEsc              = ESnormal;                               break;
     }
     break;
   }
@@ -2922,7 +2922,7 @@ VT100.prototype.vt100 = function(s) {
        !(this.dispCtrl ? this.ctrlAlways : this.ctrlAction)[ch & 0x1F]) &&
       (ch != 0x7F || this.dispCtrl);
     
-    if (isNormalCharacter && this.isEsc == 0 /* ESnormal */) {
+    if (isNormalCharacter && this.isEsc == ESnormal) {
       if (ch < 256) {
         ch                = this.translate[this.toggleMeta ? (ch | 0x80) : ch];
       }

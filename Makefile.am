@@ -16,6 +16,8 @@ dist_doc_DATA        = AUTHORS                                                \
                        README                                                 \
                        TODO
 EXTRA_DIST           = shellinabox/shellinaboxd.man.in                        \
+                       shellinabox/shell_in_a_box.js                          \
+                       shellinabox/vt100.js                                   \
                        debian/README                                          \
                        debian/changelog                                       \
                        debian/compat                                          \
@@ -66,8 +68,8 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/session.h                                  \
                        shellinabox/cgi_root.html                              \
                        shellinabox/root_page.html                             \
-                       shellinabox/vt100.js                                   \
-                       shellinabox/shell_in_a_box.js                          \
+                       shellinabox/vt100.jspp                                 \
+                       shellinabox/shell_in_a_box.jspp                        \
                        shellinabox/styles.css                                 \
                        shellinabox/favicon.ico                                \
                        shellinabox/beep.wav                                   \
@@ -79,11 +81,10 @@ shellinaboxd_LDFLAGS = -static
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status --recheck
 
-shellinaboxd.1: shellinabox/shellinaboxd.man.in $(top_srcdir)/config.h
+shellinaboxd.1: shellinabox/shellinaboxd.man.in config.h
 	@src="${top_srcdir}/shellinabox/shellinaboxd.man.in";                 \
 	echo preprocess  "$$src" '>'"$@";                                     \
-	if [ `sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d                   \
-                                                   "${top_srcdir}/config.h" | \
+	if [ `sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d config.h |        \
              egrep 'HAVE_OPENSSL_BIO_H|HAVE_OPENSSL_ERR_H|HAVE_OPENSSL_SSL_H'|\
              wc -l` -eq 3 ]; then                                             \
 	  sed -e '/^#ifdef  *HAVE_OPENSSL$$/d'                                \
@@ -91,8 +92,7 @@ shellinaboxd.1: shellinabox/shellinaboxd.man.in $(top_srcdir)/config.h
 	else                                                                  \
 	  sed -e '/^#ifdef  *HAVE_OPENSSL$$/,/^#endif$$/d' "$$src" >"$@";     \
 	fi;                                                                   \
-	if sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d                      \
-                                                   "${top_srcdir}/config.h" | \
+	if sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d config.h |           \
              grep 'HAVE_SECURITY_PAM_APPL_H' >/dev/null 2>&1; then            \
 	  sed -e '/^#ifdef  *HAVE_PAM$$/d'                                    \
 	      -e '/^#endif$$/d' "$$src" >"$@";                                \
@@ -190,22 +190,24 @@ clean-local:
 
 shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
 
-.js.o:
-	@$(ECHO) preprocess "$<" \| objcopy "$@"
-	@trap 'rm -f "$@.pre"' EXIT INT TERM QUIT;                            \
-	sed -e "`sed -e 's/^#define *\([^ ]*\) *\(.*\)/\/^[^#]\/s\/\1\/\2 \\\\\/* \1 *\\\\\/\/g/' \
+.jspp.js:
+	@$(ECHO) preprocess "$<" "$@"
+	@sed -e "`sed -e 's/^#define *\([^ ]*\) *\(.*\)/\/^[^#]\/s\/\1\/\2 \\\\\/* \1 *\\\\\/\/g/' \
 	             -e t                                                     \
 	             -e d "$<"`"                                              \
 	     -e "s/^#/\/\/ #/"                                                \
 	     -e "s/VERSION/\"@VERSION@ (revision @VCS_REVISION@)\"/g"         \
-	                                                    "$<" >"$@.pre" && \
-	objcopy                                                               \
+	                                                    "$<" >"$@"
+
+.js.o:
+	@$(ECHO) objcopy "$<" "$@"
+	@objcopy                                                              \
 	  -I binary `echo $(host_cpu) |                                       \
 	             grep -q '^i[0-9]86$$' &&                                 \
 	             echo ' -O elf32-i386 -B i386' ||                         \
 	             echo ' -O elf64-x86-64 -B i386:x86-64'`                  \
-	  `echo "$@" | sed                                                    \
-	    -e 's/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /'                     \
+	  `echo "$<" | sed                                                    \
+	    -e 's/\(.*\/\)\([^.]*\)\([.].*\)/\1\2.js=\2 /'                    \
 	    -e 't0'                                                           \
 	    -e 's/\([^.]*\)\([.].*\)/\1\2=\1 /'                               \
 	    -e 't0'                                                           \
@@ -218,10 +220,10 @@ shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
 	    -e 's/.\{53\}$$//'                                                \
 	    -e 's/[/.]/_/g'                                                   \
 	    -e 's/^/--redefine-sym _binary_/'                                 \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_pre_end\2End/'                     \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_pre_start\2Start/'                 \
-	    -e 's/[^ ]*\([^=]*\)=[^ ]*/-N\1_pre_size/'`                       \
-	  "$@.pre" "$@"
+	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/'                         \
+	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/'                     \
+	    -e 's/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                           \
+	  "$<" "$@"
 
 .wav.o:
 	@$(ECHO) objcopy "$<" "$@"
