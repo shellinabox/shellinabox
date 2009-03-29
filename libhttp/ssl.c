@@ -48,10 +48,13 @@
 
 #include <dlfcn.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "libhttp/ssl.h"
@@ -116,6 +119,8 @@ int           (*SSL_set_ex_data)(SSL *, int, void *);
 int           (*SSL_shutdown)(SSL *);
 int           (*SSL_write)(SSL *, const void *, int);
 SSL_METHOD *  (*SSLv23_server_method)(void);
+X509 *        (*d2i_X509)(X509 **px, const unsigned char **in, int len);
+void          (*X509_free)(X509 *a);
 #endif
 
 static void sslDestroyCachedContext(void *ssl_, char *context_) {
@@ -235,7 +240,9 @@ static void loadSSL(void) {
     { { &SSL_set_ex_data },             "SSL_set_ex_data" },
     { { &SSL_shutdown },                "SSL_shutdown" },
     { { &SSL_write },                   "SSL_write" },
-    { { &SSLv23_server_method },        "SSLv23_server_method" }
+    { { &SSLv23_server_method },        "SSLv23_server_method" },
+    { { &d2i_X509 },                    "d2i_X509" },
+    { { &X509_free },                   "X509_free" }
   };
   for (int i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
     if (!(*symbols[i].var = loadSymbol("libssl.so", symbols[i].fn))) {
@@ -301,146 +308,7 @@ static void sslGenerateCertificate(const char *certificate,
   }
   free(cmd);
 }
-#endif
 
-#ifdef HAVE_TLSEXT
-static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
-  check(!ERR_peek_error());
-  const char *name        = SSL_get_servername(sslHndl,
-                                               TLSEXT_NAMETYPE_host_name);
-  if (name == NULL || !*name) {
-    return SSL_TLSEXT_ERR_OK;
-  }
-  struct HttpConnection *http =
-                            (struct HttpConnection *)SSL_get_app_data(sslHndl);
-  debug("Received SNI callback for virtual host \"%s\" from \"%s:%d\"",
-        name, httpGetPeerName(http), httpGetPort(http));
-  char *serverName;
-  check(serverName        = malloc(strlen(name)+2));
-  serverName[0]           = '-';
-  for (int i = 0;;) {
-    char ch               = name[i];
-    if (ch >= 'A' && ch <= 'Z') {
-      ch                 |= 0x20;
-    } else if (ch != '\000' && ch != '.' && ch != '-' &&
-               (ch < '0' ||(ch > '9' && ch < 'A') || (ch > 'Z' &&
-                ch < 'a')|| ch > 'z')) {
-      i++;
-      continue;
-    }
-    serverName[++i]       = ch;
-    if (!ch) {
-      break;
-    }
-  }
-  if (!*serverName) {
-    free(serverName);
-    return SSL_TLSEXT_ERR_OK;
-  }
-  SSL_CTX *context        = (SSL_CTX *)getFromTrie(&ssl->sniContexts,
-                                                   serverName+1,
-                                                   NULL);
-  if (context == NULL) {
-    check(context         = SSL_CTX_new(SSLv23_server_method()));
-    check(ssl->sniCertificatePattern);
-    char *certificate     = stringPrintfUnchecked(NULL,
-                                                  ssl->sniCertificatePattern,
-                                                  serverName);
-    if (!SSL_CTX_use_certificate_file(context, certificate, SSL_FILETYPE_PEM)||
-        !SSL_CTX_use_PrivateKey_file(context, certificate, SSL_FILETYPE_PEM) ||
-        !SSL_CTX_check_private_key(context)) {
-      if (ssl->generateMissing) {
-        sslGenerateCertificate(certificate, serverName + 1);
-        if (!SSL_CTX_use_certificate_file(context, certificate,
-                                          SSL_FILETYPE_PEM) ||
-            !SSL_CTX_use_PrivateKey_file(context, certificate,
-                                         SSL_FILETYPE_PEM) ||
-            !SSL_CTX_check_private_key(context)) {
-          goto certificate_missing;
-        }
-      } else {
-      certificate_missing:
-        warn("Could not find matching certificate \"%s\" for \"%s\"",
-             certificate, serverName + 1);
-        SSL_CTX_free(context);
-        context           = ssl->sslContext;
-      }
-    }
-    ERR_clear_error();
-    free(certificate);
-    addToTrie(&ssl->sniContexts, serverName+1, (char *)context);
-  }
-  free(serverName);
-  if (context != ssl->sslContext) {
-    check(SSL_set_SSL_CTX(sslHndl, context) > 0);
-  }
-  check(!ERR_peek_error());
-  return SSL_TLSEXT_ERR_OK;
-}
-#endif
-
-void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
-                       int autoGenerateMissing) {
-#if defined(HAVE_OPENSSL)
-  check(serverSupportsSSL());
-
-  char *defaultCertificate;
-  check(defaultCertificate           = strdup(filename));
-  char *ptr                          = strchr(defaultCertificate, '%');
-  if (ptr != NULL) {
-    check(!strchr(ptr+1, '%'));
-    check(ptr[1] == 's');
-    memmove(ptr, ptr + 2, strlen(ptr)-1);
-  }
-
-  check(ssl->sslContext              = SSL_CTX_new(SSLv23_server_method()));
-  if (autoGenerateMissing) {
-    if (!SSL_CTX_use_certificate_file(ssl->sslContext, defaultCertificate,
-                                      SSL_FILETYPE_PEM) ||
-        !SSL_CTX_use_PrivateKey_file(ssl->sslContext, defaultCertificate,
-                                     SSL_FILETYPE_PEM) ||
-        !SSL_CTX_check_private_key(ssl->sslContext)) {
-      char hostname[256], buf[4096];
-      check(!gethostname(hostname, sizeof(hostname)));
-      struct hostent he_buf, *he;
-      int h_err;
-      if (gethostbyname_r(hostname, &he_buf, buf, sizeof(buf),
-                          &he, &h_err)) {
-        sslGenerateCertificate(defaultCertificate, hostname);
-      } else {
-        sslGenerateCertificate(defaultCertificate, he->h_name);
-      }
-    } else {
-      goto valid_certificate;
-    }
-  }
-  if (!SSL_CTX_use_certificate_file(ssl->sslContext, defaultCertificate,
-                                    SSL_FILETYPE_PEM) ||
-      !SSL_CTX_use_PrivateKey_file(ssl->sslContext, defaultCertificate,
-                                   SSL_FILETYPE_PEM) ||
-      !SSL_CTX_check_private_key(ssl->sslContext)) {
-    fatal("Cannot read valid certificate from \"%s\". "
-          "Check file permissions and file format.", defaultCertificate);
-  }
- valid_certificate:
-  free(defaultCertificate);
-
-#ifdef HAVE_TLSEXT
-  if (ptr != NULL) {
-    check(ssl->sniCertificatePattern = strdup(filename));
-    check(SSL_CTX_set_tlsext_servername_callback(ssl->sslContext,
-                                                 sslSNICallback));
-    check(SSL_CTX_set_tlsext_servername_arg(ssl->sslContext, ssl));
-  }
-#endif
-  dcheck(!ERR_peek_error());
-  ERR_clear_error();
-
-  ssl->generateMissing               = autoGenerateMissing;
-#endif
-}
-
-#ifdef HAVE_OPENSSL
 static const unsigned char *sslSecureReadASCIIFileToMem(int fd) {
   size_t inc          = 16384;
   size_t bufSize      = inc;
@@ -476,8 +344,12 @@ static const unsigned char *sslSecureReadASCIIFileToMem(int fd) {
 
 static const unsigned char *sslPEMtoASN1(const unsigned char *pem,
                                          const char *record,
-                                         long *size) {
-  *size              = -1;
+                                         long *size,
+                                         const unsigned char **eor) {
+  if (eor) {
+    *eor             = NULL;
+  }
+  *size              = 0;
   char *marker;
   check((marker      = stringPrintf(NULL, "-----BEGIN %s-----",record))!=NULL);
   unsigned char *ptr = (unsigned char *)strstr((char *)pem, marker);
@@ -490,6 +362,9 @@ static const unsigned char *sslPEMtoASN1(const unsigned char *pem,
   *marker            = '\000';
   check((marker      = stringPrintf(marker, "-----END %s-----",record))!=NULL);
   unsigned char *end = (unsigned char *)strstr((char *)ptr, marker);
+  if (eor) {
+    *eor             = end + strlen(marker);
+  }
   free(marker);
   if (!end) {
     return NULL;
@@ -539,60 +414,261 @@ static const unsigned char *sslPEMtoASN1(const unsigned char *pem,
   *size              = out - ret;
   return ret;
 }
+
+static int sslSetCertificateFromFd(SSL_CTX *context, int fd) {
+  int rc                       = 0;
+  check(serverSupportsSSL());
+  check(fd >= 0);
+  const unsigned char *data    = sslSecureReadASCIIFileToMem(fd);
+  check(!NOINTR(close(fd)));
+  long dataSize                = (long)strlen((const char *)data);
+  long certSize, rsaSize, dsaSize, ecSize;
+  const unsigned char *record;
+  const unsigned char *cert    = sslPEMtoASN1(data, "CERTIFICATE", &certSize,
+                                              &record);
+  const unsigned char *rsa     = sslPEMtoASN1(data, "RSA PRIVATE KEY",&rsaSize,
+                                              NULL);
+  const unsigned char *dsa     = sslPEMtoASN1(data, "DSA PRIVATE KEY",&dsaSize,
+                                              NULL);
+  const unsigned char *ec      = sslPEMtoASN1(data, "EC PRIVATE KEY",  &ecSize,
+                                              NULL);
+  if (certSize && (rsaSize || dsaSize
+#ifdef EVP_PKEY_EC
+                                      || ecSize
+#endif
+                                               ) &&
+      SSL_CTX_use_certificate_ASN1(context, certSize, cert) &&
+      (!rsaSize ||
+       SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, context, rsa, rsaSize)) &&
+      (!dsaSize ||
+       SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_DSA, context, dsa, dsaSize))
+#ifdef EVP_PKEY_EC
+      &&
+      (!ecSize ||
+       SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_EC, context, ec, ecSize))
+#endif
+      ) {
+    memset((char *)cert, 0, certSize);
+    free((char *)cert);
+    while (record) {
+      cert                     = sslPEMtoASN1(record, "CERTIFICATE", &certSize,
+                                              &record);
+      if (cert) {
+        X509 *x509;
+        const unsigned char *c = cert;
+        check(x509             = d2i_X509(NULL, &c, certSize));
+        memset((char *)cert, 0, certSize);
+        free((char *)cert);
+        if (!SSL_CTX_add_extra_chain_cert(context, x509)) {
+          X509_free(x509);
+          break;
+        }
+      }
+    }
+    if (!record && SSL_CTX_check_private_key(context)) {
+      rc                       = 1;
+    }
+    dcheck(!ERR_peek_error());
+    ERR_clear_error();
+  } else {
+    memset((char *)cert, 0, certSize);
+    free((char *)cert);
+  }
+  memset((char *)data, 0, dataSize);
+  free((char *)data);
+  memset((char *)rsa, 0, rsaSize);
+  free((char *)rsa);
+  memset((char *)dsa, 0, dsaSize);
+  free((char *)dsa);
+  memset((char *)ec, 0, ecSize);
+  free((char *)ec);
+  return rc;
+}
+
+static int sslSetCertificateFromFile(SSL_CTX *context,
+                                     const char *filename) {
+  int fd = open(filename, O_RDONLY);
+  if (fd < 0) {
+    return -1;
+  }
+  int rc = sslSetCertificateFromFd(context, fd);
+  NOINTR(close(fd));
+  return rc;
+}
+#endif
+
+#ifdef HAVE_TLSEXT
+static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
+  check(!ERR_peek_error());
+  const char *name        = SSL_get_servername(sslHndl,
+                                               TLSEXT_NAMETYPE_host_name);
+  if (name == NULL || !*name) {
+    return SSL_TLSEXT_ERR_OK;
+  }
+  struct HttpConnection *http =
+                            (struct HttpConnection *)SSL_get_app_data(sslHndl);
+  debug("Received SNI callback for virtual host \"%s\" from \"%s:%d\"",
+        name, httpGetPeerName(http), httpGetPort(http));
+  char *serverName;
+  check(serverName        = malloc(strlen(name)+2));
+  serverName[0]           = '-';
+  for (int i = 0;;) {
+    char ch               = name[i];
+    if (ch >= 'A' && ch <= 'Z') {
+      ch                 |= 0x20;
+    } else if (ch != '\000' && ch != '.' && ch != '-' &&
+               (ch < '0' ||(ch > '9' && ch < 'A') || (ch > 'Z' &&
+                ch < 'a')|| ch > 'z')) {
+      i++;
+      continue;
+    }
+    serverName[++i]       = ch;
+    if (!ch) {
+      break;
+    }
+  }
+  if (!*serverName) {
+    free(serverName);
+    return SSL_TLSEXT_ERR_OK;
+  }
+  SSL_CTX *context        = (SSL_CTX *)getFromTrie(&ssl->sniContexts,
+                                                   serverName+1,
+                                                   NULL);
+  if (context == NULL) {
+    check(context         = SSL_CTX_new(SSLv23_server_method()));
+    check(ssl->sniCertificatePattern);
+    char *certificate     = stringPrintfUnchecked(NULL,
+                                                  ssl->sniCertificatePattern,
+                                                  serverName);
+    if (sslSetCertificateFromFile(context, certificate) < 0) {
+      if (ssl->generateMissing) {
+        sslGenerateCertificate(certificate, serverName + 1);
+
+        // No need to check the certificate. If we fail to set it, we will use
+        // the default certificate, instead.
+        sslSetCertificateFromFile(context, certificate);
+      } else {
+        warn("Could not find matching certificate \"%s\" for \"%s\"",
+             certificate, serverName + 1);
+        SSL_CTX_free(context);
+        context           = ssl->sslContext;
+      }
+    }
+    ERR_clear_error();
+    free(certificate);
+    addToTrie(&ssl->sniContexts, serverName+1, (char *)context);
+  }
+  free(serverName);
+  if (context != ssl->sslContext) {
+    check(SSL_set_SSL_CTX(sslHndl, context) > 0);
+  }
+  check(!ERR_peek_error());
+  return SSL_TLSEXT_ERR_OK;
+}
+#endif
+
+void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
+                       int autoGenerateMissing) {
+#if defined(HAVE_OPENSSL)
+  check(serverSupportsSSL());
+
+  char *defaultCertificate;
+  check(defaultCertificate           = strdup(filename));
+  char *ptr                          = strchr(defaultCertificate, '%');
+  if (ptr != NULL) {
+    check(!strchr(ptr+1, '%'));
+    check(ptr[1] == 's');
+    memmove(ptr, ptr + 2, strlen(ptr)-1);
+  }
+
+  // Try to set the default certificate. If necessary, (re-)generate it.
+  check(ssl->sslContext              = SSL_CTX_new(SSLv23_server_method()));
+  if (autoGenerateMissing) {
+    if (sslSetCertificateFromFile(ssl->sslContext, defaultCertificate) < 0) {
+      char hostname[256], buf[4096];
+      check(!gethostname(hostname, sizeof(hostname)));
+      struct hostent he_buf, *he;
+      int h_err;
+      if (gethostbyname_r(hostname, &he_buf, buf, sizeof(buf),
+                          &he, &h_err)) {
+        sslGenerateCertificate(defaultCertificate, hostname);
+      } else {
+        sslGenerateCertificate(defaultCertificate, he->h_name);
+      }
+    } else {
+      goto valid_certificate;
+    }
+  }
+  if (sslSetCertificateFromFile(ssl->sslContext, defaultCertificate) < 0) {
+    fatal("Cannot read valid certificate from \"%s\". "
+          "Check file permissions and file format.", defaultCertificate);
+  }
+ valid_certificate:
+  free(defaultCertificate);
+
+  // Enable SNI support so that we can set a different certificate, if the
+  // client asked for it.
+#ifdef HAVE_TLSEXT
+  if (ptr != NULL) {
+    check(ssl->sniCertificatePattern = strdup(filename));
+    check(SSL_CTX_set_tlsext_servername_callback(ssl->sslContext,
+                                                 sslSNICallback));
+    check(SSL_CTX_set_tlsext_servername_arg(ssl->sslContext, ssl));
+  }
+#endif
+  dcheck(!ERR_peek_error());
+  ERR_clear_error();
+
+  ssl->generateMissing               = autoGenerateMissing;
+#endif
+}
+
+// Convert the file descriptor to a human-readable format. Attempts to
+// retrieve the original file name where possible.
+#ifdef HAVE_OPENSSL
+static char *sslFdToFilename(int fd) {
+  char *proc, *buf;
+  int  len         = 128;
+  check(proc       = stringPrintf(NULL, "/proc/self/fd/%d", fd));
+  check(buf        = malloc(len));
+  for (;;) {
+    ssize_t i;
+    if ((i = readlink(proc, buf + 1, len-3)) < 0) {
+      free(proc);
+      free(buf);
+      check(buf    = stringPrintf(NULL, "fd %d", fd));
+      return buf;
+    } else if (i >= len-3) {
+      len         += 512;
+      check(buf    = realloc(buf, len));
+    } else {
+      free(proc);
+      check(i >= 0 && i < len);
+      buf[i+1]     = '\000';
+      struct stat sb;
+      if (!stat(buf + 1, &sb) && S_ISREG(sb.st_mode)) {
+        *buf       = '"';
+        buf[i + 1] = '"';
+        buf[i + 2] = '\000';
+        return buf;
+      } else {
+        free(buf);
+        check(buf  = stringPrintf(NULL, "fd %d", fd));
+        return buf;
+      }
+    }
+  }
+}
 #endif
 
 void sslSetCertificateFd(struct SSLSupport *ssl, int fd) {
 #ifdef HAVE_OPENSSL
-  check(serverSupportsSSL());
-  check(fd >= 0);
-  check(ssl->sslContext     = SSL_CTX_new(SSLv23_server_method()));
-  const unsigned char *data = sslSecureReadASCIIFileToMem(fd);
-  check(!NOINTR(close(fd)));
-  long dataSize             = (long)strlen((const char *)data);
-  long certSize, rsaSize, dsaSize, ecSize;
-  const unsigned char *cert = sslPEMtoASN1(data, "CERTIFICATE", &certSize);
-  const unsigned char *rsa  = sslPEMtoASN1(data, "RSA PRIVATE KEY", &rsaSize);
-  const unsigned char *dsa  = sslPEMtoASN1(data, "DSA PRIVATE KEY", &dsaSize);
-  const unsigned char *ec   = sslPEMtoASN1(data, "EC PRIVATE KEY",  &ecSize);
-  if (!certSize || !(rsaSize > 0 || dsaSize > 0
-#ifdef EVP_PKEY_EC
-                                                || ecSize > 0
-#endif
-                                                             ) ||
-      !SSL_CTX_use_certificate_ASN1(ssl->sslContext, certSize, cert) ||
-      (rsaSize > 0 &&
-       !SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, ssl->sslContext, rsa,
-                                    rsaSize)) ||
-      (dsaSize > 0 &&
-       !SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_DSA, ssl->sslContext, dsa,
-                                    dsaSize)) ||
-#ifdef EVP_PKEY_EC
-      (ecSize > 0 &&
-       !SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_EC, ssl->sslContext, ec,
-                                    ecSize)) ||
-#endif
-      !SSL_CTX_check_private_key(ssl->sslContext)) {
-    fatal("Cannot read valid certificate from fd %d. Check file format.", fd);
+  check(ssl->sslContext = SSL_CTX_new(SSLv23_server_method()));
+  if (!sslSetCertificateFromFd(ssl->sslContext, fd)) {
+    fatal("Cannot read valid certificate from %s. Check file format.",
+          sslFdToFilename(fd));
   }
-  dcheck(!ERR_peek_error());
-  ERR_clear_error();
-  memset((char *)data, 0, dataSize);
-  free((char *)data);
-  memset((char *)cert, 0, certSize);
-  free((char *)cert);
-  if (rsaSize > 0) {
-    memset((char *)rsa, 0, rsaSize);
-    free((char *)rsa);
-  }
-  if (dsaSize > 0) {
-    memset((char *)dsa, 0, dsaSize);
-    free((char *)dsa);
-  }
-  if (ecSize > 0) {
-    memset((char *)ec, 0, ecSize);
-    free((char *)ec);
-  }
-  ssl->generateMissing     = 0;
+  ssl->generateMissing  = 0;
 #endif
 }
 
