@@ -18,7 +18,7 @@ openssl req -nodes -new -keyout /dev/stdout                                   \
             2>/dev/null | cat
 
 openssl ca -batch -keyfile "${tmp}/ca-key.pem" -cert "${tmp}/ca-cert.crt"     \
-           -notext -policy policy_anything -out /dev/stdout                   \
+           -notext -policy policy_anything -days 7300 -out /dev/stdout        \
            -infiles "${tmp}/ssl-req.pem" 2>/dev/null | cat
 cat "${tmp}/ca-cert.crt"
 

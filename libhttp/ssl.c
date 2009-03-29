@@ -492,7 +492,6 @@ static int sslSetCertificateFromFile(SSL_CTX *context,
     return -1;
   }
   int rc = sslSetCertificateFromFd(context, fd);
-  NOINTR(close(fd));
   return rc;
 }
 #endif
@@ -664,10 +663,12 @@ static char *sslFdToFilename(int fd) {
 void sslSetCertificateFd(struct SSLSupport *ssl, int fd) {
 #ifdef HAVE_OPENSSL
   check(ssl->sslContext = SSL_CTX_new(SSLv23_server_method()));
+  char *filename = sslFdToFilename(fd);
   if (!sslSetCertificateFromFd(ssl->sslContext, fd)) {
     fatal("Cannot read valid certificate from %s. Check file format.",
-          sslFdToFilename(fd));
+          filename);
   }
+  free(filename);
   ssl->generateMissing  = 0;
 #endif
 }
