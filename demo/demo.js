@@ -69,8 +69,8 @@
 // #define STATE_READLINE 3
 // #define STATE_COMMAND  4
 // #define STATE_EVAL     5
-// #define STATE_RUN      6
-// #define STATE_EXEC     7
+// #define STATE_EXEC     6
+// #define STATE_NEW_Y_N  7
 
 function extend(subClass, baseClass) {
   function inheritance() { }
@@ -87,55 +87,61 @@ function Demo(container) {
 extend(Demo, VT100);
 
 Demo.prototype.keysPressed = function(ch) {
-  this.keys += ch;
+  if (this.state == 6 /* STATE_EXEC */) {
+    for (var i = 0; i < ch.length; i++) {
+      var c       = ch.charAt(i);
+      if (c == '\u0003') {
+        this.keys = '';
+        this.error('Interrupted');
+        return;
+      }
+    }
+  }
+  this.keys      += ch;
   this.gotoState(this.state);
 };
 
 Demo.prototype.gotoState = function(state, tmo) {
-  this.state   = state;
+  this.state       = state;
   if (!this.timer || tmo) {
     if (!tmo) {
-      tmo      = 1;
+      tmo          = 1;
     }
-    this.timer = setTimeout(function(demo) {
-                              return function() {
-                                demo.demo();
-                              };
-                            }(this), tmo);
+    this.nextTimer = setTimeout(function(demo) {
+                                  return function() {
+                                    demo.demo();
+                                  };
+                                }(this), tmo);
   }
 };
 
 Demo.prototype.demo = function() {
   var done                  = false;
+  this.nextTimer            = undefined;
   while (!done) {
     var state               = this.state;
     this.state              = 0 /* STATE_IDLE */;
     switch (state) {
     case 1 /* STATE_INIT */:
-      this.doInit();
+      done                  = this.doInit();
       break;
     case 2 /* STATE_PROMPT */:
-      this.doPrompt();
+      done                  = this.doPrompt();
       break;
     case 3 /* STATE_READLINE */:
-      this.doReadLine();
-      if (this.state == 3 /* STATE_READLINE */) {
-        done                = true;
-      }
+      done                  = this.doReadLine();
       break;
     case 4 /* STATE_COMMAND */:
-      this.doCommand();
+      done                  = this.doCommand();
       break;
     case 5 /* STATE_EVAL */:
-      this.doEval();
+      done                  = this.doEval();
       break;
-    case 6 /* STATE_RUN */:
-      this.doRun();
+    case 6 /* STATE_EXEC */:
+      done                  = this.doExec();
       break;
-    case 7 /* STATE_EXEC */:
-      if (this.doExec()) {
-        return;
-      }
+    case 7 /* STATE_NEW_Y_N */:
+      done                  = this.doNewYN();
       break;
     case 0 /* STATE_IDLE */:
     default:
@@ -143,15 +149,22 @@ Demo.prototype.demo = function() {
       break;
     }
   }
-  this.timer   = undefined;
+  this.timer                = this.nextTimer;
+  this.nextTimer            = undefined;
 };
+
+Demo.prototype.ok = function() {
+  this.vt100('OK\r\n');
+  this.gotoState(2 /* STATE_PROMPT */);
+}
 
 Demo.prototype.error = function(msg) {
   if (msg == undefined) {
-    msg = 'Syntax Error';
+    msg                 = 'Syntax Error';
   }
   this.vt100('\u0007? ' + msg + '\r\n');
   this.gotoState(2 /* STATE_PROMPT */);
+  this.currentLineIndex = -1;
 };
 
 Demo.prototype.doInit = function() {
@@ -170,6 +183,7 @@ Demo.prototype.doInit = function() {
     'Type HELP for a list of commands.\r\n' +
     '\r\n');
   this.gotoState(2 /* STATE_PROMPT */);
+  return false;
 };
 
 Demo.prototype.doPrompt = function() {
@@ -178,6 +192,7 @@ Demo.prototype.doPrompt = function() {
   this.currentLineIndex = -1;
   this.vt100('> ');
   this.gotoState(3 /* STATE_READLINE */);
+  return false;
 };
 
 Demo.prototype.doReadLine = function() {
@@ -192,6 +207,7 @@ Demo.prototype.doReadLine = function() {
     } else if (ch == '\r' || ch == '\n') {
       this.vt100('\r\n');
       this.gotoState(4 /* STATE_COMMAND */);
+      return false;
     } else if (ch == '\u0008' || ch == '\u007F') {
       if (this.line.length > 0) {
         this.line = this.line.substr(0, this.line.length - 1);
@@ -212,6 +228,7 @@ Demo.prototype.doReadLine = function() {
       break;
     }
   }
+  return true;
 };
 
 Demo.prototype.doCommand = function() {
@@ -244,23 +261,23 @@ Demo.prototype.doCommand = function() {
       this.tokens           = tokens;
       this.gotoState(5 /* STATE_EVAL */);
     }
-    tokens.reset();
   }
+  tokens.reset();
+  return false;
 };
 
 Demo.prototype.doEval = function() {
   this.gotoState(2 /* STATE_PROMPT */);
-  var cmd = this.tokens.nextToken().toUpperCase();
+  var cmd                   = this.tokens.nextToken().toUpperCase();
   if (cmd == "HELP") {
     this.vt100('Supported commands:\r\n' +
-               '  HELP LIST RUN\r\n');
+               '  HELP LIST NEW RUN\r\n');
   } else if (cmd == "LIST") {
     if (this.tokens.nextToken() != undefined) {
       this.error();
-      return false;
     } else {
       for (var i = 0; i < this.program.length; i++) {
-        var line = this.program[i];
+        var line            = this.program[i];
         this.vt100('' + line.lineNumber());
         line.tokens().reset();
         for (var token; (token = line.tokens().nextToken()) != undefined; ) {
@@ -270,39 +287,65 @@ Demo.prototype.doEval = function() {
         this.vt100('\r\n');
       }
     }
+  } else if (cmd == "NEW") {
+    if (this.currentLineIndex >= 0) {
+      this.error('Cannot call NEW from a program');
+    } else if (this.program.length == 0) {
+      this.ok();
+    } else {
+      this.vt100('Do you really want to delete the program (y/N) ');
+      this.gotoState(7 /* STATE_NEW_Y_N */);
+    }
   } else if (cmd == "RUN") {
     if (this.tokens.nextToken() != undefined) {
       this.error();
+    } else if (this.program.length > 0) {
+      this.currentLineIndex = 0;
+      this.gotoState(6 /* STATE_EXEC */);
     } else {
-      this.gotoState(6 /* STATE_RUN */);
+      this.ok();
     }
-    return false;
   } else {
     this.error();
-    return false;
   }
-  return true;
-};
-
-Demo.prototype.doRun = function() {
-  if (this.program.length > 0) {
-    this.currentLineIndex = 0;
-    this.gotoState(7 /* STATE_EXEC */);
-  }
+  return false;
 };
 
 Demo.prototype.doExec = function() {
   this.tokens = this.program[this.currentLineIndex++].tokens();
   this.tokens.reset();
-  if (this.doEval()) {
-    if (this.currentLineIndex >= this.program.length) {
-      this.gotoState(2 /* STATE_PROMPT */);
+  this.doEval();
+  if (this.currentLineIndex < 0) {
+    return false;
+  } else if (this.currentLineIndex >= this.program.length) {
+    this.ok();
+    return false;
+  } else {
+    this.gotoState(6 /* STATE_EXEC */, 20);
+    return true;
+  }
+};
+
+Demo.prototype.doNewYN = function() {
+  for (var i = 0; i < this.keys.length; ) {
+    var ch = this.keys.charAt(i++);
+    if (ch == 'n' || ch == 'N' || ch == '\r' || ch == '\n') {
+      this.vt100('N\r\n');
+      this.keys = this.keys.substr(i);
+      this.error('Aborted');
+      return false;
+    } else if (ch == 'y' || ch == 'Y') {
+      this.vt100('Y\r\n');
+      this.program.splice(0, this.program.length);
+      this.keys = this.keys.substr(i);
+      this.ok();
       return false;
     } else {
-      this.gotoState(7 /* STATE_EXEC */, 20);
-      return true;
+      this.vt100('\u0007');
     }
   }
+  this.gotoState(7 /* STATE_NEW_Y_N */);
+  return true;
 };
 
 Demo.prototype.findLine = function(lineNumber) {
