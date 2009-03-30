@@ -21,6 +21,7 @@ EXTRA_DIST           = demo/beep.wav                                          \
                        demo/demo.html                                         \
                        demo/demo.js                                           \
                        demo/demo.jspp                                         \
+                       demo/demo.xml                                          \
                        demo/styles.css                                        \
                        demo/vt100.js                                          \
                        shellinabox/shellinaboxd.man.in                        \
