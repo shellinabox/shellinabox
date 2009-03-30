@@ -1010,19 +1010,19 @@ ${top_srcdir}/demo/demo.js: ${top_srcdir}/demo/beep.wav                       \
                             ${top_srcdir}/demo/vt100.js
 
 ${top_srcdir}/demo/beep.wav: ${top_srcdir}/shellinabox/beep.wav
-	-rm -f "$@"
+	@rm -f "$@"
 	ln "$<" "$@"
 
 ${top_srcdir}/demo/favicon.ico: ${top_srcdir}/shellinabox/favicon.ico
-	-rm -f "$@"
+	@rm -f "$@"
 	ln "$<" "$@"
 
 ${top_srcdir}/demo/styles.css: ${top_srcdir}/shellinabox/styles.css
-	-rm -f "$@"
+	@rm -f "$@"
 	ln "$<" "$@"
 
 ${top_srcdir}/demo/vt100.js: ${top_srcdir}/shellinabox/vt100.js
-	-rm -f "$@"
+	@rm -f "$@"
 	ln "$<" "$@"
 
 shellinaboxd.1: shellinabox/shellinaboxd.man.in config.h
