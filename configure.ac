@@ -2,15 +2,17 @@ AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
 AC_INIT(shellinabox, 2.5, markus@shellinabox.com)
-VCS_REVISION=91
+VCS_REVISION=93
 AC_SUBST(VCS_REVISION)
 AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
                    [Most recent revision number in the version control system])
 
 dnl Set up autoconf/automake for building C libraries and binaries with GCC
+CFLAGS="${CFLAGS:--Os}"
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 AC_PROG_CC
+AC_LANG_WERROR
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_SUBST(LIBTOOL_DEPS)
@@ -34,7 +36,7 @@ AC_TRY_LINK([#ifndef _XOPEN_SOURCE
              #define _GNU_SOURCE
              #endif
              #include <stdlib.h>],
-            [ptsname_r(0, 0, 0);],
+            [char buf[10]; ptsname_r(0, buf, sizeof(buf));],
             [AC_DEFINE(HAVE_PTSNAME_R, 1,
                      Define to 1 if you have a re-entrant version of ptsname)])
 

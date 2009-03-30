@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xml:lang="en" lang="en">
+  <head>
+    <!--
+    ShellInABox - Make command line applications available as AJAX web applications
+    Copyright (C) 2008-2009 Markus Gutschke markus@shellinabox.com
+    
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License version 2 as
+    published by the Free Software Foundation.
+    
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    
+    In addition to these license terms, the author grants the following
+    additional rights:
+    
+    If you modify this program, or any covered work, by linking or
+    combining it with the OpenSSL project's OpenSSL library (or a
+    modified version of that library), containing parts covered by the
+    terms of the OpenSSL or SSLeay licenses, the author
+    grants you additional permission to convey the resulting work.
+    Corresponding Source for a non-source form of such a combination
+    shall include the source code for the parts of OpenSSL used as well
+    as that of the covered work.
+    
+    You may at your option choose to remove this additional permission from
+    the work, or from any part of it.
+    
+    It is possible to build this program in a way that it loads OpenSSL
+    libraries at run-time. If doing so, the following notices are required
+    by the OpenSSL and SSLeay licenses:
+    
+    This product includes software developed by the OpenSSL Project
+    for use in the OpenSSL Toolkit. (http://www.openssl.org/)
+    
+    This product includes cryptographic software written by Eric Young
+    (eay@cryptsoft.com)
+    
+    The most up-to-date version of this program is always available from
+    http://shellinabox.com
+    -->
+    <title>Shell In A Box</title>
+    <link rel="stylesheet" href="styles.css" type="text/css">
+    <script type="text/javascript"><!--
+      // We would like to hide overflowing lines as this can lead to
+      // visually jarring results if the browser substitutes oversized
+      // Unicode characters from different fonts. Unfortunately, a bug
+      // in Firefox prevents it from allowing multi-line text
+      // selections whenever we change the "overflow" style. So, only
+      // do so for non-Netscape browsers.
+      if (typeof navigator.appName == 'undefined' ||
+          navigator.appName != 'Netscape') {
+        document.write('<style type="text/css">' +
+                       '#vt100 #console div, #vt100 #alt_console div {' +
+                       '  overflow: hidden;' +
+                       '}' +
+                       '</style>');
+      }
+    --></script>
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <script type="text/javascript" src="vt100.js"></script>
+    <script type="text/javascript" src="demo.js"></script>
+  </head>
+  <!-- Load ShellInABox from a timer as Konqueror sometimes fails to
+       correctly deal with the enclosing frameset (if any), if we do not
+       do this
+   -->
+  <body onload="setTimeout('new Demo()', 100)"
+        scroll="no"><noscript>JavaScript
+    must be enabled for ShellInABox</noscript></body>
+</html>

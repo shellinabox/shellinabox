@@ -46,6 +46,8 @@
 #define _GNU_SOURCE
 #include "config.h"
 
+#define pthread_once    x_pthread_once
+
 #include <dirent.h>
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -91,16 +93,18 @@ struct pam_conv;
 typedef struct pam_handle pam_handle_t;
 #endif
 
-#if defined(HAVE_PTHREAD_H) && defined(__linux__)
-#include <pthread.h>
-extern int pthread_once(pthread_once_t *, void (*)(void))__attribute__((weak));
-#endif
-
 #include "shellinabox/launcher.h"
 #include "shellinabox/privileges.h"
 #include "shellinabox/service.h"
 #include "libhttp/hashmap.h"
 #include "logging/logging.h"
+
+#undef pthread_once
+
+#if defined(HAVE_PTHREAD_H) && defined(__linux__)
+#include <pthread.h>
+extern int pthread_once(pthread_once_t *, void (*)(void))__attribute__((weak));
+#endif
 
 // If PAM support is available, take advantage of it. Otherwise, silently fall
 // back on legacy operations for session management.

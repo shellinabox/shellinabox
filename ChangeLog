@@ -1,3 +1,11 @@
+2009-03-30  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added initial revision of demo application
+
+2009-03-29  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added support for chained SSL certificates
+
 2009-03-23  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added an INSTALL.Debian file with Debian-specific instructions on

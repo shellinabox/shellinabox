@@ -34,7 +34,9 @@ yes_no() {
 
 test -r configure.ac
 svn update
+{
 rev=$(($(svn info | sed -e 's/^Revision: \(.*\)/\1/;t1;d;:1;q')+1))
+} 2>/dev/null
 prj="$(sed -e 's/^AC_INIT(\([^,]*\),.*/\1/;t1;d;:1;q' configure.ac)"
 ver="$(sed -e 's/^AC_INIT([^,]*, *\([^,]*\),.*/\1/;t1;d;:1;q' configure.ac)"
 sed -ie 's/^\(VCS_REVISION=\).*/\1'"${rev}"'/' configure.ac
@@ -43,7 +45,7 @@ make all distcheck
   rm -f "${prj}-${ver}" &&
   tar zfx "${prj}-${ver}.tar.gz" &&
   cd "${prj}-${ver}" &&
-  { fakeroot dpkg-buildpackage || :; } &&
+  fakeroot dpkg-buildpackage -us -uc &&
   cd .. &&
   rm -f $(ls "${prj}_${ver}-"*.* | egrep -v '.deb$') ) || :
 svn diff $(svn st |

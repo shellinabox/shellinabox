@@ -46,6 +46,9 @@
 #define _GNU_SOURCE
 #include "config.h"
 
+#define pthread_once    x_pthread_once
+#define pthread_sigmask x_pthread_sigmask
+
 #include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -60,6 +63,9 @@
 #include "libhttp/ssl.h"
 #include "libhttp/httpconnection.h"
 #include "logging/logging.h"
+
+#undef pthread_once
+#undef pthread_sigmask
 
 #if defined(HAVE_OPENSSL) && !defined(OPENSSL_NO_TLSEXT) &&                   \
     defined(TLSEXT_NAMETYPE_host_name) && defined(SSL_TLSEXT_ERR_OK)
@@ -683,8 +689,11 @@ void sslBlockSigPipe(void) {
   sigset_t set;
   sigemptyset(&set);
   sigaddset(&set, SIGPIPE);
-  dcheck(!(&pthread_sigmask ? pthread_sigmask : sigprocmask)
-                                                      (SIG_BLOCK, &set, NULL));
+  if (&pthread_sigmask) {
+    dcheck(!pthread_sigmask(SIG_BLOCK, &set, NULL));
+  } else {
+    dcheck(!sigprocmask(SIG_BLOCK, &set, NULL));
+  }
 }
 
 int sslUnblockSigPipe(void) {
@@ -696,8 +705,11 @@ int sslUnblockSigPipe(void) {
   }
   sigemptyset(&set);
   sigaddset(&set, SIGPIPE);
-  check(!(&pthread_sigmask ? pthread_sigmask : sigprocmask)
-                                                    (SIG_UNBLOCK, &set, NULL));
+  if (&pthread_sigmask) {
+    dcheck(!pthread_sigmask(SIG_UNBLOCK, &set, NULL));
+  } else {
+    dcheck(!sigprocmask(SIG_UNBLOCK, &set, NULL));
+  }
   return signum;
 }
 

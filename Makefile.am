@@ -1,9 +1,10 @@
 AM_CPPFLAGS          =
-AM_CFLAGS            = -g -std=gnu99 -Wall -Werror -Os
+AM_CFLAGS            = -g -std=gnu99 -Wall
 AM_LDFLAGS           = -g
 
 noinst_LTLIBRARIES   = libhttp.la                                             \
                        liblogging.la
+noinst_DATA          = $(top_srcdir)/demo/demo.js
 bin_PROGRAMS         = shellinaboxd
 man_MANS             = shellinaboxd.1
 noinst_HEADERS       = libhttp/http.h
@@ -15,7 +16,14 @@ dist_doc_DATA        = AUTHORS                                                \
                        NEWS                                                   \
                        README                                                 \
                        TODO
-EXTRA_DIST           = shellinabox/shellinaboxd.man.in                        \
+EXTRA_DIST           = demo/beep.wav                                          \
+                       demo/favicon.ico                                       \
+                       demo/demo.html                                         \
+                       demo/demo.js                                           \
+                       demo/demo.jspp                                         \
+                       demo/styles.css                                        \
+                       demo/vt100.js                                          \
+                       shellinabox/shellinaboxd.man.in                        \
                        shellinabox/shell_in_a_box.js                          \
                        shellinabox/vt100.js                                   \
                        debian/README                                          \

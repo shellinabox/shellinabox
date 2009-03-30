@@ -110,7 +110,7 @@ am__vpath_adj = case $$p in \
   esac;
 am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 dist_docDATA_INSTALL = $(INSTALL_DATA)
-DATA = $(dist_doc_DATA)
+DATA = $(dist_doc_DATA) $(noinst_DATA)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -237,11 +237,12 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = 
-AM_CFLAGS = -g -std=gnu99 -Wall -Werror -Os
+AM_CFLAGS = -g -std=gnu99 -Wall
 AM_LDFLAGS = -g
 noinst_LTLIBRARIES = libhttp.la                                             \
                        liblogging.la
 
+noinst_DATA = $(top_srcdir)/demo/demo.js
 man_MANS = shellinaboxd.1
 noinst_HEADERS = libhttp/http.h
 dist_doc_DATA = AUTHORS                                                \
@@ -253,7 +254,14 @@ dist_doc_DATA = AUTHORS                                                \
                        README                                                 \
                        TODO
 
-EXTRA_DIST = shellinabox/shellinaboxd.man.in                        \
+EXTRA_DIST = demo/beep.wav                                          \
+                       demo/favicon.ico                                       \
+                       demo/demo.html                                         \
+                       demo/demo.js                                           \
+                       demo/demo.jspp                                         \
+                       demo/styles.css                                        \
+                       demo/vt100.js                                          \
+                       shellinabox/shellinaboxd.man.in                        \
                        shellinabox/shell_in_a_box.js                          \
                        shellinabox/vt100.js                                   \
                        debian/README                                          \
