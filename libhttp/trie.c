@@ -169,48 +169,60 @@ void addToTrie(struct Trie *trie, const char *key, char *value) {
       addLeafToTrie(newNode, *key, key + 1, len - 1, value);
     } else {
       initTrie(newNode, trie->destructor, trie->arg);
-      trie->value                 = value;
+      newNode->value              = value;
     }
   }
 }
 
 char *getFromTrie(const struct Trie *trie, const char *key, char **diff) {
   if (diff) {
-    *diff         = NULL;
+    *diff              = NULL;
   }
+  struct Trie *partial = NULL;
+  char *partialKey     = NULL;
   for (;;) {
     if (trie->idx > 0) {
       if (memcmp(trie->key, key, trie->idx)) {
+        if (diff) {
+          *diff        = partialKey;
+          return partial->value;
+        }
         return NULL;
       }
-      key        += trie->idx;
+      key             += trie->idx;
     }
-    int partial   = -1;
     for (int i = 0; ; i++) {
       if (i >= trie->numChildren) {
-        if (diff && partial >= 0) {
+        if (diff && partial != NULL) {
           // If the caller provided a "diff" pointer, then we allow partial
           // matches for the longest possible prefix that is a key in the
           // trie. Upon return, the "diff" pointer points to the first
           // character in the key does not match.
-          *diff   = (char *)key;
-          return trie->children[partial].value;
+          *diff        = partialKey;
+          return partial->value;
         }
         return NULL;
       } else if (*key == trie->children[i].ch) {
         if (!*key) {
           if (diff) {
-            *diff = (char *)key;
+            *diff      = (char *)key;
           }
           return trie->children[i].value;
+        }
+        for (int j = i + 1; j < trie->numChildren; j++) {
+          if (!trie->children[j].ch) {
+            partial    = trie->children + j;
+            partialKey = (char *)key;
+            break;
+          }
         }
         trie = &trie->children[i];
         key++;
         break;
       } else if (!trie->children[i].ch) {
-        partial   = i;
+        partial        = trie->children + i;
+        partialKey     = (char *)key;
       }
     }
   }
 }
-
