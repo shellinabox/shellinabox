@@ -682,7 +682,10 @@ static void parseArgs(int argc, char * const argv[]) {
     if (idx-- <= 0) {
       // Help (or invalid argument)
       usage();
-      exit(idx != -1);
+      if (idx == -1) {
+        fatal("Failed to parse command line");
+      }
+      exit(0);
     } else if (!idx--) {
       // Background
       if (cgi) {
@@ -834,7 +837,7 @@ static void parseArgs(int argc, char * const argv[]) {
   }
   if (optind != argc) {
     usage();
-    exit(1);
+    fatal("Failed to parse command line");
   }
   char *buf                = NULL;
   check(argc >= 1);

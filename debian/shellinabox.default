@@ -4,6 +4,12 @@ SHELLINABOX_DAEMON_START=1
 # TCP port that shellinboxd's webserver listens on
 SHELLINABOX_PORT=4200
 
+# Parameters that are managed by the system and usually should not need
+# changing:
+# SHELLINABOX_DATADIR=/var/lib/shellinabox
+# SHELLINABOX_USER=shellinabox
+# SHELLINABOX_GROUP=shellinabox
+
 # Any optional arguments (e.g. extra service definitions)
 # We disable beeps, as there have been reports of the VLC plugin crashing
 # Firefox on Linux/x86_64.

@@ -25,6 +25,12 @@ test -x $DAEMON || exit 0
 # Include shellinabox defaults if available.
 test -f /etc/default/shellinabox && . /etc/default/shellinabox
 
+# Set some default values
+SHELLINABOX_DATADIR="${SHELLINABOX_DATADIR:-/var/lib/shellinabox}"
+SHELLINABOX_PORT="${SHELLINABOX_PORT:-4200}"
+SHELLINABOX_USER="${SHELLINABOX_USER:-shellinabox}"
+SHELLINABOX_GROUP="${SHELLINABOX_GROUP:-shellinabox}"
+
 #
 #       Function that starts the daemon/service.
 #
@@ -34,10 +40,11 @@ d_start() {
     return 0
   fi
 
-  start-stop-daemon --start --oknodo --quiet --pidfile "$PIDFILE"             \
+  start-stop-daemon --start --oknodo --pidfile "$PIDFILE"                     \
                     --exec "$DAEMON" -- -q --background="$PIDFILE"            \
-                    -c /var/lib/shellinabox -p ${SHELLINABOX_PORT:-4200}      \
-                    -u shellinabox -g shellinabox ${SHELLINABOX_ARGS}
+                    -c "${SHELLINABOX_DATADIR}" -p "${SHELLINABOX_PORT}"      \
+                    -u "${SHELLINABOX_USER}" -g "${SHELLINABOX_GROUP}"        \
+                    ${SHELLINABOX_ARGS}
 }
 
 #

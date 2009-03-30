@@ -99,7 +99,7 @@ void message(const char *fmt, ...) {
 void fatal(const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  debugMsg(MSG_MESSAGE, fmt, ap);
+  debugMsg(MSG_QUIET, fmt, ap);
   va_end(ap);
   _exit(1);
 }

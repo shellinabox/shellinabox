@@ -1,6 +1,11 @@
 2009-03-30  Markus Gutschke  <markus@shellinabox.com>
 
-	* Added initial revision of demo application
+	* Added initial revision of demo application.
+
+	* Show fatal error message even when running in "quiet" mode.
+
+	* Make it easier to override parameters needed by the system startup
+	scripts.
 
 2009-03-29  Markus Gutschke  <markus@shellinabox.com>
 
