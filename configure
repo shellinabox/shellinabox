@@ -2056,7 +2056,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-VCS_REVISION=102
+VCS_REVISION=103
 
 
 cat >>confdefs.h <<_ACEOF

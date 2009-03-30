@@ -40,6 +40,7 @@ rev=$(($(svn info | sed -e 's/^Revision: \(.*\)/\1/;t1;d;:1;q')+1))
 prj="$(sed -e 's/^AC_INIT(\([^,]*\),.*/\1/;t1;d;:1;q' configure.ac)"
 ver="$(sed -e 's/^AC_INIT([^,]*, *\([^,]*\),.*/\1/;t1;d;:1;q' configure.ac)"
 sed -ie 's/^\(VCS_REVISION=\).*/\1'"${rev}"'/' configure.ac
+touch shellinabox/vt100.jspp shellinabox/shell_in_a_box.jspp
 make all distcheck
 ( trap 'rm -rf "${prj}-${ver}"' EXIT
   rm -f "${prj}-${ver}" &&
