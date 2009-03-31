@@ -233,16 +233,16 @@ Demo.prototype.doReadLine = function() {
 
 Demo.prototype.doCommand = function() {
   this.gotoState(2 /* STATE_PROMPT */);
-  var tokens              = new Tokens(this.line);
+  var tokens              = new this.Tokens(this.line);
   this.line               = '';
   var cmd                 = tokens.nextToken();
-  if (cmd != undefined) {
+  if (cmd) {
     cmd                   = cmd.toUpperCase();
     if (cmd.match(/^[0-9]+$/)) {
       tokens.removeLineNumber();
       var lineNumber        = parseInt(cmd);
       var index             = this.findLine(lineNumber);
-      if (tokens.nextToken() == undefined) {
+      if (tokens.nextToken() == null) {
         if (index > 0) {
           // Delete line from program
           this.program.splice(index, 1);
@@ -253,7 +253,8 @@ Demo.prototype.doCommand = function() {
           this.program[index].setTokens(tokens);
         } else {
           // Add new line to program
-          this.program.splice(-index - 1, 0, new Line(lineNumber, tokens));
+          this.program.splice(-index - 1, 0,
+                              new this.Line(lineNumber, tokens));
         }
       }
     } else {
@@ -273,14 +274,14 @@ Demo.prototype.doEval = function() {
     this.vt100('Supported commands:\r\n' +
                '  HELP LIST NEW RUN\r\n');
   } else if (cmd == "LIST") {
-    if (this.tokens.nextToken() != undefined) {
+    if (this.tokens.nextToken() != null) {
       this.error();
     } else {
       for (var i = 0; i < this.program.length; i++) {
         var line            = this.program[i];
         this.vt100('' + line.lineNumber());
         line.tokens().reset();
-        for (var token; (token = line.tokens().nextToken()) != undefined; ) {
+        for (var token; (token = line.tokens().nextToken()) != null; ) {
           this.vt100(' ' + token);
         }
         line.tokens().reset();
@@ -297,7 +298,7 @@ Demo.prototype.doEval = function() {
       this.gotoState(7 /* STATE_NEW_Y_N */);
     }
   } else if (cmd == "RUN") {
-    if (this.tokens.nextToken() != undefined) {
+    if (this.tokens.nextToken() != null) {
       this.error();
     } else if (this.program.length > 0) {
       this.currentLineIndex = 0;
@@ -365,53 +366,98 @@ Demo.prototype.findLine = function(lineNumber) {
   return -l - 1;
 };
 
-function Tokens(line) {
-  this.tokens = line.split(' ');
-  this.index  = 0;
+Demo.prototype.Tokens = function(line) {
+  this.line   = line;
+  this.tokens = line;
 };
 
-Tokens.prototype.nextToken = function() {
-  while (this.index < this.tokens.length) {
-    var token = this.tokens[this.index++];
-    token     = token.replace(/^[ \t]*/, '');
-    token     = token.replace(/[ \t]*$/, '');
-    if (token.length) {
-      return token;
+Demo.prototype.Tokens.prototype.nextToken = function() {
+  var tokens    = this.tokens.replace(/^[ \t]*/, '');
+  if (!tokens.length) {
+    return null;
+  }
+  var token     = tokens.charAt(0);
+  switch (token) {
+  case '<':
+    if (tokens.length > 1) {
+      if (tokens.charAt(1) == '>') {
+        token   = '<>';
+      } else if (tokens.charAt(1) == '=') {
+        token   = '<=';
+      }
+    }
+    break;
+  case '>':
+    if (tokens.charAt(1) == '=') {
+      token     = '>=';
+    }
+    break;
+  case '=':
+  case '+':
+  case '-':
+  case '*':
+  case '/':
+  case '(':
+  case ')':
+  case '?':
+  case ',':
+  case ';':
+  case '"':
+  case ':':
+  case '$':
+  case '%':
+  case '#':
+    break;
+  default:
+    if (token >= '0' && token <= '9' || token == '.') {
+      token     = tokens.match(/^[0-9]*(?:[.][0-9]*)?(?:[eE][-+]?[0-9]+)?/);
+      if (token) {
+        token   = token[0];
+      }
+    } else if (token >= 'A' && token <= 'Z' ||
+               token >= 'a' && token <= 'z') {
+      token     = tokens.match(/^[A-Za-z][A-Za-z0-9_]*/);
+      if (token) {
+        token   = token[0];
+      }
+    } else {
+      token     = '';
     }
   }
-  return undefined;
-};
-
-Tokens.prototype.removeLineNumber = function() {
-  if (this.tokens.length > 0) {
-    this.tokens.splice(0, 1);
-    if (this.index > 0) {
-      this.index--;
-    }
+  if (token) {
+    this.tokens = tokens.substr(token.length);
+  } else {
+    this.tokens = tokens.substr(1);
+    token       = undefined;
   }
+  return token;
 };
 
-Tokens.prototype.reset = function() {
-  this.index = 0;
+Demo.prototype.Tokens.prototype.removeLineNumber = function() {
+  this.line = this.line.replace(/^[0-9]*[ \t]*/, '');
 };
 
-function Line(lineNumber, tokens) {
+Demo.prototype.Tokens.prototype.reset = function() {
+  this.tokens = this.line;
+};
+
+Demo.prototype.Line = function(lineNumber, tokens) {
   this.lineNumber_ = lineNumber;
   this.tokens_     = tokens;
 };
 
-Line.prototype.lineNumber = function() {
+Demo.prototype.Line.prototype.lineNumber = function() {
   return this.lineNumber_;
 };
 
-Line.prototype.tokens = function() {
+Demo.prototype.Line.prototype.tokens = function() {
   return this.tokens_;
 };
 
-Line.prototype.setTokens = function(tokens) {
+Demo.prototype.Line.prototype.setTokens = function(tokens) {
   this.tokens_ = tokens;
 };
 
-Line.prototype.sort = function(a, b) {
+Demo.prototype.Line.prototype.sort = function(a, b) {
   return a.lineNumber_ - b.lineNumber_;
 };
