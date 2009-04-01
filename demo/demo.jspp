@@ -173,10 +173,11 @@ Demo.prototype.error = function(msg) {
   }
   this.vt100((this.cursorX != 0 ? '\r\n' : '') + '\u0007? ' + msg +
              (this.currentLineIndex >= 0 ?
-              ' in line ' + this.program[this.currentLineIndex].lineNumber() :
+              ' in line ' + this.program[this.evalLineIndex].lineNumber() :
               '') + '\r\n');
   this.gotoState(STATE_PROMPT);
   this.currentLineIndex = -1;
+  this.evalLineIndex    = -1;
   return undefined;
 };
 
@@ -203,6 +204,7 @@ Demo.prototype.doPrompt = function() {
   this.keys             = '';
   this.line             = '';
   this.currentLineIndex = -1;
+  this.evalLineIndex    = -1;
   this.vt100((this.cursorX != 0 ? '\r\n' : '') + '> ');
   this.gotoState(STATE_READLINE);
   return false;
@@ -272,6 +274,7 @@ Demo.prototype.doCommand = function() {
       }
     } else {
       this.currentLineIndex = -1;
+      this.evalLineIndex    = -1;
       this.tokens           = tokens;
       this.gotoState(STATE_EVAL);
     }
@@ -420,7 +423,8 @@ Demo.prototype.doPrint = function() {
 };
 
 Demo.prototype.doExec = function() {
-  this.tokens = this.program[this.currentLineIndex++].tokens();
+  this.evalLineIndex = this.currentLineIndex++;
+  this.tokens        = this.program[this.evalLineIndex].tokens();
   this.tokens.reset();
   this.doEval();
   if (this.currentLineIndex < 0) {
@@ -547,7 +551,7 @@ Demo.prototype.term = function() {
 Demo.prototype.factor = function() {
   var token  = this.tokens.nextToken();
   if (!token) {
-    return token;
+    return this.error();
   }
 
   var value  = undefined;
