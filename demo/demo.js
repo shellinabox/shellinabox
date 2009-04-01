@@ -171,7 +171,10 @@ Demo.prototype.error = function(msg) {
   if (msg == undefined) {
     msg                 = 'Syntax Error';
   }
-  this.vt100((this.cursorX != 0 ? '\r\n' : '') + '\u0007? ' + msg + '\r\n');
+  this.vt100((this.cursorX != 0 ? '\r\n' : '') + '\u0007? ' + msg +
+             (this.currentLineIndex >= 0 ?
+              ' in line ' + this.program[this.currentLineIndex].lineNumber() :
+              '') + '\r\n');
   this.gotoState(2 /* STATE_PROMPT */);
   this.currentLineIndex = -1;
   return undefined;
@@ -200,7 +203,7 @@ Demo.prototype.doPrompt = function() {
   this.keys             = '';
   this.line             = '';
   this.currentLineIndex = -1;
-  this.vt100('> ');
+  this.vt100((this.cursorX != 0 ? '\r\n' : '') + '> ');
   this.gotoState(3 /* STATE_READLINE */);
   return false;
 };
@@ -297,8 +300,8 @@ Demo.prototype.doEval = function() {
   } else if (token == "PRINT" || token == "?") {
     this.doPrint();
   } else if (token == "RUN") {
-    if (this.tokens.nextToken() != null) {
-      this.error();
+    if (this.tokens.peekToken() != null) {
+      this.error('RUN does not take any parameters');
     } else if (this.program.length > 0) {
       this.currentLineIndex = 0;
       this.gotoState(6 /* STATE_EXEC */);
@@ -306,7 +309,7 @@ Demo.prototype.doEval = function() {
       this.ok();
     }
   } else {
-    this.error();
+    this.error(token ? 'Unknown command: ' + token : undefined);
   }
   return false;
 };
@@ -317,21 +320,22 @@ Demo.prototype.doList = function() {
   var token        = this.tokens.nextToken();
   if (token) {
     if (!token.match(/[0-9]+/)) {
-      return this.error();
+      return this.error('LIST can optional take a start and stop line number');
     }
     start          = parseInt(token);
     token          = this.tokens.nextToken();
     if (token) {
       if (token != ',') {
-        return this.error();
+        return this.error('Comma expected');
       }
       token        = this.tokens.nextToken();
       if (!token || !token.match(/[0-9]+/)) {
-        return this.error();
+        return this.error(
+                      'LIST can optionally take a start and stop line number');
       }
       stop         = token.parseInt(token);
       if (stop < start) {
-        return this.error();
+        return this.error('Start line number has to come before stop');
       }
     }
   }
@@ -470,15 +474,97 @@ Demo.prototype.findLine = function(lineNumber) {
 };
 
 Demo.prototype.expr = function() {
-  var token = this.tokens.nextToken();
+  var value   = this.term();
+  while (value) {
+    var token = this.tokens.peekToken();
+    if (token != '+' && token != '-') {
+      break;
+    }
+    this.tokens.consume();
+    var v     = this.term();
+    if (!v) {
+      return v;
+    }
+    if (value.type() != v.type()) {
+      if (value.type() != 0 /* TYPE_STRING */) {
+        value = new this.Value(0 /* TYPE_STRING */, ''+value.val(), ''+value.val());
+      }
+      if (v.type() != 0 /* TYPE_STRING */) {
+        v     = new this.Value(0 /* TYPE_STRING */, ''+v.val(), ''+v.val());
+      }
+    }
+    if (token == '-') {
+      if (value.type() == 0 /* TYPE_STRING */) {
+        return this.error('Cannot subtract strings');
+      }
+      v       = value.val() - v.val();
+    } else {
+      v       = value.val() + v.val();
+    }
+    if (v == NaN) {
+      return this.error('Numeric range error');
+    }
+    value     = new this.Value(value.type(), ''+v, v);
+  }
+  return value;
+};
+
+Demo.prototype.term = function() {
+  var value   = this.factor();
+  while (value) {
+    var token = this.tokens.peekToken();
+    if (token != '*' && token != '/' && token != '\\') {
+      break;
+    }
+    this.tokens.consume();
+    var v     = this.factor();
+    if (!v) {
+      return v;
+    }
+    if (value.type() != 1 /* TYPE_NUMBER */ || v.type() != 1 /* TYPE_NUMBER */) {
+      return this.error('Cannot multiply or divide strings');
+    }
+    if (token == '*') {
+      v       = value.val() * v.val();
+    } else {
+      v       = value.val() / v.val();
+      if (token == '\\') {
+        if (v < 0) {
+          v   = -Math.floor(-v);
+        } else {
+          v   =  Math.floor( v);
+        }
+      }
+    }
+    if (v == NaN) {
+      return this.error('Numeric range error');
+    }
+    value     = new this.Value(1 /* TYPE_NUMBER */, ''+v, v);
+  }
+  return value;
+};
+
+Demo.prototype.factor = function() {
+  var token  = this.tokens.nextToken();
   if (!token) {
     return token;
   }
 
-  var value = undefined;
+  var value  = undefined;
   var str;
   if ((str = token.match(/^"(.*)"/)) != null) {
-    value   = new this.Value(0 /* TYPE_STRING */, str[1]);
+    value    = new this.Value(0 /* TYPE_STRING */, str[1], str[1]);
+  } else if (token.match(/^[0-9]/)) {
+    var number;
+    if (token.match(/^[0-9]*$/)) {
+      number = parseInt(token);
+    } else {
+      number = parseFloat(token);
+    }
+    if (number == NaN) {
+      return this.error('Numeric range error');
+    }
+    value    = new this.Value(1 /* TYPE_NUMBER */, token, number);
   } else {
     return this.error();
   }
@@ -615,11 +701,21 @@ Demo.prototype.Line.prototype.sort = function(a, b) {
   return a.lineNumber_ - b.lineNumber_;
 };
 
-Demo.prototype.Value = function(type, str) {
-  this.type = type;
-  this.str  = str;
+Demo.prototype.Value = function(type, str, val) {
+  this.t = type;
+  this.s = str;
+  this.v = val;
+};
+
+Demo.prototype.Value.prototype.type = function() {
+  return this.t;
+};
+
+Demo.prototype.Value.prototype.val = function() {
+  return this.v;
 };
 
 Demo.prototype.Value.prototype.toString = function() {
-  return this.str;
+  return this.s;
 };
+
