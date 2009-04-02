@@ -514,14 +514,14 @@ Demo.prototype.expr = function() {
 };
 
 Demo.prototype.term = function() {
-  var value   = this.factor();
+  var value   = this.expn();
   while (value) {
     var token = this.tokens.peekToken();
     if (token != '*' && token != '/' && token != '\\') {
       break;
     }
     this.tokens.consume();
-    var v     = this.factor();
+    var v     = this.expn();
     if (!v) {
       return v;
     }
@@ -548,29 +548,68 @@ Demo.prototype.term = function() {
   return value;
 };
 
+Demo.prototype.expn = function() {
+  var value = this.intrinsic();
+  var token = this.tokens.peekToken();
+  if (token == '^') {
+    this.tokens.consume();
+    var exp = this.intrinsic();
+    if (exp == undefined || exp.val() == NaN) {
+      return exp;
+    }
+    if (value.type() != 1 /* TYPE_NUMBER */ || exp.type() != 1 /* TYPE_NUMBER */) {
+      return this.error("Numeric value expected");
+    }
+    var v   = Math.pow(value.val(), exp.val());
+    value   = new this.Value(1 /* TYPE_NUMBER */, '' + v, v);
+  }
+  return value;
+};
+
+Demo.prototype.intrinsic = function() {
+  var token = this.tokens.peekToken();
+  if (token.match(/^(?:ABS|ASC|ATN|CHR\$|COS|EXP|INT|LEN|LOG|POS|RND|SGN|SIN|SPC|SQR|STR\$|TAN|VAL)$/)) {
+    return this.error('Unimplemented');
+  } else if (token.match(/^(?:LEFT\$|RIGHT\$)$/)) {
+    return this.error('Unimplemented');
+  } else if (token == 'MID$') {
+    return this.error('Unimplemented');
+  } else {
+    return this.factor();
+  }
+};
+
 Demo.prototype.factor = function() {
-  var token  = this.tokens.nextToken();
+  var token    = this.tokens.nextToken();
   if (!token) {
     return this.error();
   }
 
-  var value  = undefined;
-  var str;
-  if ((str = token.match(/^"(.*)"/)) != null) {
-    value    = new this.Value(0 /* TYPE_STRING */, str[1], str[1]);
-  } else if (token.match(/^[0-9]/)) {
-    var number;
-    if (token.match(/^[0-9]*$/)) {
-      number = parseInt(token);
-    } else {
-      number = parseFloat(token);
+  var value    = undefined;
+  if (token == '(') {
+    value      = this.expr();
+    token      = this.tokens.nextToken();
+    if (token != ')' && value != undefined) {
+      return this.error('")" expected');
     }
-    if (number == NaN) {
-      return this.error('Numeric range error');
-    }
-    value    = new this.Value(1 /* TYPE_NUMBER */, token, number);
   } else {
-    return this.error();
+    var str;
+    if ((str = token.match(/^"(.*)"/)) != null) {
+      value    = new this.Value(0 /* TYPE_STRING */, str[1], str[1]);
+    } else if (token.match(/^[0-9]/)) {
+      var number;
+      if (token.match(/^[0-9]*$/)) {
+        number = parseInt(token);
+      } else {
+        number = parseFloat(token);
+      }
+      if (number == NaN) {
+        return this.error('Numeric range error');
+      }
+      value    = new this.Value(1 /* TYPE_NUMBER */, token, number);
+    } else {
+      return this.error();
+    }
   }
 
   return value;
@@ -641,11 +680,16 @@ Demo.prototype.Tokens.prototype.peekToken = function() {
       }
     } else if (token >= 'A' && token <= 'Z' ||
                token >= 'a' && token <= 'z') {
-      token     = tokens.match(/^[A-Za-z][A-Za-z0-9_]*/);
-      if (!token) {
-        token   = undefined;
-      } else {
+      token     = tokens.match(/^(?:CHR\$|STR\$|LEFT\$|RIGHT\$|MID\$)/i);
+      if (token) {
         token   = token[0].toUpperCase();
+      } else {
+        token   = tokens.match(/^[A-Za-z][A-Za-z0-9_]*/);
+        if (!token) {
+          token = undefined;
+        } else {
+          token = token[0].toUpperCase();
+        }
       }
     } else {
       token     = '';
