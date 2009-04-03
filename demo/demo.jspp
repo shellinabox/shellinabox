@@ -288,7 +288,9 @@ Demo.prototype.doEval = function() {
   var token                 = this.tokens.nextToken();
   if (token == "HELP") {
     this.vt100('Supported commands:\r\n' +
-               '  HELP LIST NEW PRINT RUN\r\n');
+               'ABS ASC ATN CHR$ COS EXP HELP INT LEFT$ LIST LEN LOG MID$\r\n'+
+               'NEW POS PRINT RIGHT$ RND RUN SGN SIN SPC SQR STR$ TAB TAN\r\n'+
+               'TI VAL\r\n');
   } else if (token == "LIST") {
     this.doList();
   } else if (token == "NEW") {
@@ -583,10 +585,10 @@ Demo.prototype.expn = function() {
 Demo.prototype.intrinsic = function() {
   var token         = this.tokens.peekToken();
   var args          = undefined;
-  var fnc, arg1, arg2, arg3;
+  var value, v, fnc, arg1, arg2, arg3;
   if (!token) {
     return this.error('Unexpected end of input');
-  } else if (token.match(/^(?:ABS|ASC|ATN|CHR\$|COS|EXP|INT|LEN|LOG|POS|RND|SGN|SIN|SPC|SQR|STR\$|TAN|VAL)$/)) {
+  } else if (token.match(/^(?:ABS|ASC|ATN|CHR\$|COS|EXP|INT|LEN|LOG|POS|RND|SGN|SIN|SPC|SQR|STR\$|TAB|TAN|VAL)$/)) {
     fnc             = token;
     args            = 1;
   } else if (token.match(/^(?:LEFT\$|RIGHT\$)$/)) {
@@ -595,6 +597,10 @@ Demo.prototype.intrinsic = function() {
   } else if (token == 'MID$') {
     fnc             = token;
     args            = 3;
+  } else if (token == 'TI') {
+    this.tokens.consume();
+    v               = (new Date()).getTime() / 1000.0;
+    return new this.Value(TYPE_NUMBER, '' + v, v);
   } else {
     return this.factor();
   }
@@ -631,25 +637,69 @@ Demo.prototype.intrinsic = function() {
   if (token != ')') {
     return this.error('")" expected');
   }
-  var value, v;
   switch (fnc) {
   case 'ASC':
     if (arg1.type() != TYPE_STRING || arg1.val().length < 1) {
       return this.error('Non-empty string expected');
     }
-    v               = arg1.val().charCodeAt[0];
+    v               = arg1.val().charCodeAt(0);
     value           = new this.Value(TYPE_NUMBER, '' + v, v);
     break;
   case 'LEN':
+    if (arg1.type() != TYPE_STRING) {
+      return this.error('String expected');
+    }
+    v               = arg1.val().length;
+    value           = new this.Value(TYPE_NUMBER, '' + v, v);
+    break;
   case 'LEFT$':
+    if (arg1.type() != TYPE_STRING || arg2.type() != TYPE_NUMBER ||
+        arg2.type() < 0) {
+      return this.error('Invalid arguments');
+    }
+    v               = arg1.val().substr(0, Math.floor(arg2.val()));
+    value           = new this.Value(TYPE_STRING, v, v);
+    break;
   case 'MID$':
+    if (arg1.type() != TYPE_STRING || arg2.type() != TYPE_NUMBER ||
+        arg3.type() != TYPE_NUMBER || arg2.val() < 0 || arg3.val() < 0) {
+      return this.error('Invalid arguments');
+    }
+    v               = arg1.val().substr(Math.floor(arg2.val()),
+                                        Math.floor(arg3.val()));
+    value           = new this.Value(TYPE_STRING, v, v);
+    break;
   case 'RIGHT$':
+    if (arg1.type() != TYPE_STRING || arg2.type() != TYPE_NUMBER ||
+        arg2.type() < 0) {
+      return this.error('Invalid arguments');
+    }
+    v               = Math.floor(arg2.val());
+    if (v > arg1.val().length) {
+      v             = arg1.val().length;
+    }
+    v               = arg1.val().substr(arg1.val().length - v);
+    value           = new this.Value(TYPE_STRING, v, v);
+    break;   
   case 'STR$':
+    value           = new this.Value(TYPE_STRING, arg1.toString(),
+                                     arg1.toString());
+    break;
   case 'VAL':
-    return this.error('Unimplemented');
+    if (arg1.type() == TYPE_NUMBER) {
+      value         = arg1;
+    } else {
+      if (arg1.val().match(/^[0-9]+$/)) {
+        v           = parseInt(arg1.val());
+      } else {
+        v           = parseFloat(arg1.val());
+      }
+      value         = new this.Value(TYPE_NUMBER, '' + v, v);
+    }
+    break;
   default:
     if (arg1.type() != TYPE_NUMBER) {
-      return this.error('Need a numeric argument');
+      return this.error('Numeric value expected');
     }
     switch (fnc) {
     case 'CHR$':
@@ -667,6 +717,14 @@ Demo.prototype.intrinsic = function() {
                       '\u001B[' + Math.floor(arg1.val()) + 'C' : '';
       value         = new this.Value(TYPE_STRING, v, v);
       break;
+    case 'TAB':
+      if (arg1.val() < 0) {
+        return this.error('Range error');
+      }
+      v             = '\r' + (arg1.val() >= 1 ?
+                      '\u001B[' + (Math.floor(arg1.val())*8) + 'C' : '');
+      value         = new this.Value(TYPE_STRING, v, v);
+      break;
     default:
       switch (fnc) {
       case 'ABS': v = Math.abs(arg1.val());                     break;
@@ -680,10 +738,19 @@ Demo.prototype.intrinsic = function() {
       case 'SIN': v = Math.sin(arg1.val());                     break;
       case 'SQR': v = Math.sqrt(arg1.val());                    break;
       case 'TAN': v = Math.tan(arg1.val());                     break;
-  
       case 'RND':
-      default:
-        return this.error('Unimplemented');
+        if (this.prng == undefined) {
+          this.prng = 1013904223;
+        }
+        if (arg1.type() == TYPE_NUMBER && arg1.val() < 0) {
+          this.prng = Math.floor(1664525*arg1.val()) & 0xFFFFFFFF;
+        }
+        if (arg1.type() != TYPE_NUMBER || arg1.val() != 0) {
+          this.prng = Math.floor(1664525*this.prng + 1013904223) &
+                      0xFFFFFFFF;
+        }
+        v           = ((this.prng & 0x7FFFFFFF) / 65536.0) / 32768;
+        break;
       }
       value         = new this.Value(TYPE_NUMBER, '' + v, v);
     }
@@ -696,11 +763,20 @@ Demo.prototype.intrinsic = function() {
 
 Demo.prototype.factor = function() {
   var token    = this.tokens.nextToken();
+  var value;
+  if (token == '-') {
+    value      = this.expr();
+    if (!value) {
+      return value;
+    }
+    if (value.type() != TYPE_NUMBER) {
+      return this.error('Numeric value expected');
+    }
+    return new this.Value(TYPE_NUMBER, '' + -value.val(), -value.val());
+  }
   if (!token) {
     return this.error();
   }
-
-  var value    = undefined;
   if (token == '(') {
     value      = this.expr();
     token      = this.tokens.nextToken();
