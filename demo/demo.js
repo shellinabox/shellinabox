@@ -322,27 +322,37 @@ Demo.prototype.doList = function() {
   var stop         = undefined;
   var token        = this.tokens.nextToken();
   if (token) {
-    if (!token.match(/[0-9]+/)) {
+    if (token != '-' && !token.match(/[0-9]+/)) {
       return this.error('LIST can optional take a start and stop line number');
     }
-    start          = parseInt(token);
-    token          = this.tokens.nextToken();
-    if (token) {
-      if (token != ',') {
-        return this.error('Comma expected');
+    if (token != '-') {
+      start        = parseInt(token);
+      token        = this.tokens.nextToken();
+    }
+    if (!token) {
+      stop         = start;
+    } else {
+      if (token != '-') {
+        return this.error('Dash expected');
       }
       token        = this.tokens.nextToken();
-      if (!token || !token.match(/[0-9]+/)) {
-        return this.error(
+      if (token) {
+        if (!token.match(/[0-9]+/)) {
+          return this.error(
                       'LIST can optionally take a start and stop line number');
+        }
+        stop       = parseInt(token);
+        if (start && stop < start) {
+          return this.error('Start line number has to come before stop');
+        }
       }
-      stop         = token.parseInt(token);
-      if (stop < start) {
-        return this.error('Start line number has to come before stop');
+      if (this.tokens.peekToken()) {
+        return this.error('Unexpected trailing arguments');
       }
     }
   }
 
+  var listed       = false;
   for (var i = 0; i < this.program.length; i++) {
     var line       = this.program[i];
     var lineNumber = line.lineNumber();
@@ -353,6 +363,7 @@ Demo.prototype.doList = function() {
       break;
     }
 
+    listed         = true;
     this.vt100('' + line.lineNumber() + ' ');
     line.tokens().reset();
     var space      = true;
@@ -395,6 +406,9 @@ Demo.prototype.doList = function() {
       }
     }
     this.vt100('\r\n');
+  }
+  if (!listed) {
+    this.ok();
   }
 };
 
@@ -567,16 +581,117 @@ Demo.prototype.expn = function() {
 };
 
 Demo.prototype.intrinsic = function() {
-  var token = this.tokens.peekToken();
-  if (token.match(/^(?:ABS|ASC|ATN|CHR\$|COS|EXP|INT|LEN|LOG|POS|RND|SGN|SIN|SPC|SQR|STR\$|TAN|VAL)$/)) {
-    return this.error('Unimplemented');
+  var token         = this.tokens.peekToken();
+  var args          = undefined;
+  var fnc, arg1, arg2, arg3;
+  if (!token) {
+    return this.error('Unexpected end of input');
+  } else if (token.match(/^(?:ABS|ASC|ATN|CHR\$|COS|EXP|INT|LEN|LOG|POS|RND|SGN|SIN|SPC|SQR|STR\$|TAN|VAL)$/)) {
+    fnc             = token;
+    args            = 1;
   } else if (token.match(/^(?:LEFT\$|RIGHT\$)$/)) {
-    return this.error('Unimplemented');
+    fnc             = token;
+    args            = 2;
   } else if (token == 'MID$') {
-    return this.error('Unimplemented');
+    fnc             = token;
+    args            = 3;
   } else {
     return this.factor();
   }
+  this.tokens.consume();
+  token             = this.tokens.nextToken();
+  if (token != '(') {
+    return this.error('"(" expected');
+  }
+  arg1              = this.expr();
+  if (!arg1) {
+    return arg1;
+  }
+  token             = this.tokens.nextToken();
+  if (--args) {
+    if (token != ',') {
+      return this.error('"," expected');
+    }
+    arg2            = this.expr();
+    if (!arg2) {
+      return arg2;
+    }
+    token = this.tokens.nextToken();
+    if (--args) {
+      if (token != ',') {
+        return this.error('"," expected');
+      }
+      arg3          = this.expr();
+      if (!arg3) {
+        return arg3;
+      }
+      token         = this.tokens.nextToken();
+    }
+  }
+  if (token != ')') {
+    return this.error('")" expected');
+  }
+  var value, v;
+  switch (fnc) {
+  case 'ASC':
+    if (arg1.type() != 0 /* TYPE_STRING */ || arg1.val().length < 1) {
+      return this.error('Non-empty string expected');
+    }
+    v               = arg1.val().charCodeAt[0];
+    value           = new this.Value(1 /* TYPE_NUMBER */, '' + v, v);
+    break;
+  case 'LEN':
+  case 'LEFT$':
+  case 'MID$':
+  case 'RIGHT$':
+  case 'STR$':
+  case 'VAL':
+    return this.error('Unimplemented');
+  default:
+    if (arg1.type() != 1 /* TYPE_NUMBER */) {
+      return this.error('Need a numeric argument');
+    }
+    switch (fnc) {
+    case 'CHR$':
+      if (arg1.val() < 0 || arg1.val() > 65535) {
+        return this.error('Invalid Unicode range');
+      }
+      v             = String.fromCharCode(arg1.val());
+      value         = new this.Value(0 /* TYPE_STRING */, v, v);
+      break;
+    case 'SPC': 
+      if (arg1.val() < 0) {
+        return this.error('Range error');
+      }
+      v             = arg1.val() >= 1 ?
+                      '\u001B[' + Math.floor(arg1.val()) + 'C' : '';
+      value         = new this.Value(0 /* TYPE_STRING */, v, v);
+      break;
+    default:
+      switch (fnc) {
+      case 'ABS': v = Math.abs(arg1.val());                     break;
+      case 'ATN': v = Math.atan(arg1.val());                    break;
+      case 'COS': v = Math.cos(arg1.val());                     break;
+      case 'EXP': v = Math.exp(arg1.val());                     break;
+      case 'INT': v = Math.floor(arg1.val());                   break;
+      case 'LOG': v = Math.log(arg1.val());                     break;
+      case 'POS': v = this.cursorX;                             break;
+      case 'SGN': v = arg1.val() < 0 ? -1 : arg1.val() ? 1 : 0; break;
+      case 'SIN': v = Math.sin(arg1.val());                     break;
+      case 'SQR': v = Math.sqrt(arg1.val());                    break;
+      case 'TAN': v = Math.tan(arg1.val());                     break;
+  
+      case 'RND':
+      default:
+        return this.error('Unimplemented');
+      }
+      value         = new this.Value(1 /* TYPE_NUMBER */, '' + v, v);
+    }
+  }
+  if (v == NaN) {
+    return this.error('Numeric range error');
+  }
+  return value;
 };
 
 Demo.prototype.factor = function() {
