@@ -182,6 +182,7 @@ Demo.prototype.error = function(msg) {
 };
 
 Demo.prototype.doInit = function() {
+  this.vars    = new Object();
   this.program = new Array();
   this.vt100(
     '\u001Bc\u001B[34;4m' +
@@ -285,16 +286,31 @@ Demo.prototype.doCommand = function() {
 
 Demo.prototype.doEval = function() {
   this.gotoState(STATE_PROMPT);
-  var token                 = this.tokens.nextToken();
+  var token                 = this.tokens.peekToken();
   if (token == "HELP") {
-    this.vt100('Supported commands:\r\n' +
-               'ABS ASC ATN CHR$ COS EXP HELP INT LEFT$ LIST LEN LOG MID$\r\n'+
-               'NEW POS PRINT RIGHT$ RND RUN SGN SIN SPC SQR STR$ TAB TAN\r\n'+
-               'TI VAL\r\n');
+    this.tokens.consume();
+    if (this.tokens.nextToken() != undefined) {
+      this.error('HELP does not take any arguments');
+    } else {
+      this.vt100('Supported commands:\r\n' +
+               'HELP LET LIST NEW PRINT RUN\r\n'+
+               '\r\n'+
+               'Supported functions:\r\n'+
+               'ABS() ASC() ATN() CHR$() COS() EXP() INT() LEFT$() LEN()\r\n'+
+               'LOG() MID$() POS() RIGHT$() RND() SGN() SIN() SPC() SQR()\r\n'+
+               'STR$() TAB() TAN() TI VAL()\r\n');
+    }
+  } else if (token == "LET") {
+    this.tokens.consume();
+    this.doAssignment();
   } else if (token == "LIST") {
+    this.tokens.consume();
     this.doList();
   } else if (token == "NEW") {
-    if (this.currentLineIndex >= 0) {
+    this.tokens.consume();
+    if (this.tokens.nextToken() != undefined) {
+      this.error('NEW does not take any arguments');
+    } else if (this.currentLineIndex >= 0) {
       this.error('Cannot call NEW from a program');
     } else if (this.program.length == 0) {
       this.ok();
@@ -303,9 +319,11 @@ Demo.prototype.doEval = function() {
       this.gotoState(STATE_NEW_Y_N);
     }
   } else if (token == "PRINT" || token == "?") {
+    this.tokens.consume();
     this.doPrint();
   } else if (token == "RUN") {
-    if (this.tokens.peekToken() != null) {
+    this.tokens.consume();
+    if (this.tokens.nextToken() != null) {
       this.error('RUN does not take any parameters');
     } else if (this.program.length > 0) {
       this.currentLineIndex = 0;
@@ -314,9 +332,40 @@ Demo.prototype.doEval = function() {
       this.ok();
     }
   } else {
-    this.error(token ? 'Unknown command: ' + token : undefined);
+    this.doAssignment();
   }
   return false;
+};
+
+Demo.prototype.doAssignment = function() {
+  var id       = this.tokens.nextToken();
+  if (!id || !id.match(/^[A-Za-z][A-Za-z0-9_]*$/)) {
+    return this.error('Identifier expected');
+  }
+  var token = this.tokens.nextToken();
+  var isString = false;
+  if (token == '$') {
+    isString   = true;
+    token      = this.tokens.nextToken();
+  }
+  if (token != '=') {
+    return this.error('"=" expected');
+  }
+  var value    = this.expr();
+  if (value == undefined) {
+    return value;
+  }
+  if (isString) {
+    if (value.type() != TYPE_STRING) {
+      return this.error('String expected');
+    }
+    this.vars['str_' + id] = value;
+  } else {
+    if (value.type() != TYPE_NUMBER) {
+      return this.error('Numeric value expected');
+    }
+    this.vars['var_' + id] = value;
+  }
 };
 
 Demo.prototype.doList = function() {
@@ -385,7 +434,6 @@ Demo.prototype.doList = function() {
           break;
         case '(':
         case ')':
-        case '?':
         case '$':
         case '%':
         case '#':
@@ -400,6 +448,9 @@ Demo.prototype.doList = function() {
           space    = true;
           id       = false;
           break;
+        case '?':
+          token    = 'PRINT';
+          // fall thru
         default:
           this.vt100((id ? ' ' : '') + token);
           space    = false;
@@ -464,6 +515,7 @@ Demo.prototype.doNewYN = function() {
       return false;
     } else if (ch == 'y' || ch == 'Y') {
       this.vt100('Y\r\n');
+      this.vars = new Object();
       this.program.splice(0, this.program.length);
       this.keys = this.keys.substr(i);
       this.ok();
@@ -798,6 +850,19 @@ Demo.prototype.factor = function() {
         return this.error('Numeric range error');
       }
       value    = new this.Value(TYPE_NUMBER, token, number);
+    } else if (token.match(/^[A-Za-z][A-Za-z0-9_]*$/)) {
+      if (this.tokens.peekToken() == '$') {
+        this.tokens.consume();
+        value  = this.vars['str_' + token];
+        if (value == undefined) {
+          value= new this.Value(TYPE_STRING, '', '');
+        }
+      } else {
+        value  = this.vars['var_' + token];
+        if (value == undefined) {
+          value= new this.Value(TYPE_NUMBER, '0', 0);
+        }
+      }
     } else {
       return this.error();
     }
