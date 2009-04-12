@@ -74,12 +74,6 @@
 
 // #define TYPE_STRING    0
 // #define TYPE_NUMBER    1
-// #define TYPE_VAR       2
-// #define TYPE_STRVAR    3
-// #define TYPE_INTVAR    4
-// #define TYPE_ARR       5
-// #define TYPE_STRARR    6
-// #define TYPE_INTARR    7
 
 function extend(subClass, baseClass) {
   function inheritance() { }
@@ -287,13 +281,16 @@ Demo.prototype.doCommand = function() {
 Demo.prototype.doEval = function() {
   this.gotoState(2 /* STATE_PROMPT */);
   var token                 = this.tokens.peekToken();
-  if (token == "HELP") {
+  if (token == "DIM") {
+    this.tokens.consume();
+    this.doDim();
+  } else if (token == "HELP") {
     this.tokens.consume();
     if (this.tokens.nextToken() != undefined) {
       this.error('HELP does not take any arguments');
     } else {
       this.vt100('Supported commands:\r\n' +
-               'HELP LET LIST NEW PRINT RUN\r\n'+
+               'DIM HELP LET LIST NEW PRINT RUN\r\n'+
                '\r\n'+
                'Supported functions:\r\n'+
                'ABS() ASC() ATN() CHR$() COS() EXP() INT() LEFT$() LEN()\r\n'+
@@ -327,6 +324,7 @@ Demo.prototype.doEval = function() {
       this.error('RUN does not take any parameters');
     } else if (this.program.length > 0) {
       this.currentLineIndex = 0;
+      this.vars = new Object();
       this.gotoState(6 /* STATE_EXEC */);
     } else {
       this.ok();
@@ -337,17 +335,102 @@ Demo.prototype.doEval = function() {
   return false;
 };
 
+Demo.prototype.doDim = function() {
+  for (;;) {
+    var token = this.tokens.nextToken();
+    if (token == undefined) {
+      return;
+    }
+    if (!token || !token.match(/^[A-Za-z][A-Za-z0-9_]*$/)) {
+      return this.error('Identifier expected');
+    }
+    token     = this.tokens.nextToken();
+    if (token == '$' || token == '%') {
+      token   = this.tokens.nextToken();
+    }
+    if (token != '(') {
+      return this.error('"(" expected');
+    }
+    do {
+      var size = this.expr();
+      if (!size) {
+        return size;
+      }
+      if (size.type() != 1 /* TYPE_NUMBER */) {
+        return this.error('Numeric value expected');
+      }
+      if (Math.floor(size.val()) < 1) {
+        return this.error('Range error');
+      }
+      token    = this.tokens.nextToken();
+    } while (token == ',');
+    if (token != ')') {
+      return this.error('")" expected');
+    }
+    if (this.tokens.peekToken() != ',') {
+      break;
+    }
+    this.tokens.consume();
+  }
+  if (this.tokens.peekToken() != undefined) {
+    return this.error();
+  }
+};
+
+Demo.prototype.arrayIndex = function() {
+  var token   = this.tokens.peekToken();
+  var arr     = '';
+  if (token == '(') {
+    this.tokens.consume();
+    do {
+      var idx = this.expr();
+      if (idx == undefined) {
+        return idx;
+      } else if (idx.type() != 1 /* TYPE_NUMBER */) {
+        return this.error('Numeric value expected');
+      }
+      idx     = Math.floor(idx.val());
+      if (idx < 0) {
+        return this.error('Indices have to be positive');
+      }
+      arr    += ',' + idx;
+      token   = this.tokens.nextToken();
+    } while (token == ',');
+    if (token != ')') {
+      return this.error('")" expected');
+    }
+  }
+  return arr;
+};
+
+Demo.prototype.toInt = function(v) {
+  if (v < 0) {
+    return -Math.floor(-v);
+  } else {
+    return  Math.floor( v);
+  }
+};
+
 Demo.prototype.doAssignment = function() {
   var id       = this.tokens.nextToken();
   if (!id || !id.match(/^[A-Za-z][A-Za-z0-9_]*$/)) {
     return this.error('Identifier expected');
   }
-  var token = this.tokens.nextToken();
+  var token = this.tokens.peekToken();
   var isString = false;
+  var isInt    = false;
   if (token == '$') {
     isString   = true;
-    token      = this.tokens.nextToken();
+    this.tokens.consume();
+  } else if (token == '%') {
+    isInt      = true;
+    this.tokens.consume();
   }
+  var arr      = this.arrayIndex();
+  if (arr == undefined) {
+    return arr;
+  }
+  token        = this.tokens.nextToken();
   if (token != '=') {
     return this.error('"=" expected');
   }
@@ -359,12 +442,18 @@ Demo.prototype.doAssignment = function() {
     if (value.type() != 0 /* TYPE_STRING */) {
       return this.error('String expected');
     }
-    this.vars['str_' + id] = value;
+    this.vars['str_' + id + arr] = value;
   } else {
     if (value.type() != 1 /* TYPE_NUMBER */) {
       return this.error('Numeric value expected');
     }
-    this.vars['var_' + id] = value;
+    if (isInt) {
+      value    = this.toInt(value.val());
+      value    = new this.Value(1 /* TYPE_NUMBER */, '' + value, value);
+      this.vars['int_' + id + arr] = value;
+    } else {
+      this.vars['var_' + id + arr] = value;
+    }
   }
 };
 
@@ -601,11 +690,7 @@ Demo.prototype.term = function() {
     } else {
       v       = value.val() / v.val();
       if (token == '\\') {
-        if (v < 0) {
-          v   = -Math.floor(-v);
-        } else {
-          v   =  Math.floor( v);
-        }
+        v     = this.toInt(v);
       }
     }
     if (v == NaN) {
@@ -853,12 +938,25 @@ Demo.prototype.factor = function() {
     } else if (token.match(/^[A-Za-z][A-Za-z0-9_]*$/)) {
       if (this.tokens.peekToken() == '$') {
         this.tokens.consume();
-        value  = this.vars['str_' + token];
+        var arr= this.arrayIndex();
+        if (arr == undefined) {
+          return arr;
+        }
+        value  = this.vars['str_' + token + arr];
         if (value == undefined) {
           value= new this.Value(0 /* TYPE_STRING */, '', '');
         }
       } else {
-        value  = this.vars['var_' + token];
+        var n  = 'var_';
+        if (this.tokens.peekToken() == '%') {
+          this.tokens.consume();
+          n    = 'int_';
+        }
+        var arr= this.arrayIndex();
+        if (arr == undefined) {
+          return arr;
+        }
+        value  = this.vars[n + token + arr];
         if (value == undefined) {
           value= new this.Value(1 /* TYPE_NUMBER */, '0', 0);
         }
