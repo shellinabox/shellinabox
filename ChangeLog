@@ -1,3 +1,12 @@
+2009-04-12  Markus Gutschke  <markus@shellinabox.com>
+
+	* Released version 2.6
+
+	* The demo application is still incomplete, but starting to be
+	somewhat functional. The BASIC interpreter supports variables, and
+	can parse expressions. But it is still missing all flow-control
+	commands, making it somewhat useless for writing real programs.
+
 2009-03-30  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added initial revision of demo application.

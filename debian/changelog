@@ -1,3 +1,9 @@
+shellinabox (2.6-1) unstable; urgency=low
+
+  * New upstream release, version 2.6.
+
+ -- Markus Gutschke <markus@shellinabox.com>  Sun, 12 Apr 2009 10:16:31 -0800
+
 shellinabox (2.5-1) unstable; urgency=low
 
   * New upstream release, version 2.5.
