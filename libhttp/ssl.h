@@ -64,6 +64,7 @@ typedef struct BIO_METHOD BIO_METHOD;
 typedef struct SSL        SSL;
 typedef struct SSL_CTX    SSL_CTX;
 typedef struct SSL_METHOD SSL_METHOD;
+typedef struct X509       X509;
 #define SSL_ERROR_WANT_READ  2
 #define SSL_ERROR_WANT_WRITE 3
 #endif

@@ -769,7 +769,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
 
       // PAM account management requires root access. Just skip it, if we
       // are running with lower privileges.
-      if (geteuid() &&
+      if (!geteuid() &&
           (rc                  = pam_acct_mgmt(pam, PAM_SILENT)) !=
           PAM_SUCCESS) {
         pam_end(pam, rc);
