@@ -354,6 +354,7 @@ void destroyHttpConnection(struct HttpConnection *http) {
       if (http->callback && !http->done) {
         http->callback(http, http->arg, NULL, 0);
       }
+      http->callback       = NULL;
       http->isSuspended    = 0;
       http->isPartialReply = 0;
     }

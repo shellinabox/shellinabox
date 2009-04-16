@@ -383,17 +383,17 @@ void serverLoop(struct Server *server) {
         // the end of the list.
         check(--numFds > 0);
         struct pollfd tmpPollFd;
-        memcpy(&tmpPollFd, server->pollFds + numFds, sizeof(struct pollfd));
-        memcpy(server->pollFds + numFds, server->pollFds + i + 1,
-               sizeof(struct pollfd));
-        memcpy(server->pollFds + i + 1, &tmpPollFd, sizeof(struct pollfd));
+        memmove(&tmpPollFd, server->pollFds + numFds, sizeof(struct pollfd));
+        memmove(server->pollFds + numFds, server->pollFds + i + 1,
+                sizeof(struct pollfd));
+        memmove(server->pollFds + i + 1, &tmpPollFd, sizeof(struct pollfd));
         struct ServerConnection tmpConnection;
-        memcpy(&tmpConnection, server->connections + numFds - 1,
-               sizeof(struct ServerConnection));
-        memcpy(server->connections + numFds - 1, server->connections + i,
-               sizeof(struct ServerConnection));
-        memcpy(server->connections + i, &tmpConnection,
-               sizeof(struct ServerConnection));
+        memmove(&tmpConnection, server->connections + numFds - 1,
+                sizeof(struct ServerConnection));
+        memmove(server->connections + numFds - 1, server->connections + i,
+                sizeof(struct ServerConnection));
+        memmove(server->connections + i, &tmpConnection,
+                sizeof(struct ServerConnection));
       }
 
       if (server->connections[i].timeout &&

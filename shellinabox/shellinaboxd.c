@@ -397,6 +397,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
     }
     free(keyCodes);
     httpSendReply(http, 200, "OK", " ");
+    check(session->http != http);
     return HTTP_DONE;
   } else {
     // This request is polling for data. Finish any pending requests and
@@ -412,7 +413,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
   session->connection     = serverGetConnection(session->server,
                                                 session->connection,
                                                 session->pty);
-  if (session->buffered) {
+  if (session->buffered || isNew) {
     if (completePendingRequest(session, "", 0, MAX_RESPONSE) &&
         session->connection) {
       // Reset the timeout, as we just received a new request.

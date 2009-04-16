@@ -1255,7 +1255,7 @@ static void launcherDaemon(int fd) {
       }
 
       // Send file handle and process id back to parent
-      char cmsg_buf[CMSG_SPACE(sizeof(int))];
+      char cmsg_buf[CMSG_SPACE(sizeof(int))] = { 0 };
       struct iovec  iov       = { 0 };
       struct msghdr msg       = { 0 };
       iov.iov_base            = &pid;
