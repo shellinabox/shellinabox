@@ -1,3 +1,15 @@
+2009-04-27  Markus Gutschke  <markus@shellinabox.com>
+
+	* Released version 2.7
+
+	* Improved compatibility with some PAM configurations when running
+	as a non-privileged user.
+
+	* Fixed a bug that required shells to output data (e.g. a prompt)
+	before they could read the first data.
+
+	* Fixed a potential crash.
+
 2009-04-12  Markus Gutschke  <markus@shellinabox.com>
 
 	* Released version 2.6
