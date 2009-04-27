@@ -68,9 +68,8 @@
 // #define STATE_PROMPT   2
 // #define STATE_READLINE 3
 // #define STATE_COMMAND  4
-// #define STATE_EVAL     5
-// #define STATE_EXEC     6
-// #define STATE_NEW_Y_N  7
+// #define STATE_EXEC     5
+// #define STATE_NEW_Y_N  6
 
 // #define TYPE_STRING    0
 // #define TYPE_NUMBER    1
@@ -90,7 +89,7 @@ function Demo(container) {
 extend(Demo, VT100);
 
 Demo.prototype.keysPressed = function(ch) {
-  if (this.state == 6 /* STATE_EXEC */) {
+  if (this.state == 5 /* STATE_EXEC */) {
     for (var i = 0; i < ch.length; i++) {
       var c       = ch.charAt(i);
       if (c == '\u0003') {
@@ -123,7 +122,7 @@ Demo.prototype.demo = function() {
   this.nextTimer            = undefined;
   while (!done) {
     var state               = this.state;
-    this.state              = 0 /* STATE_IDLE */;
+    this.state              = 2 /* STATE_PROMPT */;
     switch (state) {
     case 1 /* STATE_INIT */:
       done                  = this.doInit();
@@ -137,16 +136,12 @@ Demo.prototype.demo = function() {
     case 4 /* STATE_COMMAND */:
       done                  = this.doCommand();
       break;
-    case 5 /* STATE_EVAL */:
-      done                  = this.doEval();
-      break;
-    case 6 /* STATE_EXEC */:
+    case 5 /* STATE_EXEC */:
       done                  = this.doExec();
       break;
-    case 7 /* STATE_NEW_Y_N */:
+    case 6 /* STATE_NEW_Y_N */:
       done                  = this.doNewYN();
       break;
-    case 0 /* STATE_IDLE */:
     default:
       done                  = true;
       break;
@@ -258,6 +253,7 @@ Demo.prototype.doCommand = function() {
           this.program.splice(index, 1);
         }
       } else {
+        tokens.reset();
         if (index >= 0) {
           // Replace line in program
           this.program[index].setTokens(tokens);
@@ -270,27 +266,32 @@ Demo.prototype.doCommand = function() {
     } else {
       this.currentLineIndex = -1;
       this.evalLineIndex    = -1;
+      tokens.reset();
       this.tokens           = tokens;
-      this.gotoState(5 /* STATE_EVAL */);
+      return this.doEval();
     }
   }
-  tokens.reset();
   return false;
 };
 
 Demo.prototype.doEval = function() {
-  this.gotoState(2 /* STATE_PROMPT */);
   var token                 = this.tokens.peekToken();
   if (token == "DIM") {
     this.tokens.consume();
     this.doDim();
+  } else if (token == "END") {
+    this.tokens.consume();
+    this.doEnd();
+  } else if (token == "GOTO") {
+    this.tokens.consume();
+    this.doGoto();
   } else if (token == "HELP") {
     this.tokens.consume();
     if (this.tokens.nextToken() != undefined) {
       this.error('HELP does not take any arguments');
     } else {
       this.vt100('Supported commands:\r\n' +
-               'DIM HELP LET LIST NEW PRINT RUN\r\n'+
+               'DIM END GOTO HELP LET LIST NEW PRINT RUN\r\n'+
                '\r\n'+
                'Supported functions:\r\n'+
                'ABS() ASC() ATN() CHR$() COS() EXP() INT() LEFT$() LEN()\r\n'+
@@ -313,7 +314,7 @@ Demo.prototype.doEval = function() {
       this.ok();
     } else {
       this.vt100('Do you really want to delete the program (y/N) ');
-      this.gotoState(7 /* STATE_NEW_Y_N */);
+      this.gotoState(6 /* STATE_NEW_Y_N */);
     }
   } else if (token == "PRINT" || token == "?") {
     this.tokens.consume();
@@ -325,7 +326,7 @@ Demo.prototype.doEval = function() {
     } else if (this.program.length > 0) {
       this.currentLineIndex = 0;
       this.vars = new Object();
-      this.gotoState(6 /* STATE_EXEC */);
+      this.gotoState(5 /* STATE_EXEC */);
     } else {
       this.ok();
     }
@@ -333,48 +334,6 @@ Demo.prototype.doEval = function() {
     this.doAssignment();
   }
   return false;
-};
-
-Demo.prototype.doDim = function() {
-  for (;;) {
-    var token = this.tokens.nextToken();
-    if (token == undefined) {
-      return;
-    }
-    if (!token || !token.match(/^[A-Za-z][A-Za-z0-9_]*$/)) {
-      return this.error('Identifier expected');
-    }
-    token     = this.tokens.nextToken();
-    if (token == '$' || token == '%') {
-      token   = this.tokens.nextToken();
-    }
-    if (token != '(') {
-      return this.error('"(" expected');
-    }
-    do {
-      var size = this.expr();
-      if (!size) {
-        return size;
-      }
-      if (size.type() != 1 /* TYPE_NUMBER */) {
-        return this.error('Numeric value expected');
-      }
-      if (Math.floor(size.val()) < 1) {
-        return this.error('Range error');
-      }
-      token    = this.tokens.nextToken();
-    } while (token == ',');
-    if (token != ')') {
-      return this.error('")" expected');
-    }
-    if (this.tokens.peekToken() != ',') {
-      break;
-    }
-    this.tokens.consume();
-  }
-  if (this.tokens.peekToken() != undefined) {
-    return this.error();
-  }
 };
 
 Demo.prototype.arrayIndex = function() {
@@ -455,6 +414,83 @@ Demo.prototype.doAssignment = function() {
       this.vars['var_' + id + arr] = value;
     }
   }
+};
+
+Demo.prototype.doDim = function() {
+  for (;;) {
+    var token = this.tokens.nextToken();
+    if (token == undefined) {
+      return;
+    }
+    if (!token || !token.match(/^[A-Za-z][A-Za-z0-9_]*$/)) {
+      return this.error('Identifier expected');
+    }
+    token     = this.tokens.nextToken();
+    if (token == '$' || token == '%') {
+      token   = this.tokens.nextToken();
+    }
+    if (token != '(') {
+      return this.error('"(" expected');
+    }
+    do {
+      var size = this.expr();
+      if (!size) {
+        return size;
+      }
+      if (size.type() != 1 /* TYPE_NUMBER */) {
+        return this.error('Numeric value expected');
+      }
+      if (Math.floor(size.val()) < 1) {
+        return this.error('Range error');
+      }
+      token    = this.tokens.nextToken();
+    } while (token == ',');
+    if (token != ')') {
+      return this.error('")" expected');
+    }
+    if (this.tokens.peekToken() != ',') {
+      break;
+    }
+    this.tokens.consume();
+  }
+  if (this.tokens.peekToken() != undefined) {
+    return this.error();
+  }
+};
+
+Demo.prototype.doEnd = function() {
+  if (this.evalLineIndex < 0) {
+    return this.error('Cannot use END interactively');
+  }
+  if (this.tokens.nextToken() != undefined) {
+    return this.error('END does not take any arguments');
+  }
+  this.currentLineIndex = this.program.length;
+};
+
+Demo.prototype.doGoto = function() {
+  if (this.evalLineIndex < 0) {
+    return this.error('Cannot use GOTO interactively');
+  }
+  var value = this.expr();
+  if (value == undefined) {
+    return;
+  }
+  if (value.type() != 1 /* TYPE_NUMBER */) {
+    return this.error('Numeric value expected');
+  }
+  if (this.tokens.nextToken() != undefined) {
+    return this.error('GOTO takes exactly one numeric argument');
+  }
+  var number = this.toInt(value.val());
+  if (number <= 0) {
+    return this.error('Range error');
+  }
+  var idx = this.findLine(number);
+  if (idx < 0) {
+    return this.error('No line number ' + line);
+  }
+  this.currentLineIndex = idx;
 };
 
 Demo.prototype.doList = function() {
@@ -586,10 +622,11 @@ Demo.prototype.doExec = function() {
   if (this.currentLineIndex < 0) {
     return false;
   } else if (this.currentLineIndex >= this.program.length) {
+    this.currentLineIndex = -1;
     this.ok();
     return false;
   } else {
-    this.gotoState(6 /* STATE_EXEC */, 20);
+    this.gotoState(5 /* STATE_EXEC */, 20);
     return true;
   }
 };
@@ -613,7 +650,7 @@ Demo.prototype.doNewYN = function() {
       this.vt100('\u0007');
     }
   }
-  this.gotoState(7 /* STATE_NEW_Y_N */);
+  this.gotoState(6 /* STATE_NEW_Y_N */);
   return true;
 };
 
