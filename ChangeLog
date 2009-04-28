@@ -1,3 +1,7 @@
+2009-04-28  Markus Gutschke  <markus@shellinabox.com>
+
+	* Fixed variable expansion in service descriptions.
+	
 2009-04-27  Markus Gutschke  <markus@shellinabox.com>
 
 	* Released version 2.7

@@ -944,7 +944,7 @@ static void execService(int width, int height, struct Service *service,
     case '$':
       if ((quote == NONE || quote == DOUBLE) && ptr[1] == '{') {
         // Always treat environment variables as if they were quoted. There
-        // is not good reason for us to try to look for spaces within
+        // is no good reason for us to try to look for spaces within
         // expanded environment variables. This just leads to subtle bugs.
         char *end             = ptr + 2;
         while (*end && *end != '}') {
@@ -952,7 +952,7 @@ static void execService(int width, int height, struct Service *service,
         }
         char ch               = *end;
         *end                  = '\000';
-        const char *repl      = getFromHashMap(vars, ptr);
+        const char *repl      = getFromHashMap(vars, ptr + 2);
         int replLen           = repl ? strlen(repl) : 0;
         *end                  = ch;
         if (ch) {
