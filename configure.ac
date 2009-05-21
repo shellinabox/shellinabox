@@ -2,7 +2,7 @@ AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
 AC_INIT(shellinabox, 2.7, markus@shellinabox.com)
-VCS_REVISION=118
+VCS_REVISION=119
 AC_SUBST(VCS_REVISION)
 AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
                    [Most recent revision number in the version control system])
@@ -20,13 +20,20 @@ AC_C_CONST
 AC_PROG_GCC_TRADITIONAL
 
 dnl Check for header files that do not exist on all platforms
-AC_CHECK_HEADERS([libutil.h pthread.h sys/prctrl.h utmp.h utmpx.h])
+AC_CHECK_HEADERS([libutil.h pthread.h pty.h sys/prctl.h sys/uio.h util.h      \
+                  utmp.h utmpx.h])
 
 dnl Most systems require linking against libutil.so in order to get login_tty()
 AC_CHECK_FUNCS(login_tty, [],
                [AC_CHECK_LIB(util, login_tty,
                 [LIBS="-lutil $LIBS"
                  AC_DEFINE(HAVE_LOGIN_TTY)])])
+
+dnl Use strlcat() instead of strncat() to avoid spurious warnings
+AC_CHECK_FUNCS([strlcat])
+
+dnl Prefer thread-safe functions, if available
+AC_CHECK_FUNCS([getgrgid_r getgrnam_r getpwnam_r getpwuid_r openpty])
 
 dnl We prefer ptsname_r(), but will settle for ptsname() if necessary
 AC_TRY_LINK([#ifndef _XOPEN_SOURCE
@@ -39,6 +46,13 @@ AC_TRY_LINK([#ifndef _XOPEN_SOURCE
             [char buf[10]; ptsname_r(0, buf, sizeof(buf));],
             [AC_DEFINE(HAVE_PTSNAME_R, 1,
                      Define to 1 if you have a re-entrant version of ptsname)])
+
+dnl Apparently, some systems define sigwait() but fail to implement it
+AC_TRY_LINK([#include <pthread.h>
+             #include <signal.h>],
+            [sigset_t s; int n; sigwait(&s, &n);],
+            [AC_DEFINE(HAVE_SIGWAIT, 1,
+                       Define to 1 if you have a working sigwait)])
 
 dnl We automatically detect SSL support, but allow users to disable it
 AC_ARG_ENABLE(ssl,
@@ -95,7 +109,9 @@ dnl dependencies.
 if test "x$enable_runtime_loading" == xno; then
   dnl Link against OpenSSL libraries, unless SSL support has been disabled
   if test "x$enable_ssl" != xno; then
-    AC_CHECK_HEADER(openssl/ssl.h, [LIBS="-lssl $LIBS"])
+    AC_CHECK_HEADER(openssl/bio.h,
+      [AC_CHECK_HEADER(openssl/err.h,
+        [AC_CHECK_HEADER(openssl/ssl.h, [LIBS="-lssl $LIBS"])])])
   fi
 
   dnl Link against PAM libraries, unless PAM support has been disabled

@@ -1,3 +1,7 @@
+2009-05-20  Markus Gutschke  <markus@shellinabox.com>
+
+	* Fixed various issues with building on OpenBSD
+
 2009-04-28  Markus Gutschke  <markus@shellinabox.com>
 
 	* Fixed variable expansion in service descriptions.

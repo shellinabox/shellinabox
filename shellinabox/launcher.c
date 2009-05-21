@@ -47,6 +47,7 @@
 #include "config.h"
 
 #define pthread_once    x_pthread_once
+#define execle          x_execle
 
 #include <dirent.h>
 #include <dlfcn.h>
@@ -72,6 +73,18 @@
 #include <libutil.h>
 #endif
 
+#ifdef HAVE_PTY_H
+#include <pty.h>
+#endif
+
+#ifdef HAVE_SYS_UIO_H
+#include <sys/uio.h>
+#endif
+
+#ifdef HAVE_UTIL_H
+#include <util.h>
+#endif
+
 #ifdef HAVE_UTMP_H
 #include <utmp.h>
 #endif
@@ -93,6 +106,10 @@ struct pam_conv;
 typedef struct pam_handle pam_handle_t;
 #endif
 
+#ifdef HAVE_STRLCAT
+#define strncat(a,b,c) ({ char *_a = (a); strlcat(_a, (b), (c)+1); _a; })
+#endif
+
 #include "shellinabox/launcher.h"
 #include "shellinabox/privileges.h"
 #include "shellinabox/service.h"
@@ -100,6 +117,8 @@ typedef struct pam_handle pam_handle_t;
 #include "logging/logging.h"
 
 #undef pthread_once
+#undef execle
+int execle(const char *, const char *, ...);
 
 #if defined(HAVE_PTHREAD_H) && defined(__linux__)
 #include <pthread.h>
@@ -359,6 +378,30 @@ int supportsPAM(void) {
 #endif
 }
 
+#ifndef HAVE_GETPWUID_R
+// This is a not-thread-safe replacement for getpwuid_r()
+#define getpwuid_r x_getpwuid_r
+static int getpwuid_r(uid_t uid, struct passwd *pwd, char *buf, size_t buflen,
+                      struct passwd **result) {
+  if (result) {
+    *result        = NULL;
+  }
+  if (!pwd) {
+    return -1;
+  }
+  errno            = 0;
+  struct passwd *p = getpwuid(uid);
+  if (!p) {
+    return errno ? -1 : 0;
+  }
+  *pwd             = *p;
+  if (result) {
+    *result        = pwd;
+  }
+  return 0;
+}
+#endif
+
 int launchChild(int service, struct Session *session) {
   if (launcher < 0) {
     errno              = EINVAL;
@@ -533,7 +576,7 @@ void closeAllFds(int *exceptFds, int num) {
   }
 }
 
-#ifndef HAVE_PTSNAME_R
+#if !defined(HAVE_PTSNAME_R) && 0
 static int ptsname_r(int fd, char *buf, size_t buflen) {
   // It is unfortunate that ptsname_r is not universally available.
   // For the time being, this is not a big problem, as ShellInABox is
@@ -561,6 +604,13 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
                    const char *peerName) {
   int slave;
   char ptyPath[PATH_MAX];
+  #ifdef HAVE_OPENPTY
+  if (openpty(pty, &slave, ptyPath, NULL, NULL) < 0) {
+    *pty                    = -1;
+    *utmp                   = NULL;
+    return -1;
+  }
+  #else
   if ((*pty                 = posix_openpt(O_RDWR|O_NOCTTY))          < 0 ||
       grantpt(*pty)                                                   < 0 ||
       unlockpt(*pty)                                                  < 0 ||
@@ -599,6 +649,7 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
     return -1;
   }
  success:
+  #endif
 
   // Fill in utmp entry
   *utmp                     = newUtmp(useLogin, ptyPath, peerName);
@@ -658,31 +709,35 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
 static const struct passwd *getPWEnt(uid_t uid) {
   struct passwd pwbuf, *pw;
   char *buf;
-  int len                  = sysconf(_SC_GETPW_R_SIZE_MAX);
+  #ifdef _SC_GETPW_R_SIZE_MAX
+  int len                   = sysconf(_SC_GETPW_R_SIZE_MAX);
   if (len <= 0) {
-    len                    = 4096;
+    len                     = 4096;
   }
-  check(buf                = malloc(len));
+  #else
+  int len                   = 4096;
+  #endif
+  check(buf                 = malloc(len));
   check(!getpwuid_r(uid, &pwbuf, buf, len, &pw) && pw);
   struct passwd *passwd;
-  check(passwd             = malloc(sizeof(struct passwd) +
-                                    strlen(pw->pw_name) +
-                                    strlen(pw->pw_passwd) +
-                                    strlen(pw->pw_gecos) +
-                                    strlen(pw->pw_dir) +
-                                    strlen(pw->pw_shell) + 5));
-  passwd->pw_uid           = pw->pw_uid;
-  passwd->pw_gid           = pw->pw_gid;
-  strcpy(passwd->pw_shell  = strrchr(
-  strcpy(passwd->pw_dir    = strrchr(
-  strcpy(passwd->pw_gecos  = strrchr(
-  strcpy(passwd->pw_passwd = strrchr(
-  strcpy(passwd->pw_name   = (char *)(passwd + 1),
-         pw->pw_name),   '\000') + 1,
-         pw->pw_passwd), '\000') + 1,
-         pw->pw_gecos),  '\000') + 1,
-         pw->pw_dir),    '\000') + 1,
-         pw->pw_shell);
+  check(passwd              = calloc(sizeof(struct passwd) +
+                                     strlen(pw->pw_name) +
+                                     strlen(pw->pw_passwd) +
+                                     strlen(pw->pw_gecos) +
+                                     strlen(pw->pw_dir) +
+                                     strlen(pw->pw_shell) + 5, 1));
+  passwd->pw_uid            = pw->pw_uid;
+  passwd->pw_gid            = pw->pw_gid;
+  strncat(passwd->pw_shell  = strrchr(
+  strncat(passwd->pw_dir    = strrchr(
+  strncat(passwd->pw_gecos  = strrchr(
+  strncat(passwd->pw_passwd = strrchr(
+  strncat(passwd->pw_name   = (char *)(passwd + 1),
+         pw->pw_name,   strlen(pw->pw_name)),   '\000') + 1,
+         pw->pw_passwd, strlen(pw->pw_passwd)), '\000') + 1,
+         pw->pw_gecos,  strlen(pw->pw_gecos)),  '\000') + 1,
+         pw->pw_dir,    strlen(pw->pw_dir)),    '\000') + 1,
+         pw->pw_shell,  strlen(pw->pw_shell));
   free(buf);
   return passwd;
 }
@@ -997,8 +1052,10 @@ static void execService(int width, int height, struct Service *service,
           int len             = strlen(key);
           for (char **e = environment; *e; e++, numEnvVars++) {
             if (!strncmp(*e, key, len) && (*e)[len] == '=') {
-              check(*e        = realloc(*e, len + strlen(value) + 2));
-              strcpy((*e) + len + 1, value);
+              int s_size      = len + strlen(value) + 1;
+              check(*e        = realloc(*e, s_size + 1));
+              (*e)[len + 1]   = '\000';
+              strncat(*e, value, s_size);
               numEnvVars      = -1;
               break;
             }
@@ -1157,7 +1214,8 @@ static void childProcess(struct Service *service, int width, int height,
   check(service->cwd);
   if (!*service->cwd || *service->cwd != '/' || chdir(service->cwd)) {
     check(service->cwd          = realloc((char *)service->cwd, 2));
-    strcpy((char *)service->cwd, "/");
+    *(char *)service->cwd       = '\000';
+    strncat((char *)service->cwd, "/", 1);
     puts("No directory, logging in with HOME=/");
     check(!chdir("/"));
     for (int i = 0; environment[i]; i++) {
@@ -1171,8 +1229,10 @@ static void childProcess(struct Service *service, int width, int height,
 
   // Finally, launch the child process.
   if (service->useLogin) {
-    execle("/bin/login", "login", "-p", "-h", peerName, NULL, environment);
-    execle("/usr/bin/login", "login", "-p", "-h", peerName, NULL, environment);
+    execle("/bin/login", "login", "-p", "-h", peerName,
+           (void *)0, environment);
+    execle("/usr/bin/login", "login", "-p", "-h", peerName,
+           (void *)0, environment);
   } else {
     execService(width, height, service, peerName, environment);
   }

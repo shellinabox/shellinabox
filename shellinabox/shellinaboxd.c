@@ -450,6 +450,13 @@ static void serveStaticFile(HttpConnection *http, const char *contentType,
   httpTransfer(http, response, len);
 }
 
+static const char *addr(const char *a) {
+  // Work-around for a gcc bug that could occasionally generate invalid
+  // assembly instructions when optimizing code too agressively.
+  asm volatile("");
+  return a;
+}
+
 static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
                                   const char *buf, int len) {
   checkGraveyard();
@@ -520,8 +527,8 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
                                          noBeep         ? "true" : "false");
     int stateVarsLength   = strlen(stateVars);
     int contentLength     = stateVarsLength +
-                            (vt100End - vt100Start) +
-                            (shellInABoxEnd - shellInABoxStart);
+                            (addr(vt100End) - addr(vt100Start)) +
+                            (addr(shellInABoxEnd) - addr(shellInABoxStart));
     char *response        = stringPrintf(NULL,
                              "HTTP/1.1 200 OK\r\n"
                              "Content-Type: text/javascript; charset=utf-8\r\n"

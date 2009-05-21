@@ -57,6 +57,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#ifdef HAVE_STRLCAT
+#define strncat(a,b,c) ({ char *_a = (a); strlcat(_a, (b), (c)+1); _a; })
+#endif
+
 #include "libhttp/httpconnection.h"
 #include "logging/logging.h"
 
@@ -219,9 +223,10 @@ static int httpFinishCommand(struct HttpConnection *http) {
       check(strftime(timeBuf, sizeof(timeBuf),
                      "[%d/%b/%Y:%H:%M:%S %z]", ltime));
       if (http->totalWritten > 0) {
-        sprintf(lengthBuf, "%d", http->totalWritten);
+        snprintf(lengthBuf, sizeof(lengthBuf), "%d", http->totalWritten);
       } else {
-        strcpy(lengthBuf, "-");
+        *lengthBuf = '\000';
+        strncat(lengthBuf, "-", sizeof(lengthBuf)-1);
       }
       info("%s - - %s \"%s %s %s\" %d %s",
            http->peerName, timeBuf, http->method, http->path, http->version,
@@ -1373,14 +1378,15 @@ const char *httpGetQuery(const struct HttpConnection *http) {
 const char *httpGetURL(const struct HttpConnection *http) {
   if (!http->url) {
     const char *host           = httpGetHost(http);
-    check(*(char **)&http->url = malloc(8 + strlen(host) + 25 +
-                                        strlen(http->path) + 1));
-    strcpy(http->url, http->sslHndl ? "https://" : "http://");
-    strcat(http->url, host);
+    int s_size                 = 8 + strlen(host) + 25 + strlen(http->path);
+    check(*(char **)&http->url = malloc(s_size + 1));
+    *http->url                 = '\000';
+    strncat(http->url, http->sslHndl ? "https://" : "http://", s_size);
+    strncat(http->url, host, s_size);
     if (http->port != (http->sslHndl ? 443 : 80)) {
-      sprintf(strrchr(http->url, '\000'), ":%d", http->port);
+      snprintf(strrchr(http->url, '\000'), 25, ":%d", http->port);
     }
-    strcat(http->url, http->path);
+    strncat(http->url, http->path, s_size);
   }
   return http->url;
 }

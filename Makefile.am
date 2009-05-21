@@ -143,7 +143,7 @@ clean-local:
                 debian/tmp
 
 .css.o:
-	@$(ECHO) objcopy "$<" "$@"
+	@echo objcopy "$<" "$@"
 	@objcopy                                                              \
 	  -I binary `echo "$(host_cpu)" |                                     \
 	             grep -q '^i[0-9]86$$' &&                                 \
@@ -169,7 +169,7 @@ clean-local:
 	  "$<" "$@"
 
 .html.o:
-	@$(ECHO) objcopy "$<" "$@"
+	@echo objcopy "$<" "$@"
 	@objcopy                                                              \
 	  -I binary `echo "$(host_cpu)" |                                     \
 	             grep -q '^i[0-9]86$$' &&                                 \
@@ -195,7 +195,7 @@ clean-local:
 	  "$<" "$@"
 
 .ico.o:
-	@$(ECHO) objcopy "$<" "$@"
+	@echo objcopy "$<" "$@"
 	@objcopy                                                              \
 	  -I binary `echo "$(host_cpu)" |                                     \
 	             grep -q '^i[0-9]86$$' &&                                 \
@@ -223,7 +223,7 @@ clean-local:
 shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
 
 .jspp.js:
-	@$(ECHO) preprocess "$<" "$@"
+	@echo preprocess "$<" "$@"
 	@sed -e "`sed -e 's/^#define *\([^ ]*\) *\(.*\)/\/^[^#]\/s\/\1\/\2 \\\\\/* \1 *\\\\\/\/g/' \
 	             -e t                                                     \
 	             -e d "$<"`"                                              \
@@ -232,7 +232,7 @@ shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
 	                                                    "$<" >"$@"
 
 .js.o:
-	@$(ECHO) objcopy "$<" "$@"
+	@echo objcopy "$<" "$@"
 	@objcopy                                                              \
 	  -I binary `echo $(host_cpu) |                                       \
 	             grep -q '^i[0-9]86$$' &&                                 \
@@ -258,7 +258,7 @@ shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
 	  "$<" "$@"
 
 .wav.o:
-	@$(ECHO) objcopy "$<" "$@"
+	@echo objcopy "$<" "$@"
 	@objcopy                                                              \
 	  -I binary `echo "$(host_cpu)" |                                     \
 	             grep -q '^i[0-9]86$$' &&                                 \

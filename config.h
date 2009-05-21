@@ -7,6 +7,18 @@
 /* Define to 1 if you have the `dlopen' function. */
 #define HAVE_DLOPEN 1
 
+/* Define to 1 if you have the `getgrgid_r' function. */
+#define HAVE_GETGRGID_R 1
+
+/* Define to 1 if you have the `getgrnam_r' function. */
+#define HAVE_GETGRNAM_R 1
+
+/* Define to 1 if you have the `getpwnam_r' function. */
+#define HAVE_GETPWNAM_R 1
+
+/* Define to 1 if you have the `getpwuid_r' function. */
+#define HAVE_GETPWUID_R 1
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
@@ -18,6 +30,9 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
+
+/* Define to 1 if you have the `openpty' function. */
+#define HAVE_OPENPTY 1
 
 /* Define to 1 if you have the <openssl/bio.h> header file. */
 #define HAVE_OPENSSL_BIO_H 1
@@ -34,6 +49,9 @@
 /* Define to 1 if you have a re-entrant version of ptsname */
 #define HAVE_PTSNAME_R 1
 
+/* Define to 1 if you have the <pty.h> header file. */
+#define HAVE_PTY_H 1
+
 /* Define to 1 if you have the <security/pam_appl.h> header file. */
 #define HAVE_SECURITY_PAM_APPL_H 1
 
@@ -42,6 +60,9 @@
 
 /* Define to 1 if you have the <security/pam_misc.h> header file. */
 #define HAVE_SECURITY_PAM_MISC_H 1
+
+/* Define to 1 if you have a working sigwait */
+#define HAVE_SIGWAIT 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
@@ -55,8 +76,11 @@
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
 
-/* Define to 1 if you have the <sys/prctrl.h> header file. */
-/* #undef HAVE_SYS_PRCTRL_H */
+/* Define to 1 if you have the `strlcat' function. */
+/* #undef HAVE_STRLCAT */
+
+/* Define to 1 if you have the <sys/prctl.h> header file. */
+#define HAVE_SYS_PRCTL_H 1
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define HAVE_SYS_STAT_H 1
@@ -64,14 +88,24 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #define HAVE_SYS_TYPES_H 1
 
+/* Define to 1 if you have the <sys/uio.h> header file. */
+#define HAVE_SYS_UIO_H 1
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
+
+/* Define to 1 if you have the <util.h> header file. */
+/* #undef HAVE_UTIL_H */
 
 /* Define to 1 if you have the <utmpx.h> header file. */
 #define HAVE_UTMPX_H 1
 
 /* Define to 1 if you have the <utmp.h> header file. */
 #define HAVE_UTMP_H 1
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#define LT_OBJDIR ".libs/"
 
 /* Name of package */
 #define PACKAGE "shellinabox"
@@ -95,7 +129,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "118"
+#define VCS_REVISION "119"
 
 /* Version number of package */
 #define VERSION "2.7"

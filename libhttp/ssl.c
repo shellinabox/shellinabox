@@ -572,6 +572,33 @@ static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
 }
 #endif
 
+#if defined(HAVE_OPENSSL) && 1
+// This is a not-thread-safe replacement for gethostbyname_r()
+#define gethostbyname_r x_gethostbyname_r
+static int gethostbyname_r(const char *name, struct hostent *ret,
+                           char *buf, size_t buflen,
+                           struct hostent **result, int *h_errnop) {
+  if (result) {
+    *result          = NULL;
+  }
+  if (h_errnop) {
+    *h_errnop        = ERANGE;
+  }
+  if (!ret) {
+    return -1;
+  }
+  struct hostent *he = gethostbyname(name);
+  *ret               = *he;
+  if (result) {
+    *result          = ret;
+  }
+  if (h_errnop) {
+    *h_errnop        = h_errno;
+  }
+  return 0;
+}
+#endif
+
 void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
                        int autoGenerateMissing) {
 #if defined(HAVE_OPENSSL)
@@ -695,6 +722,45 @@ void sslBlockSigPipe(void) {
     dcheck(!sigprocmask(SIG_BLOCK, &set, NULL));
   }
 }
+
+#ifndef HAVE_SIGWAIT
+// This is a non-thread-safe replacement for sigwait()
+static int dummysignalno;
+static void dummysignal(int signo) {
+  dummysignalno = signo;
+}
+
+#define sigwait x_sigwait
+static int sigwait(const sigset_t *set, int *sig) {
+  sigset_t mask, old_mask;
+  sigfillset(&mask);
+  if (&pthread_sigmask) {
+    dcheck(!pthread_sigmask(SIG_BLOCK, &mask, &old_mask));
+  } else {
+    dcheck(!sigprocmask(SIG_BLOCK, &mask, &old_mask));
+  }
+  #ifndef NSIG
+  #define NSIG 32
+  #endif
+  struct sigaction sa[NSIG];
+  memset(sa, 0, sizeof(sa));
+  sa->sa_handler = dummysignal;
+  for (int i = 1; i <= NSIG; i++) {
+    if (sigismember(set, i)) {
+      sigdelset(&mask, i);
+      sigaction(i, sa, sa + i);
+    }
+  }
+  dummysignalno = -1;
+  sigsuspend(&mask);
+  if (&pthread_sigmask) {
+    dcheck(!pthread_sigmask(SIG_SETMASK, &old_mask, NULL));
+  } else {
+    dcheck(!sigprocmask(SIG_BLOCK, &old_mask, NULL));
+  }
+  return dummysignalno;
+}
+#endif
 
 int sslUnblockSigPipe(void) {
   int signum = 0;

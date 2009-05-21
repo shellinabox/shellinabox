@@ -153,13 +153,41 @@ void dropPrivileges(void) {
   }
 }
 
+#ifndef HAVE_GETPWUID_R
+// This is a not-thread-safe replacement for getpwuid_r()
+#define getpwuid_r x_getpwuid_r
+static int getpwuid_r(uid_t uid, struct passwd *pwd, char *buf, size_t buflen,
+                      struct passwd **result) {
+  if (result) {
+    *result        = NULL;
+  }
+  if (!pwd) {
+    return -1;
+  }
+  errno            = 0;
+  struct passwd *p = getpwuid(uid);
+  if (!p) {
+    return errno ? -1 : 0;
+  }
+  *pwd             = *p;
+  if (result) {
+    *result        = pwd;
+  }
+  return 0;
+}
+#endif
+
 const char *getUserName(uid_t uid) {
   struct passwd pwbuf, *pw;
   char *buf;
+  #ifdef _SC_GETPW_R_SIZE_MAX
   int len      = sysconf(_SC_GETPW_R_SIZE_MAX);
   if (len <= 0) {
     len        = 4096;
   }
+  #else
+  int len      = 4096;
+  #endif
   check(buf    = malloc(len));
   char *user;
   if (getpwuid_r(uid, &pwbuf, buf, len, &pw) || !pw) {
@@ -172,13 +200,41 @@ const char *getUserName(uid_t uid) {
   return user;
 }
 
+#ifndef HAVE_GETPWNAM_R
+// This is a not-thread-safe replacement for getpwnam_r()
+#define getpwnam_r x_getpwnam_r
+static int getpwnam_r(const char *name, struct passwd *pwd, char *buf,
+                      size_t buflen, struct passwd **result) {
+  if (result) {
+    *result        = NULL;
+  }
+  if (!pwd) {
+    return -1;
+  }
+  errno            = 0;
+  struct passwd *p = getpwnam(name);
+  if (!p) {
+    return errno ? -1 : 0;
+  }
+  *pwd             = *p;
+  if (result) {
+    *result        = pwd;
+  }
+  return 0;
+}
+#endif
+
 uid_t getUserId(const char *name) {
   struct passwd pwbuf, *pw;
   char *buf;
+  #ifdef _SC_GETPW_R_SIZE_MAX
   int len   = sysconf(_SC_GETPW_R_SIZE_MAX);
   if (len <= 0) {
     len     = 4096;
   }
+  #else
+  int len   = 4096;
+  #endif
   check(buf = malloc(len));
   if (getpwnam_r(name, &pwbuf, buf, len, &pw) || !pw) {
     fatal("Cannot look up user id \"%s\"", name);
@@ -205,13 +261,41 @@ uid_t parseUser(const char *arg, const char **name) {
   }
 }
 
+#ifndef HAVE_GETGRGID_R
+// This is a not-thread-safe replacement for getgrgid_r()
+#define getgrgid_r x_getgrgid_r
+static int getgrgid_r(gid_t gid, struct group *grp, char *buf, size_t buflen,
+                      struct group **result) {
+  if (result) {
+    *result       = NULL;
+  }
+  if (!grp) {
+    return -1;
+  }
+  errno           = 0;
+  struct group *g = getgrgid(gid);
+  if (!g) {
+    return errno ? -1 : 0;
+  }
+  *grp            = *g;
+  if (result) {
+    *result       = grp;
+  }
+  return 0;
+}
+#endif
+
 const char *getGroupName(gid_t gid) {
   struct group grbuf, *gr;
   char *buf;
+  #ifdef _SC_GETGR_R_SIZE_MAX
   int len       = sysconf(_SC_GETGR_R_SIZE_MAX);
   if (len <= 0) {
     len         = 4096;
   }
+  #else
+  int len       = 4096;
+  #endif
   check(buf     = malloc(len));
   char *group;
   if (getgrgid_r(gid, &grbuf, buf, len, &gr) || !gr) {
@@ -224,23 +308,55 @@ const char *getGroupName(gid_t gid) {
   return group;
 }
 
+#ifndef HAVE_GETGRNAM_R
+// This is a not-thread-safe replacement for getgrnam_r()
+#define getgrnam_r x_getgrnam_r
+static int getgrnam_r(const char *name, struct group *grp, char *buf,
+                      size_t buflen, struct group **result) {
+  if (result) {
+    *result       = NULL;
+  }
+  if (!grp) {
+    return -1;
+  }
+  errno           = 0;
+  struct group *g = getgrnam(name);
+  if (!g) {
+    return errno ? -1 : 0;
+  }
+  *grp            = *g;
+  if (result) {
+    *result       = grp;
+  }
+  return 0;
+}
+#endif
+
 gid_t getGroupId(const char *name) {
   struct group grbuf, *gr;
   char *buf;
+  #ifdef _SC_GETGR_R_SIZE_MAX
   int gr_len      = sysconf(_SC_GETGR_R_SIZE_MAX);
   if (gr_len <= 0) {
     gr_len        = 4096;
   }
+  #else
+  int gr_len      = 4096;
+  #endif
   check(buf       = malloc(gr_len));
   if (getgrnam_r(name, &grbuf, buf, gr_len, &gr) || !gr) {
     // Maybe, this system does not have a "nogroup" group. Substitute the
     // group of the "nobody" user.
     if (!strcmp(name, "nogroup")) {
       struct passwd pwbuf, *pw;
+      #ifdef _SC_GETPW_R_SIZE_MAX
       int pw_len  = sysconf(_SC_GETPW_R_SIZE_MAX);
       if (pw_len <= 0) {
         pw_len    = 4096;
       }
+      #else
+      int pw_len  = 4096;
+      #endif
       if (pw_len > gr_len) {
         check(buf = realloc(buf, pw_len));
       }

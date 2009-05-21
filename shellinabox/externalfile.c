@@ -74,17 +74,19 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
   
     // Compute file name of external file
     char *fn;
-    check(fn               = malloc(strlen((char *)arg) +
-                                  (*pathInfo ? strlen(pathInfo) + 1 : 0) + 1));
-    strcpy(fn, (char *)arg);
+    int s_size             = strlen((char *)arg) +
+                             (*pathInfo ? strlen(pathInfo) + 1 : 0);
+    check(fn               = malloc(s_size + 1));
+    *fn                    = '\000';
+    strncat(fn, (char *)arg, s_size);
     if (*pathInfo) {
       // Append pathInfo, if available
-      strcat(fn, "/");
+      strncat(fn, "/", s_size);
       const char *ptr      = pathInfo;
       while (*ptr == '/') {
         ptr++;
       }
-      strcat(fn, ptr);
+      strncat(fn, ptr, s_size);
   
       // Any files/directories starting with a dot are inaccessible to us
       do {
@@ -250,13 +252,15 @@ int registerExternalFiles(void *arg, const char *key, char **value) {
     // Relative URL paths get registered for each of the services
     for (int i = 0; i < numServices; i++) {
       char *path;
-      check(path = malloc(strlen(services[i]->path) + strlen(key) + 2));
-      strcpy(path, services[i]->path);
+      int s_size = strlen(services[i]->path) + strlen(key) + 1;
+      check(path = malloc(s_size + 1));
+      *path      = '\000';
+      strncat(path, services[i]->path, s_size);
       if (!*services[i]->path ||
           strrchr(services[i]->path, '\000')[-1] != '/') {
-        strcat(path, "/");
+        strncat(path, "/", s_size);
       }
-      strcat(path, key);
+      strncat(path, key, s_size);
       serverRegisterHttpHandler(server, path, externalFileHttpHandler, *value);
       free(path);
     }
