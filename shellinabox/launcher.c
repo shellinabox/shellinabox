@@ -576,7 +576,7 @@ void closeAllFds(int *exceptFds, int num) {
   }
 }
 
-#if !defined(HAVE_PTSNAME_R) && 0
+#if !defined(HAVE_OPENPTY) && !defined(HAVE_PTSNAME_R)
 static int ptsname_r(int fd, char *buf, size_t buflen) {
   // It is unfortunate that ptsname_r is not universally available.
   // For the time being, this is not a big problem, as ShellInABox is

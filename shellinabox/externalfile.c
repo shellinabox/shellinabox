@@ -59,6 +59,10 @@
 #include "libhttp/server.h"
 #include "logging/logging.h"
 
+#ifdef HAVE_STRLCAT
+#define strncat(a,b,c) ({ char *_a = (a); strlcat(_a, (b), (c)+1); _a; })
+#endif
+
 static int externalFileHttpHandler(HttpConnection *http, void *arg,
                                    const char *buf, int len) {
   checkGraveyard();

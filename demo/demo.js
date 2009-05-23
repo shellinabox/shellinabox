@@ -89,32 +89,17 @@ function Demo(container) {
 extend(Demo, VT100);
 
 Demo.prototype.keysPressed = function(ch) {
-  for (var i = 0; i < ch.length; i++) {
-    var c       = ch.charCodeAt(i);
-    if (c == 3) {
-      if (this.state == 5 /* STATE_EXEC */) {
+  if (this.state == 5 /* STATE_EXEC */) {
+    for (var i = 0; i < ch.length; i++) {
+      var c  = ch.charAt(i);
+      if (c == '\u0003') {
         this.keys = '';
         this.error('Interrupted');
         return;
       }
-    } else {
-      if (c < 128) {
-        this.keys += String.fromCharCode(c);
-      } else if (c < 0x800) {
-        this.keys += String.fromCharCode(0xC0 +  (c >>  6)        ) +
-                     String.fromCharCode(0x80 + ( c        & 0x3F));
-      } else if (c < 0x10000) {
-        this.keys += String.fromCharCode(0xE0 +  (c >> 12)        ) +
-                     String.fromCharCode(0x80 + ((c >>  6) & 0x3F)) +
-                     String.fromCharCode(0x80 + ( c        & 0x3F));
-      } else if (c < 0x110000) {
-        this.keys += String.fromCharCode(0xF0 +  (c >> 18)        ) +
-                     String.fromCharCode(0x80 + ((c >> 12) & 0x3F)) +
-                     String.fromCharCode(0x80 + ((c >>  6) & 0x3F)) +
-                     String.fromCharCode(0x80 + ( c        & 0x3F));
-      }
     }
   }
+  this.keys += ch;
   this.gotoState(this.state);
 };
 
@@ -175,10 +160,10 @@ Demo.prototype.error = function(msg) {
   if (msg == undefined) {
     msg                 = 'Syntax Error';
   }
-  this.vt100((this.cursorX != 0 ? '\r\n' : '') + '\u0007? ' + msg +
-             (this.currentLineIndex >= 0 ?
-              ' in line ' + this.program[this.evalLineIndex].lineNumber() :
-              '') + '\r\n');
+  this.printUnicode((this.cursorX != 0 ? '\r\n' : '') + '\u0007? ' + msg +
+                    (this.currentLineIndex >= 0 ? ' in line ' +
+                     this.program[this.evalLineIndex].lineNumber() :
+                     '') + '\r\n');
   this.gotoState(2 /* STATE_PROMPT */);
   this.currentLineIndex = -1;
   this.evalLineIndex    = -1;
@@ -188,7 +173,7 @@ Demo.prototype.error = function(msg) {
 Demo.prototype.doInit = function() {
   this.vars    = new Object();
   this.program = new Array();
-  this.vt100(
+  this.printUnicode(
     '\u001Bc\u001B[34;4m' +
     'ShellInABox Demo Script\u001B[24;31m\r\n' +
     '\r\n' +
@@ -215,20 +200,39 @@ Demo.prototype.doPrompt = function() {
   return false;
 };
 
+Demo.prototype.printUnicode = function(s) {
+  var out = '';
+  for (var i = 0; i < s.length; i++) {
+    var c = s.charAt(i);
+    if (c < '\x0080') {
+      out += c;
+    } else {
+      var c = s.charCodeAt(i);
+      if (c < 0x800) {
+        out += String.fromCharCode(0xC0 +  (c >>  6)        ) +
+               String.fromCharCode(0x80 + ( c        & 0x3F));
+      } else if (c < 0x10000) {
+        out += String.fromCharCode(0xE0 +  (c >> 12)        ) +
+               String.fromCharCode(0x80 + ((c >>  6) & 0x3F)) +
+               String.fromCharCode(0x80 + ( c        & 0x3F));
+      } else if (c < 0x110000) {
+        out += String.fromCharCode(0xF0 +  (c >> 18)        ) +
+               String.fromCharCode(0x80 + ((c >> 12) & 0x3F)) +
+               String.fromCharCode(0x80 + ((c >>  6) & 0x3F)) +
+               String.fromCharCode(0x80 + ( c        & 0x3F));
+      }
+    }
+  }
+  this.vt100(out);
+};
+
 Demo.prototype.doReadLine = function() {
   this.gotoState(3 /* STATE_READLINE */);
   var keys  = this.keys;
   this.keys = '';
   for (var i = 0; i < keys.length; i++) {
     var ch  = keys.charAt(i);
-    if (ch >= ' ') {
-      this.line += ch;
-      this.vt100(ch);
-    } else if (ch == '\r' || ch == '\n') {
-      this.vt100('\r\n');
-      this.gotoState(4 /* STATE_COMMAND */);
-      return false;
-    } else if (ch == '\u0008' || ch == '\u007F') {
+    if (ch == '\u0008' || ch == '\u007F') {
       if (this.line.length > 0) {
         this.line = this.line.substr(0, this.line.length - 1);
         if (this.cursorX == 0) {
@@ -243,6 +247,13 @@ Demo.prototype.doReadLine = function() {
       } else {
         this.vt100('\u0007');
       }
+    } else if (ch >= ' ') {
+      this.line += ch;
+      this.printUnicode(ch);
+    } else if (ch == '\r' || ch == '\n') {
+      this.vt100('\r\n');
+      this.gotoState(4 /* STATE_COMMAND */);
+      return false;
     } else if (ch == '\u001B') {
       // This was probably a function key. Just eat all of the following keys.
       break;
@@ -592,7 +603,7 @@ Demo.prototype.doList = function() {
           token    = 'PRINT';
           // fall thru
         default:
-          this.vt100((id ? ' ' : '') + token);
+          this.printUnicode((id ? ' ' : '') + token);
           space    = false;
           id       = true;
           break;
@@ -621,7 +632,7 @@ Demo.prototype.doPrint = function() {
       if (value == undefined) {
         return;
       }
-      this.vt100(value.toString());
+      this.printUnicode(value.toString());
     }
   }
   if (last != ';') {
