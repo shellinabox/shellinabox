@@ -1500,7 +1500,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.7 (revision 119)" +
+  alert("VT100 Terminal Emulator " + "2.7 (revision 120)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -1937,11 +1937,12 @@ VT100.prototype.keyDown = function(event) {
   // Even, when doing all of this, there are some keys that we can never
   // intercept. This applies to some of the menu navigation keys in IE.
   // In fact, we see them, but we cannot stop IE from seeing them, too.
-  if ((alphNumKey && (event.ctrlKey || event.altKey || event.metaKey) &&
-       !event.shiftKey) ||
-      this.catchModifiersEarly && normalKey && !alphNumKey &&
-      (event.ctrlKey || event.altKey || event.metaKey) ||
-      !normalKey) {
+  if ((event.charCode || event.keyCode) &&
+      ((alphNumKey && (event.ctrlKey || event.altKey || event.metaKey) &&
+        !event.shiftKey) ||
+       this.catchModifiersEarly && normalKey && !alphNumKey &&
+       (event.ctrlKey || event.altKey || event.metaKey) ||
+       !normalKey)) {
     this.lastKeyDownEvent       = event;
     var fake                    = [ ];
     fake.ctrlKey                = event.ctrlKey;

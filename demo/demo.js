@@ -89,17 +89,32 @@ function Demo(container) {
 extend(Demo, VT100);
 
 Demo.prototype.keysPressed = function(ch) {
-  if (this.state == 5 /* STATE_EXEC */) {
-    for (var i = 0; i < ch.length; i++) {
-      var c       = ch.charAt(i);
-      if (c == '\u0003') {
+  for (var i = 0; i < ch.length; i++) {
+    var c       = ch.charCodeAt(i);
+    if (c == 3) {
+      if (this.state == 5 /* STATE_EXEC */) {
         this.keys = '';
         this.error('Interrupted');
         return;
       }
+    } else {
+      if (c < 128) {
+        this.keys += String.fromCharCode(c);
+      } else if (c < 0x800) {
+        this.keys += String.fromCharCode(0xC0 +  (c >>  6)        ) +
+                     String.fromCharCode(0x80 + ( c        & 0x3F));
+      } else if (c < 0x10000) {
+        this.keys += String.fromCharCode(0xE0 +  (c >> 12)        ) +
+                     String.fromCharCode(0x80 + ((c >>  6) & 0x3F)) +
+                     String.fromCharCode(0x80 + ( c        & 0x3F));
+      } else if (c < 0x110000) {
+        this.keys += String.fromCharCode(0xF0 +  (c >> 18)        ) +
+                     String.fromCharCode(0x80 + ((c >> 12) & 0x3F)) +
+                     String.fromCharCode(0x80 + ((c >>  6) & 0x3F)) +
+                     String.fromCharCode(0x80 + ( c        & 0x3F));
+      }
     }
   }
-  this.keys      += ch;
   this.gotoState(this.state);
 };
 
@@ -206,7 +221,7 @@ Demo.prototype.doReadLine = function() {
   this.keys = '';
   for (var i = 0; i < keys.length; i++) {
     var ch  = keys.charAt(i);
-    if (ch >= ' ' && ch < '\u007F' || ch > '\u00A0') {
+    if (ch >= ' ') {
       this.line += ch;
       this.vt100(ch);
     } else if (ch == '\r' || ch == '\n') {

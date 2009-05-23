@@ -1,3 +1,7 @@
+2009-05-22  Markus Gutschke  <markus@shellinabox.com>
+
+	* Improved support for entering non-ASCII characters.
+
 2009-05-20  Markus Gutschke  <markus@shellinabox.com>
 
 	* Fixed various issues with building on OpenBSD
