@@ -2,7 +2,7 @@ AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
 AC_INIT(shellinabox, 2.8, markus@shellinabox.com)
-VCS_REVISION=121
+VCS_REVISION=122
 AC_SUBST(VCS_REVISION)
 AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
                    [Most recent revision number in the version control system])
@@ -111,7 +111,7 @@ if test "x$enable_runtime_loading" == xno; then
   if test "x$enable_ssl" != xno; then
     AC_CHECK_HEADER(openssl/bio.h,
       [AC_CHECK_HEADER(openssl/err.h,
-        [AC_CHECK_HEADER(openssl/ssl.h, [LIBS="-lssl $LIBS"])])])
+        [AC_CHECK_HEADER(openssl/ssl.h, [LIBS="-lssl -lcrypto $LIBS"])])])
   fi
 
   dnl Link against PAM libraries, unless PAM support has been disabled

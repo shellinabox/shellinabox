@@ -1500,7 +1500,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.8 (revision 121)" +
+  alert("VT100 Terminal Emulator " + "2.8 (revision 122)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };

@@ -2037,7 +2037,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-VCS_REVISION=121
+VCS_REVISION=122
 
 
 cat >>confdefs.h <<_ACEOF
@@ -12867,7 +12867,7 @@ $as_echo "$ac_cv_header_openssl_ssl_h" >&6; }
 
 fi
 if test "x$ac_cv_header_openssl_ssl_h" = x""yes; then
-  LIBS="-lssl $LIBS"
+  LIBS="-lssl -lcrypto $LIBS"
 fi
 
 

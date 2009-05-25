@@ -178,22 +178,60 @@ void deleteSSL(struct SSLSupport *ssl) {
 }
 
 #if defined(HAVE_OPENSSL) && defined(HAVE_DLOPEN)
+static int maybeLoadCrypto(void) {
+  // Some operating systems cannot automatically load dependent dynamic
+  // libraries. As libssl.so can depend on libcrypto.so, we try to load
+  // it, iff we haven't tried loading it before and iff libssl.so does not
+  // work by itself.
+  static int crypto;
+  if (!crypto++) {
+#ifdef RTLD_NOLOAD
+    if (dlopen("libcrypto.so", RTLD_LAZY|RTLD_GLOBAL|RTLD_NOLOAD))
+      return 1;
+    else
+#endif
+      if (dlopen("libcrypto.so", RTLD_LAZY|RTLD_GLOBAL))
+        return 1;
+  }
+  return 0;
+}
+
 static void *loadSymbol(const char *lib, const char *fn) {
+  int err  = NOINTR(dup(2));
+  if (err > 2) {
+    int null = NOINTR(open("/dev/null", O_WRONLY));
+    if (null >= 0) {
+      NOINTR(dup2(null, 2));
+      NOINTR(close(null));
+    }
+  }
   void *dl = RTLD_DEFAULT;
   void *rc = dlsym(dl, fn);
   if (!rc) {
+    for (int i = 0; i < 2; i++) {
 #ifdef RTLD_NOLOAD
-    dl     = dlopen(lib, RTLD_LAZY|RTLD_GLOBAL|RTLD_NOLOAD);
+      dl   = dlopen(lib, RTLD_LAZY|RTLD_GLOBAL|RTLD_NOLOAD);
 #else
-    dl     = NULL;
+      dl   = NULL;
 #endif
-    if (dl == NULL) {
-      dl   = dlopen(lib, RTLD_LAZY|RTLD_GLOBAL);
+      if (dl == NULL) {
+        dl = dlopen(lib, RTLD_LAZY|RTLD_GLOBAL);
+      }
+      if (dl != NULL || !maybeLoadCrypto()) {
+        break;
+      }
     }
     if (dl != NULL) {
-      rc   = dlsym(dl, fn);
+      rc   = dlsym(RTLD_DEFAULT, fn);
+      if (rc == NULL && maybeLoadCrypto()) {
+        rc = dlsym(RTLD_DEFAULT, fn);
+      }
     }
   }
+  if (err > 2) {
+    NOINTR(dup2(err, 2));
+  }
+  NOINTR(close(err));
   return rc;
 }
 
@@ -305,7 +343,7 @@ static void sslGenerateCertificate(const char *certificate,
     "set -e; "
     "exec 2>/dev/null </dev/null; "
     "umask 0377; "
-    "PATH=/usr/bin "
+    "PATH=/usr/bin:/usr/sbin "
     "openssl req -x509 -nodes -days 7300 -newkey rsa:1024 -keyout /dev/stdout "
                                  "-out /dev/stdout -subj '/CN=%s/' | cat>'%s'",
     serverName, certificate);
