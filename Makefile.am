@@ -87,6 +87,30 @@ shellinaboxd_LDADD   = liblogging.la                                          \
                        libhttp.la
 shellinaboxd_LDFLAGS = -static
 
+objcopyflags         = case "$(host_cpu)" in                                  \
+                         i[0-9]86) echo '-O elf32-i386 -B i386';;             \
+                         x86_64)   echo '-O elf64-x86-64 -B i386:x86-64';;    \
+                         arm*)     echo '-O elf32-littlearm -B arm';;         \
+                       esac
+
+renamesymbols        =                                                        \
+  sed -e 's/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /'                           \
+      -e 't0'                                                                 \
+      -e 's/\([^.]*\)\([.].*\)/\1\2=\1 /'                                     \
+      -e 't0'                                                                 \
+      -e 's/.*/&=& /'                                                         \
+      -e ':0'                                                                 \
+      -e 's/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/'         \
+      -e ':1'                                                                 \
+      -e 's/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/'                \
+      -e 't1'                                                                 \
+      -e 's/.\{53\}$$//'                                                      \
+      -e 's/[/.]/_/g'                                                         \
+      -e 's/^/--redefine-sym _binary_/'                                       \
+      -e 's/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/'                               \
+      -e 's/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/'                           \
+      -e 's/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'
+
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status --recheck
 
@@ -144,80 +168,17 @@ clean-local:
 
 .css.o:
 	@echo objcopy "$<" "$@"
-	@objcopy                                                              \
-	  -I binary `echo "$(host_cpu)" |                                     \
-	             grep -q '^i[0-9]86$$' &&                                 \
-	             echo ' -O elf32-i386 -B i386' ||                         \
-	             echo ' -O elf64-x86-64 -B i386:x86-64'`                  \
-	  `echo "$<" | sed                                                    \
-	    -e 's/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /'                     \
-	    -e 't0'                                                           \
-	    -e 's/\([^.]*\)\([.].*\)/\1\2=\1 /'                               \
-	    -e 't0'                                                           \
-	    -e 's/.*/&=& /'                                                   \
-	    -e ':0'                                                           \
-	    -e 's/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/'   \
-	    -e ':1'                                                           \
-	    -e 's/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/'          \
-	    -e 't1'                                                           \
-	    -e 's/.\{53\}$$//'                                                \
-	    -e 's/[/.]/_/g'                                                   \
-	    -e 's/^/--redefine-sym _binary_/'                                 \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/'                         \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/'                     \
-	    -e 's/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                           \
+	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
 
 .html.o:
 	@echo objcopy "$<" "$@"
-	@objcopy                                                              \
-	  -I binary `echo "$(host_cpu)" |                                     \
-	             grep -q '^i[0-9]86$$' &&                                 \
-	             echo ' -O elf32-i386 -B i386' ||                         \
-	             echo ' -O elf64-x86-64 -B i386:x86-64'`                  \
-	  `echo "$<" | sed                                                    \
-	    -e 's/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /'                     \
-	    -e 't0'                                                           \
-	    -e 's/\([^.]*\)\([.].*\)/\1\2=\1 /'                               \
-	    -e 't0'                                                           \
-	    -e 's/.*/&=& /'                                                   \
-	    -e ':0'                                                           \
-	    -e 's/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/'   \
-	    -e ':1'                                                           \
-	    -e 's/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/'          \
-	    -e 't1'                                                           \
-	    -e 's/.\{53\}$$//'                                                \
-	    -e 's/[/.]/_/g'                                                   \
-	    -e 's/^/--redefine-sym _binary_/'                                 \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/'                         \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/'                     \
-	    -e 's/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                           \
+	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
 
 .ico.o:
 	@echo objcopy "$<" "$@"
-	@objcopy                                                              \
-	  -I binary `echo "$(host_cpu)" |                                     \
-	             grep -q '^i[0-9]86$$' &&                                 \
-	             echo ' -O elf32-i386 -B i386' ||                         \
-	             echo ' -O elf64-x86-64 -B i386:x86-64'`                  \
-	  `echo "$<" | sed                                                    \
-	    -e 's/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /'                     \
-	    -e 't0'                                                           \
-	    -e 's/\([^.]*\)\([.].*\)/\1\2=\1 /'                               \
-	    -e 't0'                                                           \
-	    -e 's/.*/&=& /'                                                   \
-	    -e ':0'                                                           \
-	    -e 's/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/'   \
-	    -e ':1'                                                           \
-	    -e 's/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/'          \
-	    -e 't1'                                                           \
-	    -e 's/.\{53\}$$//'                                                \
-	    -e 's/[/.]/_/g'                                                   \
-	    -e 's/^/--redefine-sym _binary_/'                                 \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/'                         \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/'                     \
-	    -e 's/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                           \
+	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
 
 shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
@@ -229,57 +190,15 @@ shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
 	             -e d "$<"`"                                              \
 	     -e "s/^#/\/\/ #/"                                                \
 	     -e "s/VERSION/\"@VERSION@ (revision @VCS_REVISION@)\"/g"         \
-	                                                    "$<" >"$@"
+	     "$<" >"$@"
 
 .js.o:
 	@echo objcopy "$<" "$@"
-	@objcopy                                                              \
-	  -I binary `echo $(host_cpu) |                                       \
-	             grep -q '^i[0-9]86$$' &&                                 \
-	             echo ' -O elf32-i386 -B i386' ||                         \
-	             echo ' -O elf64-x86-64 -B i386:x86-64'`                  \
-	  `echo "$<" | sed                                                    \
-	    -e 's/\(.*\/\)\([^.]*\)\([.].*\)/\1\2.js=\2 /'                    \
-	    -e 't0'                                                           \
-	    -e 's/\([^.]*\)\([.].*\)/\1\2=\1 /'                               \
-	    -e 't0'                                                           \
-	    -e 's/.*/&=& /'                                                   \
-	    -e ':0'                                                           \
-	    -e 's/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/'   \
-	    -e ':1'                                                           \
-	    -e 's/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/'          \
-	    -e 't1'                                                           \
-	    -e 's/.\{53\}$$//'                                                \
-	    -e 's/[/.]/_/g'                                                   \
-	    -e 's/^/--redefine-sym _binary_/'                                 \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/'                         \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/'                     \
-	    -e 's/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                           \
+	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
 
 .wav.o:
 	@echo objcopy "$<" "$@"
-	@objcopy                                                              \
-	  -I binary `echo "$(host_cpu)" |                                     \
-	             grep -q '^i[0-9]86$$' &&                                 \
-	             echo ' -O elf32-i386 -B i386' ||                         \
-	             echo ' -O elf64-x86-64 -B i386:x86-64'`                  \
-	  `echo "$<" | sed                                                    \
-	    -e 's/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /'                     \
-	    -e 't0'                                                           \
-	    -e 's/\([^.]*\)\([.].*\)/\1\2=\1 /'                               \
-	    -e 't0'                                                           \
-	    -e 's/.*/&=& /'                                                   \
-	    -e ':0'                                                           \
-	    -e 's/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/'   \
-	    -e ':1'                                                           \
-	    -e 's/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/'          \
-	    -e 't1'                                                           \
-	    -e 's/.\{53\}$$//'                                                \
-	    -e 's/[/.]/_/g'                                                   \
-	    -e 's/^/--redefine-sym _binary_/'                                 \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/'                         \
-	    -e 's/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/'                     \
-	    -e 's/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'`                           \
+	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
 
