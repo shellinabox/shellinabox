@@ -58,6 +58,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 [\ \fB-f\fP\ | \fB--static-file=\fP\fIurl\fP:\fIfile\fP\ ]
 [\ \fB-g\fP\ | \fB--group=\fP\fIgid\fP\ ]
 [\ \fB-h\fP\ | \fB--help\fP\ ]
+[\ \fB--localhost-only\fP\ ]
 [\ \fB--no-beep\fP\ ]
 [\ \fB-n\fP\ | \fB--numeric\fP\ ]
 [\ \fB-p\fP\ | \fB--port=\fP\fIport\fP\ ]
@@ -250,6 +251,13 @@ runs as.
 .TP
 \fB-h\fP\ |\ \fB--help\fP
 Display a brief usage message showing the valid command line parameters.
+.TP
+\fB--localhost-only\fP
+Normally, 
+.B shellinaboxd
+listens on all available network interfaces. When operating behind a
+reverse-proxy that is not always desirable. This command line option
+tells the daemon to only listen on the loopback interface.
 .TP
 \fB--no-beep\fP
 not only are audible signals undesired in some working environments, but
