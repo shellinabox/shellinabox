@@ -170,18 +170,20 @@ static int serverQuitHandler(struct HttpConnection *http, void *arg) {
   return HTTP_DONE;
 }
 
-struct Server *newCGIServer(int portMin, int portMax, int timeout) {
+struct Server *newCGIServer(int localhostOnly, int portMin, int portMax,
+                            int timeout) {
   struct Server *server;
   check(server = malloc(sizeof(struct Server)));
-  initServer(server, portMin, portMax, timeout);
+  initServer(server, localhostOnly, portMin, portMax, timeout);
   return server;
 }
 
-struct Server *newServer(int port) {
-  return newCGIServer(port, port, -1);
+struct Server *newServer(int localhostOnly, int port) {
+  return newCGIServer(localhostOnly, port, port, -1);
 }
 
-void initServer(struct Server *server, int portMin, int portMax, int timeout) {
+void initServer(struct Server *server, int localhostOnly, int portMin,
+                int portMax, int timeout) {
   server->looping               = 0;
   server->exitAll               = 0;
   server->serverTimeout         = timeout;
@@ -196,7 +198,8 @@ void initServer(struct Server *server, int portMin, int portMax, int timeout) {
                     &true, sizeof(true)));
   struct sockaddr_in serverAddr = { 0 };
   serverAddr.sin_family         = AF_INET;
-  serverAddr.sin_addr.s_addr    = INADDR_ANY;
+  serverAddr.sin_addr.s_addr    = htonl(localhostOnly
+                                        ? INADDR_LOOPBACK : INADDR_ANY);
 
   // Linux unlike BSD does not have support for picking a local port range.
   // So, we have to randomly pick a port from our allowed port range, and then

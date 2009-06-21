@@ -79,6 +79,7 @@
 static int     port;
 static int     portMin;
 static int     portMax;
+static int     localhostOnly = 0;
 static int     noBeep        = 0;
 static int     numericHosts  = 0;
 static int     enableSSL     = 1;
@@ -595,6 +596,7 @@ static void usage(void) {
           "  -f, --static-file=URL:FILE  serve static file from URL path\n"
           "  -g, --group=GID             switch to this group (default: %s)\n"
           "  -h, --help                  print this message\n"
+          "      --localhost-only        only listen on 127.0.0.1\n"
           "      --no-beep               suppress all audio output\n"
           "  -n, --numeric               do not resolve hostnames\n"
           "  -p, --port=PORT             select a port (default: %d)\n"
@@ -664,6 +666,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "debug",            0, 0, 'd' },
       { "static-file",      1, 0, 'f' },
       { "group",            1, 0, 'g' },
+      { "localhost-only",   0, 0,  0  },
       { "no-beep",          0, 0,  0  },
       { "numeric",          0, 0, 'n' },
       { "port",             1, 0, 'p' },
@@ -781,6 +784,9 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Duplicate --group option.");
       }
       runAsGroup           = parseGroup(optarg, NULL);
+    } else if (!idx--) {
+      // Localhost Only
+      localhostOnly        = 1;
     } else if (!idx--) {
       // No Beep
       noBeep               = 1;
@@ -962,7 +968,7 @@ int main(int argc, char * const argv[]) {
   // Create a new web server
   Server *server;
   if (port) {
-    check(server  = newServer(port));
+    check(server  = newServer(localhostOnly, port));
     dropPrivileges();
     setUpSSL(server);
   } else {
@@ -982,7 +988,8 @@ int main(int argc, char * const argv[]) {
       _exit(0);
     }
     check(!NOINTR(close(fds[0])));
-    check(server  = newCGIServer(portMin, portMax, AJAX_TIMEOUT));
+    check(server  = newCGIServer(localhostOnly, portMin, portMax,
+                                 AJAX_TIMEOUT));
     cgiServer     = server;
     setUpSSL(server);
 
