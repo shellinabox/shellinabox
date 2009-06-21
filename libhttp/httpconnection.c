@@ -43,6 +43,7 @@
 // The most up-to-date version of this program is always available from
 // http://shellinabox.com
 
+#define _GNU_SOURCE
 #include "config.h"
 
 #include <errno.h>
@@ -198,15 +199,37 @@ static void httpCloseRead(struct HttpConnection *http) {
   }
 }
 
+#ifndef HAVE_STRCASESTR
+static char *strcasestr(const char *haystack, const char *needle) {
+  // This algorithm is O(len(haystack)*len(needle)). Much better algorithms
+  // are available, but this code is much simpler and performance is not
+  // critical for our workloads.
+  int len = strlen(needle);
+  do {
+    if (!strncasecmp(haystack, needle, len)) {
+      return haystack;
+    }
+  } while (*haystack++);
+  return NULL;
+}
+#endif
+
 static int httpFinishCommand(struct HttpConnection *http) {
-  int rc           = HTTP_DONE;
+  int rc            = HTTP_DONE;
   if (http->callback && !http->done) {
-    rc             = http->callback(http, http->arg, NULL, 0);
+    rc              = http->callback(http, http->arg, NULL, 0);
     check(rc != HTTP_SUSPEND);
     check(rc != HTTP_PARTIAL_REPLY);
-    http->callback = NULL;
-    http->arg      = NULL;
+    http->callback  = NULL;
+    http->arg       = NULL;
     if (rc == HTTP_ERROR) {
+      httpCloseRead(http);
+    }
+  }
+  if (!http->closed) {
+    const char *con = getFromHashMap(&http->header, "connection");
+    if ((con && strcasestr(con, "close")) ||
+        !http->version || strcmp(http->version, "HTTP/1.1") < 0) {
       httpCloseRead(http);
     }
   }
@@ -215,9 +238,9 @@ static int httpFinishCommand(struct HttpConnection *http) {
     check(http->path);
     check(http->version);
     if (http->peerName) {
-      time_t t     = currentTime;
+      time_t t      = currentTime;
       struct tm *ltime;
-      check (ltime = localtime(&t));
+      check (ltime  = localtime(&t));
       char timeBuf[80];
       char lengthBuf[40];
       check(strftime(timeBuf, sizeof(timeBuf),
@@ -225,7 +248,7 @@ static int httpFinishCommand(struct HttpConnection *http) {
       if (http->totalWritten > 0) {
         snprintf(lengthBuf, sizeof(lengthBuf), "%d", http->totalWritten);
       } else {
-        *lengthBuf = '\000';
+        *lengthBuf  = '\000';
         strncat(lengthBuf, "-", sizeof(lengthBuf)-1);
       }
       info("%s - - %s \"%s %s %s\" %d %s",
@@ -260,7 +283,9 @@ static char *getPeerName(int fd, int *port, int numericHosts) {
   if (port) {
     *port           = ntohs(((struct sockaddr_in *)&peerAddr)->sin_port);
   }
-  return strdup(host);
+  char *ret;
+  check(ret         = strdup(host));
+  return ret;
 }
 
 static void httpSetState(struct HttpConnection *http, int state) {
@@ -619,7 +644,7 @@ static int httpHandleCommand(struct HttpConnection *http,
       }
 
       if (query) {
-        http->query                        = strdup(query + 1);
+        check(http->query                  = strdup(query + 1));
       }
       return h->handler(http, h->arg);
     }
@@ -645,61 +670,61 @@ static int httpParseCommand(struct HttpConnection *http, int offset,
   if (firstSpace < 1 || lastSpace < 0) {
   bad_request:
     if (!http->method) {
-      http->method     = strdup("");
+      check(http->method  = strdup(""));
     }
     if (!http->path) {
-      http->path       = strdup("");
+      check(http->path    = strdup(""));
     }
     if (!http->version) {
-      http->version    = strdup("");
+      check(http->version = strdup(""));
     }
     httpSendReply(http, 400, "Bad Request", NO_MSG);
     httpSetState(http, COMMAND);
     return 0;
   }
   check(!http->method);
-  check(http->method   = malloc(firstSpace + 1));
-  int i                = offset;
-  int j                = 0;
+  check(http->method      = malloc(firstSpace + 1));
+  int i                   = offset;
+  int j                   = 0;
   for (; j < firstSpace; j++) {
-    int ch             = httpGetChar(http, buf, bytes, &i);
+    int ch                = httpGetChar(http, buf, bytes, &i);
     if (ch >= 'a' && ch <= 'z') {
-      ch              &= ~0x20;
+      ch                 &= ~0x20;
     }
-    http->method[j]    = ch;
+    http->method[j]       = ch;
   }
-  http->method[j]      = '\000';
+  http->method[j]         = '\000';
   check(!http->path);
-  check(http->path     = malloc(lastSpace - firstSpace));
-  j                    = 0;
+  check(http->path        = malloc(lastSpace - firstSpace));
+  j                       = 0;
   while (i < offset + lastSpace) {
-    int ch             = httpGetChar(http, buf, bytes, &i);
+    int ch                = httpGetChar(http, buf, bytes, &i);
     if ((ch != ' ' && ch != '\t') || j) {
-      http->path[j++]  = ch;
+      http->path[j++]     = ch;
     }
   }
-  http->path[j]        = '\000';
+  http->path[j]           = '\000';
   if (*http->path != '/' &&
       (strcmp(http->method, "OPTIONS") || strcmp(http->path, "*"))) {
     goto bad_request;
   }
   check(!http->version);
-  check(http->version  = malloc(lineLength - lastSpace + 1));
-  j                    = 0;
+  check(http->version     = malloc(lineLength - lastSpace + 1));
+  j                       = 0;
   while (i < offset + lineLength) {
-    int ch             = httpGetChar(http, buf, bytes, &i);
+    int ch                = httpGetChar(http, buf, bytes, &i);
     if (ch == '\r') {
       break;
     }
     if (ch >= 'a' && ch <= 'z') {
-      ch              &= ~0x20;
+      ch                 &= ~0x20;
     }
     if ((ch != ' ' && ch != '\t') || j) {
-      http->version[j] = ch;
+      http->version[j]    = ch;
       j++;
     }
   }
-  http->version[j]     = '\000';
+  http->version[j]        = '\000';
   if (memcmp(http->version, "HTTP/", 5) ||
       (http->version[5] < '1' || http->version[5] > '9')) {
     goto bad_request;
@@ -748,7 +773,7 @@ static int httpParseHeaders(struct HttpConnection *http,
     struct ServerConnection *connection = httpGetServerConnection(http);
     switch (rc) {
     case HTTP_DONE:
-    case HTTP_ERROR:
+    case HTTP_ERROR: {
       if (http->expecting < 0 || rc == HTTP_ERROR) {
         httpCloseRead(http);
       }
@@ -759,7 +784,7 @@ static int httpParseHeaders(struct HttpConnection *http,
         serverSetTimeout(connection, CONNECTION_TIMEOUT);
       }
       httpSetState(http, http->expecting ? DISCARD_PAYLOAD : COMMAND);
-      break;
+      break; }
     case HTTP_READ_MORE:
       http->isSuspended    = 0;
       http->isPartialReply = 0;

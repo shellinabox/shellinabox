@@ -70,6 +70,9 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
 
+/* Define to 1 if you have the `strcasestr' function. */
+#define HAVE_STRCASESTR 1
+
 /* Define to 1 if you have the <strings.h> header file. */
 #define HAVE_STRINGS_H 1
 
@@ -129,7 +132,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "122"
+#define VCS_REVISION "123"
 
 /* Version number of package */
 #define VERSION "2.8"
