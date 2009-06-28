@@ -132,7 +132,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "126"
+#define VCS_REVISION "132"
 
 /* Version number of package */
 #define VERSION "2.8"

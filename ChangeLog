@@ -1,3 +1,16 @@
+2009-06-28  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added support for keyboards that have a dedicated "<" / ">" key.
+
+2009-06-21  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added --localhost option.
+
+	* Added support for building on ARM.
+
+	* Respect "Connection: close" for proxies that rely on pre-HTTP/1.1
+	behavior.
+
 2009-05-24  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added SSL support for OpenBSD
