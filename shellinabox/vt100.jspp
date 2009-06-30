@@ -1840,6 +1840,20 @@ VT100.prototype.checkComposedKeys = function(event) {
 };
 
 VT100.prototype.fixEvent = function(event) {
+  // Some browsers report AltGR as a combination of ALT and CTRL. As AltGr
+  // is used as a second-level selector, clear the modifier bits before
+  // handling the event.
+  if (event.ctrlKey && event.altKey) {
+    var fake                = [ ];
+    fake.charCode           = event.charCode;
+    fake.keyCode            = event.keyCode;
+    fake.ctrlKey            = false;
+    fake.shiftKey           = event.shiftKey;
+    fake.altKey             = false;
+    fake.metaKey            = event.metaKey;
+    return fake;
+  }
+
   // Some browsers fail to translate keys, if both shift and alt/meta is
   // pressed at the same time. We try to translate those cases, but that
   // only works for US keyboard layouts.
@@ -1939,7 +1953,11 @@ VT100.prototype.keyDown = function(event) {
   // In fact, we see them, but we cannot stop IE from seeing them, too.
   if ((event.charCode || event.keyCode) &&
       ((alphNumKey && (event.ctrlKey || event.altKey || event.metaKey) &&
-        !event.shiftKey) ||
+        !event.shiftKey &&
+        // Some browsers signal AltGR as both CTRL and ALT. Do not try to
+        // interpret this sequence ourselves, as some keyboard layouts use
+        // it for second-level layouts.
+        !(event.ctrlKey && event.altKey)) ||
        this.catchModifiersEarly && normalKey && !alphNumKey &&
        (event.ctrlKey || event.altKey || event.metaKey) ||
        !normalKey)) {
