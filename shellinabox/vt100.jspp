@@ -96,7 +96,7 @@
 #define MOUSE_CLICK    2
 
 function VT100(container) {
-  if (typeof linkifyURLs == 'undefined' && linkifyURLs > 0) {
+  if (typeof linkifyURLs == 'undefined' || linkifyURLs <= 0) {
     this.urlRE            = null;
   } else {
     this.urlRE            = new RegExp(
