@@ -183,7 +183,7 @@ char *getFromTrie(const struct Trie *trie, const char *key, char **diff) {
   for (;;) {
     if (trie->idx > 0) {
       if (memcmp(trie->key, key, trie->idx)) {
-        if (diff) {
+        if (diff && partial != NULL) {
           *diff        = partialKey;
           return partial->value;
         }
