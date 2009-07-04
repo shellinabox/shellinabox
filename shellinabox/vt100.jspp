@@ -96,6 +96,82 @@
 #define MOUSE_CLICK    2
 
 function VT100(container) {
+  if (typeof linkifyURLs == 'undefined' && linkifyURLs > 0) {
+    this.urlRE            = null;
+  } else {
+    this.urlRE            = new RegExp(
+    // Known URL protocol are "http", "https", and "ftp".
+    '(?:http|https|ftp)://' +
+
+    // Optionally allow username and passwords.
+    '(?:[^:@/ ]*(?::[^@/ ]*)?@)?' +
+
+    // Hostname.
+    '(?:[1-9][0-9]{0,2}(?:[.][1-9][0-9]{0,2}){3}|' +
+    '[0-9a-fA-F]{0,4}(?::{1,2}[0-9a-fA-F]{1,4})+|' +
+    '(?!-)[^[!"#$%&\'()*+,/:;<=>?@\\^_`{|}~\u0000- \u009F]+)' +
+
+    // Port
+    '(?::[1-9][0-9]*)?' +
+
+    // Path.
+    '(?:/[^/,.) ]*)*|' +
+
+    (linkifyURLs <= 1 ? '' :
+    // Also support URLs without a protocol (assume "http").
+    // Optional username and password.
+    '(?:[^:@/ ]*(?::[^@/ ]*)?@)?' +
+
+    // Hostnames must end with a well-known top-level domain or must be
+    // numeric.
+    '(?:[1-9][0-9]{0,2}(?:[.][1-9][0-9]{0,2}){3}|' +
+    'localhost|' +
+    '(?:(?!-)[^.[!"#$%&\'()*+,/:;<=>?@\\^_`{|}~\u0000- \u009F]+[.]){2,}' +
+    '(?:com|net|org|edu|gov|aero|asia|biz|cat|coop|info|int|jobs|mil|mobi|' +
+    'museum|name|pro|tel|travel|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|' +
+    'au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|' +
+    'ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cu|cv|cx|cy|cz|de|dj|dk|dm|do|' +
+    'dz|ec|ee|eg|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|' +
+    'gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|' +
+    'ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|' +
+    'lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|' +
+    'mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|' +
+    'pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|' +
+    'sj|sk|sl|sm|sn|so|sr|st|su|sv|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|' +
+    'tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|' +
+    'yu|za|zm|zw|arpa|[Xx][Nn]--[-a-zA-Z0-9]+))' +
+
+    // Port
+    '(?::[1-9][0-9]{0,4})?' +
+
+    // Path.
+    '(?:/[^/,.) ]*)*|') +
+
+    // In addition, support e-mail address. Optionally, recognize "mailto:"
+    '(?:mailto:)' + (linkifyURLs <= 1 ? '' : '?') +
+
+    // Username:
+    '[-_.+a-zA-Z0-9]+@' +
+
+    // Hostname.
+    '(?!-)[-a-zA-Z0-9]+(?:[.](?!-)[-a-zA-Z0-9]+)?[.]' +
+    '(?:com|net|org|edu|gov|aero|asia|biz|cat|coop|info|int|jobs|mil|mobi|' +
+    'museum|name|pro|tel|travel|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|' +
+    'au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|' +
+    'ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cu|cv|cx|cy|cz|de|dj|dk|dm|do|' +
+    'dz|ec|ee|eg|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|' +
+    'gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|' +
+    'ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|' +
+    'lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|' +
+    'mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|' +
+    'pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|' +
+    'sj|sk|sl|sm|sn|so|sr|st|su|sv|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|' +
+    'tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|' +
+    'yu|za|zm|zw|arpa|[Xx][Nn]--[-a-zA-Z0-9]+)' +
+
+    // Optional arguments
+    '(?:[?][^/,.) ]+)?');
+  }
   this.initializeElements(container);
   this.initializeAnsiColors();
   this.maxScrollbackLines = 500;
@@ -695,12 +771,72 @@ VT100.prototype.mouseEvent = function(event, type) {
   return true;
 };
 
+VT100.prototype.replaceChar = function(s, ch, repl) {
+  for (var i = -1;;) {
+    i = s.indexOf(ch, i + 1);
+    if (i < 0) {
+      break;
+    }
+    s = s.substr(0, i) + repl + s.substr(i + 1);
+  }
+  return s;
+};
+
+VT100.prototype.htmlEscape = function(s) {
+  return this.replaceChar(this.replaceChar(this.replaceChar(
+                                s, '&', '&amp;'), '<', '&lt;'), '"', '&quot;');
+};
+
 VT100.prototype.getTextContent = function(elem) {
   return elem.textContent ||
          (typeof elem.textContent == 'undefined' ? elem.innerText : '');
 };
 
 VT100.prototype.setTextContent = function(elem, s) {
+  // Check if we find any URLs in the text. If so, automatically convert them
+  // to links.
+  if (this.urlRE && this.urlRE.test(s)) {
+    var inner          = '';
+    for (;;) {
+      var consumed = 0;
+      if (RegExp.leftContext != null) {
+        inner         += this.htmlEscape(RegExp.leftContext);
+        consumed      += RegExp.leftContext.length;
+      }
+      var url          = this.htmlEscape(RegExp.lastMatch);
+      var fullUrl      = url;
+
+      // If no protocol was specified, try to guess a reasonable one.
+      if (url.indexOf('http://') < 0 && url.indexOf('https://') < 0 &&
+          url.indexOf('ftp://')  < 0 && url.indexOf('mailto:')  < 0) {
+        var slash      = url.indexOf('/');
+        var at         = url.indexOf('@');
+        var question   = url.indexOf('?');
+        if (at > 0 &&
+            (at < question || question < 0) &&
+            (slash < 0 || (question > 0 && slash > question))) {
+          fullUrl      = 'mailto:' + url;
+        } else {
+          fullUrl      = (url.indexOf('ftp.') == 0 ? 'ftp://' : 'http://') +
+                          url;
+        }
+      }
+
+      inner           += '<a target="vt100Link" href="' + fullUrl +
+                         '">' + url + '</a>';
+      consumed        += RegExp.lastMatch.length;
+      s                = s.substr(consumed);
+      if (!this.urlRE.test(s)) {
+        if (RegExp.rightContext != null) {
+          inner       += this.htmlEscape(RegExp.rightContext);
+        }
+        break;
+      }
+    }
+    elem.innerHTML     = inner;
+    return;
+  }
+
   // Updating the content of an element is an expensive operation. It actually
   // pays off to first check whether the element is still unchanged.
   if (typeof elem.textContent == 'undefined') {

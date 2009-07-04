@@ -58,6 +58,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 [\ \fB-f\fP\ | \fB--static-file=\fP\fIurl\fP:\fIfile\fP\ ]
 [\ \fB-g\fP\ | \fB--group=\fP\fIgid\fP\ ]
 [\ \fB-h\fP\ | \fB--help\fP\ ]
+[\ \fB--linkify\fP=[\fBnone\fP|\fBnormal\fP|\fBaggressive\fP]\ ]
 [\ \fB--localhost-only\fP\ ]
 [\ \fB--no-beep\fP\ ]
 [\ \fB-n\fP\ | \fB--numeric\fP\ ]
@@ -251,6 +252,17 @@ runs as.
 .TP
 \fB-h\fP\ |\ \fB--help\fP
 Display a brief usage message showing the valid command line parameters.
+.TP
+\fB--linkify\fP=[\fBnone\fP|\fBnormal\fP|\fBaggressive\fP]
+the daemon attempts to recognize URLs in the terminal output and makes them
+clickable. This is not neccessarily a fool-proof process and both false
+negatives and false positives are possible. By default, only URLs starting
+with a well known protocol of
+.BR http:// ,\  https:// ,\  ftp:// ,\ or\  mailto:
+are recognized. In
+.B aggressive
+mode, anything that looks like a hostname, URL or e-mail address is
+recognized, even if not preceded by a protocol.
 .TP
 \fB--localhost-only\fP
 Normally, 

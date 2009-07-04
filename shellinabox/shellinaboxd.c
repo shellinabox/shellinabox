@@ -84,6 +84,7 @@ static int     noBeep        = 0;
 static int     numericHosts  = 0;
 static int     enableSSL     = 1;
 static int     enableSSLMenu = 1;
+static int     linkifyURLs   = 1;
 static char    *certificateDir;
 static int     certificateFd = -1;
 static HashMap *externalFiles;
@@ -522,10 +523,12 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     char *stateVars       = stringPrintf(NULL,
                                          "serverSupportsSSL = %s;\n"
                                          "disableSSLMenu    = %s;\n"
-                                         "suppressAllAudio  = %s;\n\n",
+                                         "suppressAllAudio  = %s;\n"
+                                         "linkifyURLs       = %d;\n\n",
                                          enableSSL      ? "true" : "false",
                                          !enableSSLMenu ? "true" : "false",
-                                         noBeep         ? "true" : "false");
+                                         noBeep         ? "true" : "false",
+                                         linkifyURLs);
     int stateVarsLength   = strlen(stateVars);
     int contentLength     = stateVarsLength +
                             (addr(vt100End) - addr(vt100Start)) +
@@ -596,6 +599,7 @@ static void usage(void) {
           "  -f, --static-file=URL:FILE  serve static file from URL path\n"
           "  -g, --group=GID             switch to this group (default: %s)\n"
           "  -h, --help                  print this message\n"
+          "      --linkify=[none|normal|agressive] default is \"normal\"\n"
           "      --localhost-only        only listen on 127.0.0.1\n"
           "      --no-beep               suppress all audio output\n"
           "  -n, --numeric               do not resolve hostnames\n"
@@ -666,6 +670,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "debug",            0, 0, 'd' },
       { "static-file",      1, 0, 'f' },
       { "group",            1, 0, 'g' },
+      { "linkify",          1, 0,  0  },
       { "localhost-only",   0, 0,  0  },
       { "no-beep",          0, 0,  0  },
       { "numeric",          0, 0, 'n' },
@@ -784,6 +789,18 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Duplicate --group option.");
       }
       runAsGroup           = parseGroup(optarg, NULL);
+    } else if (!idx--) {
+      // Linkify
+      if (!strcmp(optarg, "none")) {
+        linkifyURLs        = 0;
+      } else if (!strcmp(optarg, "normal")) {
+        linkifyURLs        = 1;
+      } else if (!strcmp(optarg, "aggressive")) {
+        linkifyURLs        = 2;
+      } else {
+        fatal("Invalid argument for --linkify. Must be "
+              "\"none\", \"normal\", or \"aggressive\".");
+      }
     } else if (!idx--) {
       // Localhost Only
       localhostOnly        = 1;
