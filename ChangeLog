@@ -1,3 +1,11 @@
+2009-07-04  Markus Gutschke  <markus@shellinabox.com>
+
+	* Refined regular expressions for finding URLs.
+
+	* Show new terminal size when resizing the browser.
+
+	* Restored compatibility with IE5 and IE6.
+
 2009-07-03  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added --linkify option. Default settings cause the terminal to

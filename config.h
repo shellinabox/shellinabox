@@ -23,7 +23,7 @@
 #define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the <libutil.h> header file. */
-/* #undef HAVE_LIBUTIL_H */
+#define HAVE_LIBUTIL_H 1
 
 /* Define to 1 if you have the `login_tty' function. */
 #define HAVE_LOGIN_TTY 1
@@ -132,7 +132,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "136"
+#define VCS_REVISION "137"
 
 /* Version number of package */
 #define VERSION "2.8"

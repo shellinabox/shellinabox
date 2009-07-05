@@ -109,7 +109,7 @@ function VT100(container) {
     // Hostname.
     '(?:[1-9][0-9]{0,2}(?:[.][1-9][0-9]{0,2}){3}|' +
     '[0-9a-fA-F]{0,4}(?::{1,2}[0-9a-fA-F]{1,4})+|' +
-    '(?!-)[^[!"#$%&\'()*+,/:;<=>?@\\^_`{|}~\u0000- \u009F]+)' +
+    '(?!-)[^[!"#$%&\'()*+,/:;<=>?@\\^_`{|}~\u0000- \u007F-\u00A0]+)' +
 
     // Port
     '(?::[1-9][0-9]*)?' +
@@ -126,8 +126,9 @@ function VT100(container) {
     // numeric.
     '(?:[1-9][0-9]{0,2}(?:[.][1-9][0-9]{0,2}){3}|' +
     'localhost|' +
-    '(?:(?!-)[^.[!"#$%&\'()*+,/:;<=>?@\\^_`{|}~\u0000- \u009F]+[.]){2,}' +
-    '(?:com|net|org|edu|gov|aero|asia|biz|cat|coop|info|int|jobs|mil|mobi|' +
+    '(?:(?!-)' +
+        '[^.[!"#$%&\'()*+,/:;<=>?@\\^_`{|}~\u0000- \u007F-\u00A0]+[.]){2,}' +
+    '(?:(?:com|net|org|edu|gov|aero|asia|biz|cat|coop|info|int|jobs|mil|mobi|'+
     'museum|name|pro|tel|travel|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|' +
     'au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|' +
     'ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cu|cv|cx|cy|cz|de|dj|dk|dm|do|' +
@@ -139,7 +140,7 @@ function VT100(container) {
     'pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|' +
     'sj|sk|sl|sm|sn|so|sr|st|su|sv|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|' +
     'tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|' +
-    'yu|za|zm|zw|arpa|[Xx][Nn]--[-a-zA-Z0-9]+))' +
+    'yu|za|zm|zw|arpa)(?![a-zA-Z0-9])|[Xx][Nn]--[-a-zA-Z0-9]+))' +
 
     // Port
     '(?::[1-9][0-9]{0,4})?' +
@@ -155,7 +156,7 @@ function VT100(container) {
 
     // Hostname.
     '(?!-)[-a-zA-Z0-9]+(?:[.](?!-)[-a-zA-Z0-9]+)?[.]' +
-    '(?:com|net|org|edu|gov|aero|asia|biz|cat|coop|info|int|jobs|mil|mobi|' +
+    '(?:(?:com|net|org|edu|gov|aero|asia|biz|cat|coop|info|int|jobs|mil|mobi|'+
     'museum|name|pro|tel|travel|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|' +
     'au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|' +
     'ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cu|cv|cx|cy|cz|de|dj|dk|dm|do|' +
@@ -167,7 +168,7 @@ function VT100(container) {
     'pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|' +
     'sj|sk|sl|sm|sn|so|sr|st|su|sv|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|' +
     'tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|' +
-    'yu|za|zm|zw|arpa|[Xx][Nn]--[-a-zA-Z0-9]+)' +
+    'yu|za|zm|zw|arpa)(?![a-zA-Z0-9])|[Xx][Nn]--[-a-zA-Z0-9]+)' +
 
     // Optional arguments
     '(?:[?][^/,.) ]+)?');
@@ -310,6 +311,8 @@ VT100.prototype.initializeElements = function(container) {
                          '<input type="button" value="Connect" ' +
                                 'onsubmit="return false" />' +
                        '</div>' +
+                       '<div id="cursize" style="visibility: hidden">' +
+                       '</div>' +
                        '<div id="menu"></div>' +
                        '<div id="scrollable">' +
                          '<pre id="lineheight">&nbsp;</pre>' +
@@ -350,6 +353,7 @@ VT100.prototype.initializeElements = function(container) {
   // Initialize the variables for finding the text console and the
   // cursor.
   this.reconnectBtn            = this.getChildById(this.container,'reconnect');
+  this.curSizeBox              = this.getChildById(this.container, 'cursize');
   this.menu                    = this.getChildById(this.container, 'menu');
   this.scrollable              = this.getChildById(this.container,
                                                                  'scrollable');
@@ -401,11 +405,21 @@ VT100.prototype.initializeElements = function(container) {
                                   document.body.clientWidth) -
                                  marginRight != x + this.container.offsetWidth;
   if (!this.isEmbedded) {
+    // Some browsers generate resize events when the terminal is first
+    // shown. Disable showing the size indicator until a little bit after
+    // the terminal has been rendered the first time.
+    this.indicateSize          = false;
+    setTimeout(function(vt100) {
+      return function() {
+        vt100.indicateSize     = true;
+      };
+    }(this), 100);
     this.addListener(window, 'resize', 
                      function(vt100) {
                        return function() {
                          vt100.hideContextMenu();
                          vt100.resizer();
+                         vt100.showCurrentSize();
                         }
                       }(this));
     
@@ -611,6 +625,7 @@ VT100.prototype.resizer = function() {
       cy                       = 0;
     }
   }
+
   // Clip the scroll region to the visible screen.
   if (this.bottom > this.terminalHeight ||
       this.bottom == oldTerminalHeight) {
@@ -622,6 +637,7 @@ VT100.prototype.resizer = function() {
       this.top                 = 0;
     }
   }
+
   // Truncate lines, if necessary. Explicitly reposition cursor (this is
   // particularly important after changing the screen number), and reset
   // the scroll region to the default.
@@ -649,6 +665,38 @@ VT100.prototype.resizer = function() {
 
   // Send notification that the window size has been changed
   this.resized(this.terminalWidth, this.terminalHeight);
+};
+
+VT100.prototype.showCurrentSize = function() {
+  if (!this.indicateSize) {
+    return;
+  }
+  this.curSizeBox.innerHTML             = '' + this.terminalWidth + 'x' +
+                                               this.terminalHeight;
+  this.curSizeBox.style.left            =
+                                      (this.terminalWidth*this.cursorWidth -
+                                       this.curSizeBox.clientWidth)/2 + 'px';
+  this.curSizeBox.style.top             =
+                                      (this.terminalHeight*this.cursorHeight -
+                                       this.curSizeBox.clientHeight)/2 + 'px';
+  this.curSizeBox.style.visibility      = '';
+  if (this.curSizeTimeout) {
+    clearTimeout(this.curSizeTimeout);
+  }
+
+  // Only show the terminal size for a short amount of time after resizing.
+  // Then hide this information, again. Some browsers generate resize events
+  // throughout the entire resize operation. This is nice, and we will show
+  // the terminal size while the user is dragging the window borders.
+  // Other browsers only generate a single event when the user releases the
+  // mouse. In those cases, we can only show the terminal size once at the
+  // end of the resize operation.
+  this.curSizeTimeout                   = setTimeout(function(vt100) {
+    return function() {
+      vt100.curSizeTimeout              = null;
+      vt100.curSizeBox.style.visibility = 'hidden';
+    };
+  }(this), 1000);
 };
 
 VT100.prototype.selection = function() {
@@ -783,8 +831,8 @@ VT100.prototype.replaceChar = function(s, ch, repl) {
 };
 
 VT100.prototype.htmlEscape = function(s) {
-  return this.replaceChar(this.replaceChar(this.replaceChar(
-                                s, '&', '&amp;'), '<', '&lt;'), '"', '&quot;');
+  return this.replaceChar(this.replaceChar(this.replaceChar(this.replaceChar(
+                s, '&', '&amp;'), '<', '&lt;'), '"', '&quot;'), ' ', '\u00A0');
 };
 
 VT100.prototype.getTextContent = function(elem) {
@@ -841,7 +889,16 @@ VT100.prototype.setTextContent = function(elem, s) {
   // pays off to first check whether the element is still unchanged.
   if (typeof elem.textContent == 'undefined') {
     if (elem.innerText != s) {
-      elem.innerText   = s;
+      try {
+        elem.innerText = s;
+      } catch (e) {
+        // Very old versions of IE do not allow setting innerText. Instead,
+        // remove all children, by setting innerHTML and then set the text
+        // using DOM methods.
+        elem.innerHTML = '';
+        elem.appendChild(document.createTextNode(
+                                          this.replaceChar(s, ' ', '\u00A0')));
+      }
     }
   } else {
     if (elem.textContent != s) {
@@ -1636,7 +1693,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.8 (revision 136)" +
+  alert("VT100 Terminal Emulator " + "2.8 (revision 137)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -1944,22 +2001,24 @@ VT100.prototype.handleKey = function(event) {
 
 VT100.prototype.inspect = function(o, d) {
   if (d == undefined) {
-    d = 0;
+    d       = 0;
   }
+  var rc    = '';
   if (typeof o == 'object' && ++d < 2) {
-    this.vt100('[\r\n');
+    rc      = '[\r\n';
     for (i in o) {
-      this.vt100(this.spaces(d * 2) + i + ' -> ');
+      rc   += this.spaces(d * 2) + i + ' -> ';
       try {
-        this.inspect(o[i], d);
+        rc += this.inspect(o[i], d);
       } catch (e) {
-        this.vt100('?' + '?' + '?\r\n');
+        rc += '?' + '?' + '?\r\n';
       }
     }
-    this.vt100(']\r\n');
+    rc     += ']\r\n';
   } else {
-    this.vt100(('' + o).replace(/\n/g, ' ').replace(/ +/g,' ') + '\r\n');
+    rc     += ('' + o).replace(/\n/g, ' ').replace(/ +/g,' ') + '\r\n';
   }
+  return rc;
 };
 
 VT100.prototype.checkComposedKeys = function(event) {
