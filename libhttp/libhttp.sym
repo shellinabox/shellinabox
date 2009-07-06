@@ -42,6 +42,7 @@ urlGetPath
 urlGetPathInfo
 urlGetQuery
 urlGetAnchor
+urlGetURL
 urlGetArgs
 newHashMap
 deleteHashMap

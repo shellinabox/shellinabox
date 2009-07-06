@@ -468,6 +468,7 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
 
   // Normalize the path info
   const char *pathInfo    = urlGetPathInfo(url);
+  int trailingSlash       = *pathInfo == '/';
   while (*pathInfo == '/') {
     pathInfo++;
   }
@@ -478,10 +479,23 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
   }
   int pathInfoLength      = endPathInfo - pathInfo;
 
-  // The root page either serves the AJAX application or redirects to the
-  // secure HTTPS URL.
-  if (!pathInfoLength ||
+  // The root page should always have a trailing slash. If it doesn't do so,
+  // the JavaScript code cannot easily find related resources.
+  if (!pathInfoLength && !trailingSlash) {
+    char *redir           = stringPrintf(NULL,
+                                        "HTTP/1.1 302 Temporary Relocation\r\n"
+                                        "Connection: close\r\n"
+                                        "Content-Length: 0\r\n"
+                                        "Content-Type: text/html\r\n"
+                                        "Location: %s/\r\n"
+                                        "\r\n",
+                                        urlGetURL(url));
+    debug("Redirecting to %s/", urlGetURL(url));
+    httpTransfer(http, redir, strlen(redir));
+  } else if (!pathInfoLength ||
       (pathInfoLength == 5 && !memcmp(pathInfo, "plain", 5))) {
+    // The root page either serves the AJAX application or redirects to the
+    // secure HTTPS URL.
     if (contentType &&
         !strncasecmp(contentType, "application/x-www-form-urlencoded", 33)) {
       // XMLHttpRequest carrying data between the AJAX application and the

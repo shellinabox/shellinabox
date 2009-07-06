@@ -61,6 +61,7 @@ struct URL {
   char           *pathinfo;
   char           *query;
   char           *anchor;
+  char           *url;
   struct HashMap args;
 };
 
@@ -79,6 +80,7 @@ const char *urlGetPath(struct URL *url);
 const char *urlGetPathInfo(struct URL *url);
 const char *urlGetQuery(struct URL *url);
 const char *urlGetAnchor(struct URL *url);
+const char *urlGetURL(struct URL *url);
 const struct HashMap *urlGetArgs(struct URL *url);
 
 #endif /* URL_H__ */

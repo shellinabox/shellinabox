@@ -128,6 +128,7 @@ const char *urlGetPath(URL *url);
 const char *urlGetPathInfo(URL *url);
 const char *urlGetQuery(URL *url);
 const char *urlGetAnchor(URL *url);
+const char *urlGetURL(URL *url);
 const HashMap *urlGetArgs(URL *url);
 HashMap *newHashMap(void (*destructor)(void *arg, char *key, char *value),
                     void *arg);

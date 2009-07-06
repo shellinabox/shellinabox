@@ -327,6 +327,7 @@ void initURL(struct URL *url, const struct HttpConnection *http,
   url->pathinfo              = strdup(httpGetPathInfo(http));
   url->query                 = strdup(httpGetQuery(http));
   url->anchor                = NULL;
+  url->url                   = NULL;
   initHashMap(&url->args, urlDestroyHashMapEntry, NULL);
   if (!strcmp(http->method, "GET")) {
     urlParseQueryString(url, url->query, strlen(url->query));
@@ -345,6 +346,7 @@ void destroyURL(struct URL *url) {
     free(url->pathinfo);
     free(url->query);
     free(url->anchor);
+    free(url->url);
     destroyHashMap(&url->args);
   }
 }
@@ -388,6 +390,23 @@ const char *urlGetQuery(struct URL *url) {
 
 const char *urlGetAnchor(struct URL *url) {
   return url->anchor;
+}
+
+const char *urlGetURL(struct URL *url) {
+  if (!url->url) {
+    const char *host           = urlGetHost(url);
+    int s_size                 = 8 + strlen(host) + 25 + strlen(url->path);
+    check(*(char **)&url->url  = malloc(s_size + 1));
+    *url->url                  = '\000';
+    strncat(url->url, url->protocol, s_size);
+    strncat(url->url, "://", s_size);
+    strncat(url->url, host, s_size);
+    if (url->port != (strcmp(url->protocol, "http") ? 443 : 80)) {
+      snprintf(strrchr(url->url, '\000'), 25, ":%d", url->port);
+    }
+    strncat(url->url, url->path, s_size);
+  }
+  return url->url;
 }
 
 const struct HashMap *urlGetArgs(struct URL *url) {

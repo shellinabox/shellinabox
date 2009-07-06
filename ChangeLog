@@ -1,3 +1,8 @@
+2009-07-06  Markus Gutschke  <markus@shellinabox.com>
+
+	* Making it easier to host the terminal on non-root URLs by always
+	redirecting to a URL that includes a trailing slash.
+
 2009-07-05  Markus Gutschke  <markus@shellinabox.com>
 
 	* Released version 2.9
