@@ -314,7 +314,7 @@ int serverSupportsSSL(void) {
   // pthread_once(), instead. We perform run-time checks for whether we are
   // single- or multi-threaded, so that the same code can be used.
   // This currently only works on Linux.
-#if defined(HAVE_PTHREAD_H) && defined(__linux__)
+#if defined(HAVE_PTHREAD_H) && defined(__linux__) && defined(__i386__)
   if (!!&pthread_once) {
     static pthread_once_t once = PTHREAD_ONCE_INIT;
     pthread_once(&once, loadSSL);
@@ -754,9 +754,12 @@ void sslBlockSigPipe(void) {
   sigset_t set;
   sigemptyset(&set);
   sigaddset(&set, SIGPIPE);
+#if defined(HAVE_PTHREAD_H) && defined(__linux__) && defined(__i386__)
   if (&pthread_sigmask) {
     dcheck(!pthread_sigmask(SIG_BLOCK, &set, NULL));
-  } else {
+  } else
+#endif
+  {
     dcheck(!sigprocmask(SIG_BLOCK, &set, NULL));
   }
 }
@@ -772,9 +775,12 @@ static void dummysignal(int signo) {
 static int sigwait(const sigset_t *set, int *sig) {
   sigset_t mask, old_mask;
   sigfillset(&mask);
+#if defined(HAVE_PTHREAD_H) && defined(__linux__) && defined(__i386__)
   if (&pthread_sigmask) {
     dcheck(!pthread_sigmask(SIG_BLOCK, &mask, &old_mask));
-  } else {
+  } else
+#endif
+  {
     dcheck(!sigprocmask(SIG_BLOCK, &mask, &old_mask));
   }
   #ifndef NSIG
@@ -791,9 +797,12 @@ static int sigwait(const sigset_t *set, int *sig) {
   }
   dummysignalno = -1;
   sigsuspend(&mask);
+#if defined(HAVE_PTHREAD_H) && defined(__linux__) && defined(__i386__)
   if (&pthread_sigmask) {
     dcheck(!pthread_sigmask(SIG_SETMASK, &old_mask, NULL));
-  } else {
+  } else
+#endif
+  {
     dcheck(!sigprocmask(SIG_BLOCK, &old_mask, NULL));
   }
   return dummysignalno;
@@ -809,9 +818,12 @@ int sslUnblockSigPipe(void) {
   }
   sigemptyset(&set);
   sigaddset(&set, SIGPIPE);
+#if defined(HAVE_PTHREAD_H) && defined(__linux__) && defined(__i386__)
   if (&pthread_sigmask) {
     dcheck(!pthread_sigmask(SIG_UNBLOCK, &set, NULL));
-  } else {
+  } else
+#endif
+  {
     dcheck(!sigprocmask(SIG_UNBLOCK, &set, NULL));
   }
   return signum;

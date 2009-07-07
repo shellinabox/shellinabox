@@ -3,6 +3,13 @@
 	* Making it easier to host the terminal on non-root URLs by always
 	redirecting to a URL that includes a trailing slash.
 
+	* Run-time testing for availability of libpthread functions does not
+	  work reliably on some platforms. So, avoid doing so on anything
+	  other than Linux/i386. For all other platforms, assume that the code
+	  is not linked against libpthread. For ShellInABox, this is always
+	  the correct assumption. But if the code gets embedded into other
+	  projects, this might have to be changed.
+
 2009-07-05  Markus Gutschke  <markus@shellinabox.com>
 
 	* Released version 2.9

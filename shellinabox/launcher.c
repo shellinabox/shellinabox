@@ -358,7 +358,7 @@ int supportsPAM(void) {
   // pthread_once(), instead. We perform run-time checks for whether we are
   // single- or multi-threaded, so that the same code can be used.
   // This currently only works on Linux.
-#if defined(HAVE_PTHREAD_H) && defined(__linux__)
+#if defined(HAVE_PTHREAD_H) && defined(__linux__) && defined(__i386__)
   if (!!&pthread_once) {
     static pthread_once_t once = PTHREAD_ONCE_INIT;
     pthread_once(&once, loadPAM);
