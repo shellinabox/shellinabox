@@ -1,6 +1,7 @@
 AM_CPPFLAGS          =
 AM_CFLAGS            = -g -std=gnu99 -Wall
 AM_LDFLAGS           = -g
+ACLOCAL_AMFLAGS      = -I m4
 
 noinst_LTLIBRARIES   = libhttp.la                                             \
                        liblogging.la
