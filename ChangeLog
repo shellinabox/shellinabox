@@ -1,3 +1,8 @@
+2009-07-08  Markus Gutschke  <markus@shellinabox.com>
+
+	* Optionally compress large responses, if the browser accepts
+	deflate compression. This mainly improves start up time.
+
 2009-07-06  Markus Gutschke  <markus@shellinabox.com>
 
 	* Making it easier to host the terminal on non-root URLs by always

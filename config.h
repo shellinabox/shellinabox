@@ -106,6 +106,9 @@
 /* Define to 1 if you have the <utmp.h> header file. */
 #define HAVE_UTMP_H 1
 
+/* Define to 1 if zlib development files are installed */
+#define HAVE_ZLIB 1
+
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
 #define LT_OBJDIR ".libs/"
@@ -132,7 +135,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "141"
+#define VCS_REVISION "142"
 
 /* Version number of package */
 #define VERSION "2.9"

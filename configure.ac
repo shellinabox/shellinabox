@@ -2,7 +2,7 @@ AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
 AC_INIT(shellinabox, 2.9, markus@shellinabox.com)
-VCS_REVISION=141
+VCS_REVISION=142
 AC_SUBST(VCS_REVISION)
 AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
                    [Most recent revision number in the version control system])
@@ -121,6 +121,12 @@ if test "x$enable_runtime_loading" == xno; then
     AC_CHECK_HEADER(security/pam_misc.h, [LIBS="-lpam_misc $LIBS"])
   fi
 fi
+
+AC_CHECK_LIB(z, deflate, [
+  AC_CHECK_HEADER(zlib.h, [LIBS="-lz $LIBS"
+                           AC_DEFINE(HAVE_ZLIB, 1,
+                           Define to 1 if zlib development files are installed)
+])])
 
 dnl Generate output files
 AC_CONFIG_FILES([Makefile])
