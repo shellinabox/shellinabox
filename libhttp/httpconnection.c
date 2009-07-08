@@ -595,7 +595,8 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
           free(msg);
           msg               = compressed;
           len              -= strm.avail_out;
-          snprintf(contentLength, 21, "%20d", len - (ptr - compressed));
+          snprintf(contentLength, 21, "%20lu",
+                   (unsigned long)(len - (ptr - compressed)));
           contentLength[20] = '\r';
         } else {
           free(compressed);

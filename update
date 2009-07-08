@@ -29,6 +29,13 @@ rm -rf aclocal.m4 configure config.guess config.h config.h.in config.sub      \
        ltmain.sh m4 Makefile.in
 
 svn update
+[ -z "$(svn sv|grep '^C')" ] || {
+  echo "Some files could not be synchronized with the SVN repository." >&2
+  echo "You have to manually resolve the merge conflicts and rerun this "     \
+       "script" >&2
+  exit 1
+}
+
 aclocal
 libtoolize --force --copy
 autoreconf
