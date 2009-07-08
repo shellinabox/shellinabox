@@ -2,14 +2,13 @@ AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
 AC_INIT(shellinabox, 2.9, markus@shellinabox.com)
-VCS_REVISION=145
+VCS_REVISION=146
 AC_SUBST(VCS_REVISION)
 AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
                    [Most recent revision number in the version control system])
 
 dnl Set up autoconf/automake for building C libraries and binaries with GCC
 CFLAGS="${CFLAGS:--Os}"
-AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 AC_PROG_CC
