@@ -104,7 +104,7 @@ function VT100(container) {
     '(?:http|https|ftp)://' +
 
     // Optionally allow username and passwords.
-    '(?:[^:@/ ]*(?::[^@/ ]*)?@)?' +
+    '(?:[^:@/ \u00A0]*(?::[^@/ \u00A0]*)?@)?' +
 
     // Hostname.
     '(?:[1-9][0-9]{0,2}(?:[.][1-9][0-9]{0,2}){3}|' +
@@ -115,12 +115,12 @@ function VT100(container) {
     '(?::[1-9][0-9]*)?' +
 
     // Path.
-    '(?:/[^/,.) ]*)*|' +
+    '(?:/(?:(?![/ \u00A0]|[,.)][ \u00A0]|[,.)]$).)*)*|' +
 
     (linkifyURLs <= 1 ? '' :
     // Also support URLs without a protocol (assume "http").
     // Optional username and password.
-    '(?:[^:@/ ]*(?::[^@/ ]*)?@)?' +
+    '(?:[^:@/ \u00A0]*(?::[^@/ \u00A0]*)?@)?' +
 
     // Hostnames must end with a well-known top-level domain or must be
     // numeric.
@@ -146,7 +146,7 @@ function VT100(container) {
     '(?::[1-9][0-9]{0,4})?' +
 
     // Path.
-    '(?:/[^/,.) ]*)*|') +
+    '(?:/(?:(?![/ \u00A0]|[,.)][ \u00A0]|[,.)]$).)*)*|') +
 
     // In addition, support e-mail address. Optionally, recognize "mailto:"
     '(?:mailto:)' + (linkifyURLs <= 1 ? '' : '?') +
@@ -171,7 +171,7 @@ function VT100(container) {
     'yu|za|zm|zw|arpa)(?![a-zA-Z0-9])|[Xx][Nn]--[-a-zA-Z0-9]+)' +
 
     // Optional arguments
-    '(?:[?][^/,.) ]+)?');
+    '(?:[?](?:(?![ \u00A0]|[,.)][ \u00A0]|[,.)]$).)*)?');
   }
   this.initializeElements(container);
   this.initializeAnsiColors();
@@ -980,7 +980,7 @@ VT100.prototype.truncateLines = function(width) {
     if (line.tagName == 'DIV') {
       var x           = 0;
 
-      // Traverse current line and truncate if once we saw "width" characters
+      // Traverse current line and truncate it once we saw "width" characters
       for (var span = line.firstChild; span;
            span = span.nextSibling) {
         var s         = this.getTextContent(span);
@@ -1000,7 +1000,7 @@ VT100.prototype.truncateLines = function(width) {
         // Scan backwards looking for first non-space character
         var s         = this.getTextContent(span);
         for (var i = s.length; i--; ) {
-          if (s.charAt(i) != ' ') {
+          if (s.charAt(i) != ' ' && s.charAt(i) != '\u00A0') {
             if (i+1 != s.length) {
               this.setTextContent(s.substr(0, i+1));
             }
@@ -1253,7 +1253,7 @@ VT100.prototype.putString = function(x, y, text, style) {
       // Scan backwards looking for first non-space character
       s                             = this.getTextContent(span);
       for (var i = s.length; i--; ) {
-        if (s.charAt(i) != ' ') {
+        if (s.charAt(i) != ' ' && s.charAt(i) != '\u00A0') {
           if (i+1 != s.length) {
             this.setTextContent(s.substr(0, i+1));
           }

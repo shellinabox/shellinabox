@@ -3,6 +3,11 @@
 	* Optionally compress large responses, if the browser accepts
 	deflate compression. This mainly improves start up time.
 
+	* More fine tuning of the regular expressions that detect URLs.
+	We now allow '.' and ',' in URLs, as long as they are not at the
+	very end of the URL, where they would probably be part of the
+	enclosing sentence and not actually part of the URL.
+
 2009-07-06  Markus Gutschke  <markus@shellinabox.com>
 
 	* Making it easier to host the terminal on non-root URLs by always
