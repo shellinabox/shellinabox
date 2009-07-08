@@ -115,7 +115,7 @@ function VT100(container) {
     '(?::[1-9][0-9]*)?' +
 
     // Path.
-    '(?:/(?:(?![/ \u00A0]|[,.)][ \u00A0]|[,.)]$).)*)*|' +
+    '(?:/(?:(?![/ \u00A0]|[,.)}"\u0027!]+[ \u00A0]|[,.)}"\u0027!]+$).)*)*|' +
 
     (linkifyURLs <= 1 ? '' :
     // Also support URLs without a protocol (assume "http").
@@ -146,7 +146,7 @@ function VT100(container) {
     '(?::[1-9][0-9]{0,4})?' +
 
     // Path.
-    '(?:/(?:(?![/ \u00A0]|[,.)][ \u00A0]|[,.)]$).)*)*|') +
+    '(?:/(?:(?![/ \u00A0]|[,.)}"\u0027!]+[ \u00A0]|[,.)}"\u0027!]+$).)*)*|') +
 
     // In addition, support e-mail address. Optionally, recognize "mailto:"
     '(?:mailto:)' + (linkifyURLs <= 1 ? '' : '?') +
@@ -171,7 +171,7 @@ function VT100(container) {
     'yu|za|zm|zw|arpa)(?![a-zA-Z0-9])|[Xx][Nn]--[-a-zA-Z0-9]+)' +
 
     // Optional arguments
-    '(?:[?](?:(?![ \u00A0]|[,.)][ \u00A0]|[,.)]$).)*)?');
+    '(?:[?](?:(?![ \u00A0]|[,.)}"\u0027!]+[ \u00A0]|[,.)}"\u0027!]+$).)*)?');
   }
   this.initializeElements(container);
   this.initializeAnsiColors();
@@ -1693,7 +1693,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.9 (revision 143)" +
+  alert("VT100 Terminal Emulator " + "2.9 (revision 144)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
