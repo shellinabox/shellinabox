@@ -2,7 +2,8 @@ Source: shellinabox
 Section: web
 Priority: optional
 Maintainer: Markus Gutschke <markus@shellinabox.com>
-Build-Depends: debhelper (>= 4.0.0), binutils, libssl-dev, libpam0g-dev
+Build-Depends: debhelper (>= 4.0.0), binutils, libssl-dev, libpam0g-dev,
+ zlib1g-dev
 Standards-Version: 3.6.1
 
 Package: shellinabox
