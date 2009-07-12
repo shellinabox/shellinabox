@@ -469,13 +469,14 @@ Interactively request the user's name and password prior to launching
 a Bourne shell. This command can be run by unprivileged users. But if
 doing so, it only allows this particular user to log in.
 .TP
-.B shellinaboxd -c certificates -g shellinaboxd
+.B shellinaboxd -c certificates -u shellinabox -g shellinabox
 If the
 .B certificates
 directory exists and is writable by the
-.B shellinaboxd
-group, self-signed SSL certificates will be generated in this
-directory. Running this command as
+.B shellinabox
+user and group, self-signed SSL certificates will be generated in this
+directory. This might require creating an appropriately named user first.
+Running this command as
 .B root
 allows any user on the system to log in at
 .BR http://localhost:4200/ .
