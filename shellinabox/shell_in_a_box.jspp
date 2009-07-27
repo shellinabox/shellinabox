@@ -333,7 +333,7 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
           // provide a menu entry to switch between the two.
           var newNode       = document.createElement('li');
           var isSecure;
-          if (document.location.href != '') {
+          if (document.location.hash != '') {
             isSecure        = !this.nextUrl.match(/\?plain$/);
           } else {
             isSecure        =  this.nextUrl.match(/^https:/);

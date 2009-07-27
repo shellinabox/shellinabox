@@ -333,7 +333,7 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
           // provide a menu entry to switch between the two.
           var newNode       = document.createElement('li');
           var isSecure;
-          if (document.location.href != '') {
+          if (document.location.hash != '') {
             isSecure        = !this.nextUrl.match(/\?plain$/);
           } else {
             isSecure        =  this.nextUrl.match(/^https:/);
@@ -355,7 +355,7 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
 };
 
 ShellInABox.prototype.about = function() {
-  alert("Shell In A Box version " + "2.9 (revision 149)" +
+  alert("Shell In A Box version " + "2.9 (revision 152)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com" +
         (typeof serverSupportsSSL != 'undefined' && serverSupportsSSL ?

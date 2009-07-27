@@ -1,3 +1,10 @@
+2009-07-27  Markus Gutschke  <markus@shellinabox.com>
+
+	* Use JavaScript redirection for attaching the missing slash to
+	the URL. This should make it easier to use reverse proxies. It was
+	already possible to run shellinaboxd behind a proxy, but a lot of
+	users got the configuration wrong.
+
 2009-07-08  Markus Gutschke  <markus@shellinabox.com>
 
 	* Optionally compress large responses, if the browser accepts

@@ -468,7 +468,6 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
 
   // Normalize the path info
   const char *pathInfo    = urlGetPathInfo(url);
-  int trailingSlash       = *pathInfo == '/';
   while (*pathInfo == '/') {
     pathInfo++;
   }
@@ -479,44 +478,26 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
   }
   int pathInfoLength      = endPathInfo - pathInfo;
 
-  // The root page should always have a trailing slash. If it doesn't do so,
-  // the JavaScript code cannot easily find related resources.
-  if (!pathInfoLength && !trailingSlash) {
-    char *redir           = stringPrintf(NULL,
-                                        "HTTP/1.1 302 Temporary Relocation\r\n"
-                                        "Connection: close\r\n"
-                                        "Content-Length: 0\r\n"
-                                        "Content-Type: text/html\r\n"
-                                        "Location: %s/\r\n"
-                                        "\r\n",
-                                        urlGetURL(url));
-    debug("Redirecting to %s/", urlGetURL(url));
-    httpTransfer(http, redir, strlen(redir));
-  } else if (!pathInfoLength ||
-      (pathInfoLength == 5 && !memcmp(pathInfo, "plain", 5))) {
-    // The root page either serves the AJAX application or redirects to the
-    // secure HTTPS URL.
+  if (!pathInfoLength ||
+      (pathInfoLength == 5 && !memcmp(pathInfo, "plain", 5)) ||
+      (pathInfoLength == 6 && !memcmp(pathInfo, "secure", 6))) {
+    // The root page serves the AJAX application.
     if (contentType &&
         !strncasecmp(contentType, "application/x-www-form-urlencoded", 33)) {
       // XMLHttpRequest carrying data between the AJAX application and the
       // client session.
       return dataHandler(http, arg, buf, len, url);
     }
-    if (enableSSL && !pathInfoLength && strcmp(urlGetProtocol(url), "https")) {
-      httpSendReply(http, 200, "Shell In A Box",
-                    "<script type=\"text/javascript\"><!--\n"
-                      "document.location.replace("
-                        "document.location.href.replace(/^http:/,'https:'));\n"
-                      "--></script>\n"
-                      "<noscript>\n"
-                        "JavaScript must be enabled for ShellInABox\n"
-                      "</noscript>");
-    } else {
-      extern char rootPageStart[];
-      extern char rootPageEnd[];
-      serveStaticFile(http, "text/html; charset=utf-8",
-                      rootPageStart, rootPageEnd);
-    }
+    extern char rootPageStart[];
+    extern char rootPageEnd[];
+    char *rootPage;
+    check(rootPage = malloc(rootPageEnd - rootPageStart + 1));
+    memcpy(rootPage, rootPageStart, rootPageEnd - rootPageStart);
+    rootPage[rootPageEnd - rootPageStart] = '\000';
+    char *html            = stringPrintf(NULL, rootPage,
+                                         enableSSL ? "true" : "false");
+    httpSendReply(http, 200, "OK", html);
+    free(rootPage);
   } else if (pathInfoLength == 8 && !memcmp(pathInfo, "beep.wav", 8)) {
     // Serve the audio sample for the console bell.
     extern char beepStart[];

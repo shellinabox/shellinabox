@@ -50,6 +50,32 @@
     <title>Shell In A Box</title>
     <link rel="stylesheet" href="styles.css" type="text/css">
     <script type="text/javascript"><!--
+      // Check that our URL is well-formed. Redirect to HTTPS if necessary
+      (function() {
+        var hasSSL = %s;
+        var path   = document.location.pathname;
+        var proto  = hasSSL ? 'https:' : 'http:';
+        if (path.match(/plain/) || !hasSSL) {
+          proto   = 'http:';
+        }
+        path      = path.replace(/\/+/, '/').replace(/\/$/, '');
+        if (!path.match(/(?:\/|\/plain)$/)) {
+          path   += '/';
+        }
+        var url   = proto + '//' + document.location.host + path;
+        if (document.location.search != '' &&
+            document.location.search != '?') {
+          url    += document.location.search;
+        }
+        if (document.location.hash != '' &&
+            document.location.hash != '#') {
+          url    += document.location.hash;
+        }
+        if (url != document.location.href) {
+          document.location.replace(url);
+        }
+      })();
+
       // We would like to hide overflowing lines as this can lead to
       // visually jarring results if the browser substitutes oversized
       // Unicode characters from different fonts. Unfortunately, a bug
