@@ -484,14 +484,22 @@ A small number of run-time configuration options are available from a
 context menu that becomes available when clicking the right mouse button.
 .SH EXAMPLES
 .TP \w'shellinaboxd\ 'u
+.B shellinaboxd
+Attaches a web-enabled login shell to
+.IR https://localhost:4200/ .
+If the user connected without SSL, the session will automatically be promoted.
+Unless SSL certificates can be found in the current directory, the daemon will
+automatically generate suitable self-signed certificates. If the command was
+invoked by a non-\fBroot\fP user, the daemon uses
+.B ssh
+instead of
+.B /bin/login
+for the session.
+.TP
 .B shellinaboxd -t
 Attaches a web-enabled login shell to
 .I http://localhost:4200/
-with SSL/TLS support disabled. This command must be run as
-.B root
-or the attempt to launch
-.I /bin/login
-will fail.
+with SSL/TLS support disabled.
 .TP
 .B shellinaboxd -t -f beep.wav:/dev/null
 Runs all services with the audible-bell permanently disabled.
