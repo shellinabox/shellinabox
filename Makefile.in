@@ -1057,18 +1057,17 @@ shellinaboxd.1: shellinabox/shellinaboxd.man.in config.h
 	if [ `sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d config.h |        \
              egrep 'HAVE_OPENSSL_BIO_H|HAVE_OPENSSL_ERR_H|HAVE_OPENSSL_SSL_H'|\
              wc -l` -eq 3 ]; then                                             \
-	  sed -e '/^#ifdef  *HAVE_OPENSSL$$/d'                                \
-	      -e '/^#endif$$/d' "$$src" >"$@";                                \
+	  sed -e '/^#ifndef  *HAVE_OPENSSL$$/,/^#endif$$/d' "$$src";          \
 	else                                                                  \
-	  sed -e '/^#ifdef  *HAVE_OPENSSL$$/,/^#endif$$/d' "$$src" >"$@";     \
-	fi;                                                                   \
+	  sed -e '/^#ifdef  *HAVE_OPENSSL$$/,/^#endif$$/d' "$$src";           \
+	fi |                                                                  \
 	if sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d config.h |           \
              grep 'HAVE_SECURITY_PAM_APPL_H' >/dev/null 2>&1; then            \
-	  sed -e '/^#ifdef  *HAVE_PAM$$/d'                                    \
-	      -e '/^#endif$$/d' "$$src" >"$@";                                \
+	  sed -e '/^#ifndef  *HAVE_PAM$$/,/^#endif$$/d';                      \
 	else                                                                  \
-	  sed -e '/^#ifdef  *HAVE_PAM$$/,/^#endif$$/d' "$$src" >"$@";         \
-	fi
+	  sed -e '/^#ifdef  *HAVE_PAM$$/,/^#endif$$/d';                       \
+	fi |                                                                  \
+	sed -e '/^#/d' >"$@"
 	@out=`echo "$@" 2>/dev/null|sed -e 's/\.[^.]*$$/.ps/'`;               \
 	man -Tps "./$@" >"$${out}" 2>/dev/null || rm -f "$${out}"
 

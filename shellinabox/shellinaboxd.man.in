@@ -51,7 +51,9 @@ shellinaboxd \- publish command line shell through AJAX interface
 .TP
 .B shellinaboxd
 [\ \fB-b\fP\ | \fB--background\fP[\fB=\fP\fIpidfile\fP]\ ]
+#ifdef HAVE_OPENSSL
 [\ \fB-c\fP\ | \fB--cert=\fP\fIcertdir\fP\ ]
+#endif
 [\ \fB--cert-fd=\fP\fIfd\fP\ ]
 [\ \fB--cgi\fP[\fB=\fP\fIportrange\fP]\ ]
 [\ \fB-d\fP\ | \fB--debug\fP\ ]
@@ -64,7 +66,9 @@ shellinaboxd \- publish command line shell through AJAX interface
 [\ \fB-n\fP\ | \fB--numeric\fP\ ]
 [\ \fB-p\fP\ | \fB--port=\fP\fIport\fP\ ]
 [\ \fB-s\fP\ | \fB--service=\fP\fIservice\fP\ ]
+#ifdef HAVE_OPENSSL
 [\ \fB-t\fP\ | \fB--disable-ssl\fP\ ]
+#endif
 [\ \fB--disable-ssl-menu\fP\ ]
 [\ \fB-q\fP\ | \fB--quiet\fP\ ]
 [\ \fB-u\fP\ | \fB--user=\fP\fIuid\fP\ ]
@@ -100,6 +104,7 @@ Launch
 .B shellinaboxd
 as a background daemon process. Optionally, write the process id to
 .IR pidfile .
+#ifdef HAVE_OPENSSL
 .TP
 \fB-c\fP\ |\ \fB--cert=\fP\fIcertdir\fP
 If built with SSL/TLS support enabled, the daemon will look in
@@ -151,6 +156,7 @@ where the certificate and key can be retrieved. While this option disables
 .B SNI
 support, it does offer an alternative solution for securely providing
 the private key data to the daemon.
+#endif
 .TP
 \fB--cgi\fP[\fB=\fP\fIportrange\fP]
 Instead of running
@@ -302,13 +308,16 @@ virtual hosting.
 \fB-s\fP\ |\ \fB--service=\fP\fIservice\fP
 One or more services can be registered on different URL paths:
 .in +4
-\fISERVICE\fP := <url-path> ':' \fIAPPLICATON\fP
+\fISERVICE\fP := <url-path> ':' \fIAPPLICATION\fP
 .in
-There is one pre-defined \fIapplication\fP, 'LOGIN'. It causes the
+
+There is a pre-defined \fIapplication\fP, 'LOGIN', which causes the
 daemon to invoke
 .B /bin/login
-to request the user's name and password, and to start his
-login shell. This is the default option, if no
+requesting the user's name and password, and starting his
+login shell. This is the default option for the
+.B root
+user, if no
 .B --service
 was defined. Starting
 .B /bin/login
@@ -316,10 +325,22 @@ requires
 .B root
 privileges.
 
+There is another pre-defined \fIapplication\fP, 'SSH'. Instead of invoking
+.BR /bin/login ,
+it calls
+.BR ssh .
+This is the default option for unprivileged users, if no
+.B --service
+was defined. This operation is available to both privileged and regular
+users. If the optional \fIhost\fP parameter is omitted,
+.B shellinaboxd
+connects to
+.BR localhost .
+
 Alternatively, an \fIapplication\fP can be specified by providing a
 \fIuser\fP description, a working directory, and a command line:
 .in +4
-\fIAPPLICATION\fP := 'LOGIN' | \fIUSER\fP ':' \fICWD\fP ':' <cmdline>
+\fIAPPLICATION\fP := 'LOGIN' | 'SSH' [ ':' <host> ] |  \fIUSER\fP ':' \fICWD\fP ':' <cmdline>
 
 #ifdef HAVE_PAM
 .in
@@ -328,9 +349,11 @@ be requested interactively, instead of being provided as part of the
 \fIservice\fP description:
 .in +4
 #endif
-\fIUSER\fP :=
 #ifdef HAVE_PAM
-'AUTH' |
+\fIUSER\fP := 'AUTH' |
+#endif
+#ifndef HAVE_PAM
+\fIUSER\fP :=
 #endif
 <username> ':' <groupname>
 .in
@@ -391,11 +414,19 @@ If no explicit
 .B --service
 has been requested,
 .B shellinaboxd
-defaults to attaching
-.B /bin/login
-to the root directory of the web server. This is equivalent to saying
-.BR --service=/:LOGIN .
+defaults to attaching the default service to the root directory of the web
+server. For
+.BR root ,
+this is
+.BR /bin/login ,
+and for unprivileged users, this is \fBssh localhost\fP. This is equivalent
+to saying
+.BR --service=/:LOGIN ,
+or
+.BR --service=/:SSH ,
+respectively.
 .RE
+#ifdef HAVE_OPENSSL
 .TP
 \fB-t\fP\ |\ \fB--disable-ssl\fP
 By default,
@@ -406,6 +437,7 @@ undesired, this behavior can be disabled.
 
 This option is also useful during testing or for deployment in trusted
 intranets, if SSL certificates are unavailable.
+#endif
 .TP
 \fB--disable-ssl-menu\fP
 If the user should not be able to switch between HTTP and HTTPS modes, this
