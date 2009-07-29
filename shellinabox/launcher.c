@@ -159,8 +159,6 @@ static int   launcher = -1;
 static uid_t restricted;
 
 
-#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_DLOPEN)
-
 // If the PAM misc library cannot be found, we have to provide our own basic
 // conversation function. As we know that this code is only ever called from
 // ShellInABox, it can be kept significantly simpler than the more generic
@@ -210,6 +208,7 @@ static int read_string(int echo, const char *prompt, char **retstr) {
   return nc;
 }
 
+#if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_DLOPEN)
 #if defined(HAVE_SECURITY_PAM_CLIENT_H)
 static pamc_bp_t *p(pamc_bp_t *p) {
   // GCC is too smart for its own good, and triggers a warning in
@@ -757,106 +756,166 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   check(!sigaction(SIGALRM, &sa, NULL));
   alarm(60);
 
-  // Use PAM to negotiate user authentication and authorization
+  // Change the prompt to include the host name
+  const char *hostname         = NULL;
+  if (service->authUser == 2 /* SSH */) {
+    // If connecting to a remote host, include that hostname
+    hostname                   = strrchr(service->cmdline, '@');
+    if (!hostname || !strcmp(++hostname, "localhost")) {
+      hostname                 = NULL;
+    }
+  }
+  struct utsname uts;
+  memset(&uts, 0, sizeof(uts));
+  if (!hostname) {
+    // Find our local hostname
+    check(!uname(&uts));
+    hostname                   = uts.nodename;
+  }
+
   const struct passwd *pw;
   pam_handle_t *pam            = NULL;
-#if defined(HAVE_SECURITY_PAM_APPL_H)
-  struct pam_conv conv         = { .conv = misc_conv };
-  if (service->authUser) {
-    check(supportsPAM());
-    check(pam_start("shellinabox", NULL, &conv, &pam) == PAM_SUCCESS);
-
-    // Change the prompt to include the host name
-    struct utsname uts;
-    check(!uname(&uts));
-    const char *origPrompt;
-    check(pam_get_item(pam, PAM_USER_PROMPT, (void *)&origPrompt) ==
-          PAM_SUCCESS);
+  if (service->authUser == 2 /* SSH */) {
+    // Just ask for the user name. SSH will negotiate the password
+    char *user                 = NULL;
     char *prompt;
-    check(prompt               = stringPrintf(NULL, "%s %s", uts.nodename,
-                                         origPrompt ? origPrompt : "login: "));
-    check(pam_set_item(pam, PAM_USER_PROMPT, prompt) == PAM_SUCCESS);
-
-    // Up to three attempts to enter the user id and password
-    for (int i = 0;;) {
-      check(pam_set_item(pam, PAM_USER, NULL) == PAM_SUCCESS);
-      int rc;
-      if ((rc                  = pam_authenticate(pam, PAM_SILENT)) ==
-          PAM_SUCCESS &&
-          (geteuid() ||
-          (rc                  = pam_acct_mgmt(pam, PAM_SILENT)) ==
-           PAM_SUCCESS)) {
-        break;
-      }
-      if (++i == 3) {
-        // Quit if login failed.
-        puts("\nMaximum number of tries exceeded (3)");
-        pam_end(pam, rc);
-        _exit(1);
-      } else {
-        puts("\nLogin incorrect");
-      }
+    check(prompt               = stringPrintf(NULL, "%s login: ", hostname));
+    if (read_string(1, prompt, &user) <= 0) {
+      free(user);
+      free(prompt);
+      _exit(1);
     }
-    check(pam_set_item(pam, PAM_USER_PROMPT, "login: ") == PAM_SUCCESS);
     free(prompt);
+    char *localhost            = strstr(service->cmdline, "@localhost");
+    if (localhost) {
+      memcpy(localhost+1, "%s", 3);
+    }
+    char *cmdline              = stringPrintf(NULL, service->cmdline, user,
+                                              hostname);
+    free(user);
+    free((void *)service->cmdline);
+    service->cmdline           = cmdline;
 
-    // Retrieve user id, and group id.
-    const char *name;
-    check(pam_get_item(pam, PAM_USER, (void *)&name) == PAM_SUCCESS);
-    pw                         = getPWEnt(getUserId(name));
-    check(service->uid < 0);
-    check(service->gid < 0);
-    check(!service->user);
-    check(!service->group);
-    service->uid               = pw->pw_uid;
-    service->gid               = pw->pw_gid;
-    check(service->user        = strdup(pw->pw_name));
-    service->group             = getGroupName(pw->pw_gid);
-  } else {
-    check(service->uid >= 0);
-    check(service->gid >= 0);
-    check(service->user);
-    check(service->group);
-    if (supportsPAM()) {
-      check(pam_start("shellinabox", service->user, &conv, &pam) ==
-            PAM_SUCCESS);
-      int rc;
-
-      // PAM account management requires root access. Just skip it, if we
-      // are running with lower privileges.
-      if (!geteuid() &&
-          (rc                  = pam_acct_mgmt(pam, PAM_SILENT)) !=
-          PAM_SUCCESS) {
-        pam_end(pam, rc);
-        _exit(1);
+    // Run SSH as an unprivileged user
+    if ((service->uid          = restricted) == 0) {
+      if (runAsUser >= 0) {
+        service->uid           = runAsUser;
+      } else {
+        service->uid           = getUserId("nobody");
+      }
+      if (runAsGroup >= 0) {
+        service->gid           = runAsGroup;
+      } else {
+        service->gid           = getGroupId("nogroup");
       }
     }
     pw                         = getPWEnt(service->uid);
-  }
+    if (restricted) {
+      service->gid             = pw->pw_gid;
+    }
+    service->user              = getUserName(service->uid);
+    service->group             = getGroupName(service->gid);
+  } else {
+    // Use PAM to negotiate user authentication and authorization
+#if defined(HAVE_SECURITY_PAM_APPL_H)
+    struct pam_conv conv       = { .conv = misc_conv };
+    if (service->authUser) {
+      check(supportsPAM());
+      check(pam_start("shellinabox", NULL, &conv, &pam) == PAM_SUCCESS);
+
+      const char *origPrompt;
+      check(pam_get_item(pam, PAM_USER_PROMPT, (void *)&origPrompt) ==
+            PAM_SUCCESS);
+      char *prompt;
+      check(prompt             = stringPrintf(NULL, "%s %s", hostname,
+                                         origPrompt ? origPrompt : "login: "));
+      check(pam_set_item(pam, PAM_USER_PROMPT, prompt) == PAM_SUCCESS);
+
+      // Up to three attempts to enter the user id and password
+      for (int i = 0;;) {
+        check(pam_set_item(pam, PAM_USER, NULL) == PAM_SUCCESS);
+        int rc;
+        if ((rc                = pam_authenticate(pam, PAM_SILENT)) ==
+            PAM_SUCCESS &&
+            (geteuid() ||
+             (rc               = pam_acct_mgmt(pam, PAM_SILENT)) ==
+             PAM_SUCCESS)) {
+          break;
+        }
+        if (++i == 3) {
+          // Quit if login failed.
+          puts("\nMaximum number of tries exceeded (3)");
+          pam_end(pam, rc);
+          _exit(1);
+        } else {
+          puts("\nLogin incorrect");
+        }
+      }
+      check(pam_set_item(pam, PAM_USER_PROMPT, "login: ") == PAM_SUCCESS);
+      free(prompt);
+
+      // Retrieve user id, and group id.
+      const char *name;
+      check(pam_get_item(pam, PAM_USER, (void *)&name) == PAM_SUCCESS);
+      pw                       = getPWEnt(getUserId(name));
+      check(service->uid < 0);
+      check(service->gid < 0);
+      check(!service->user);
+      check(!service->group);
+      service->uid             = pw->pw_uid;
+      service->gid             = pw->pw_gid;
+      check(service->user      = strdup(pw->pw_name));
+      service->group           = getGroupName(pw->pw_gid);
+    } else {
+      check(service->uid >= 0);
+      check(service->gid >= 0);
+      check(service->user);
+      check(service->group);
+      if (supportsPAM()) {
+        check(pam_start("shellinabox", service->user, &conv, &pam) ==
+              PAM_SUCCESS);
+        int rc;
+
+        // PAM account management requires root access. Just skip it, if we
+        // are running with lower privileges.
+        if (!geteuid() &&
+            (rc                = pam_acct_mgmt(pam, PAM_SILENT)) !=
+            PAM_SUCCESS) {
+          pam_end(pam, rc);
+          _exit(1);
+        }
+      }
+      pw                       = getPWEnt(service->uid);
+    }
 #else
-  check(!supportsPAM());
-  pw                           = getPWEnt(service->uid);
+    check(!supportsPAM());
+    pw                         = getPWEnt(service->uid);
 #endif
+  }
 
   if (restricted &&
       (service->uid != restricted || service->gid != pw->pw_gid)) {
     puts("\nAccess denied!");
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-    pam_end(pam, PAM_SUCCESS);
+    if (service->authUser != 2 /* SSH */) {
+      pam_end(pam, PAM_SUCCESS);
+    }
 #endif
     _exit(1);
   }
 
+  if (service->authUser != 2 /* SSH */) {
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-  if (pam) {
+    if (pam) {
 #ifdef HAVE_UTMPX_H
-    check(pam_set_item(pam, PAM_TTY, (const void **)utmp->utmpx.ut_line) ==
-          PAM_SUCCESS);
+      check(pam_set_item(pam, PAM_TTY, (const void **)utmp->utmpx.ut_line) ==
+            PAM_SUCCESS);
+#endif
+    }
+#else
+    check(!pam);
 #endif
   }
-#else
-  check(!pam);
-#endif
 
   // Retrieve supplementary group ids.
   int ngroups;
@@ -908,12 +967,15 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
 
   // Update utmp/wtmp entries
 #ifdef HAVE_UTMPX_H
-  memset(&utmp->utmpx.ut_user, 0, sizeof(utmp->utmpx.ut_user));
-  strncat(&utmp->utmpx.ut_user[0], service->user, sizeof(utmp->utmpx.ut_user));
-  setutxent();
-  pututxline(&utmp->utmpx);
-  endutxent();
-  updwtmpx("/var/log/wtmp", &utmp->utmpx);
+  if (service->authUser != 2 /* SSH */) {
+    memset(&utmp->utmpx.ut_user, 0, sizeof(utmp->utmpx.ut_user));
+    strncat(&utmp->utmpx.ut_user[0], service->user,
+            sizeof(utmp->utmpx.ut_user));
+    setutxent();
+    pututxline(&utmp->utmpx);
+    endutxent();
+    updwtmpx("/var/log/wtmp", &utmp->utmpx);
+  }
 #endif
 
   alarm(0);
@@ -1228,7 +1290,7 @@ static void childProcess(struct Service *service, int width, int height,
   }
 
   // Finally, launch the child process.
-  if (service->useLogin) {
+  if (service->useLogin == 1) {
     execle("/bin/login", "login", "-p", "-h", peerName,
            (void *)0, environment);
     execle("/usr/bin/login", "login", "-p", "-h", peerName,

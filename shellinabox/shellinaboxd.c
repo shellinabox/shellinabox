@@ -612,7 +612,8 @@ static void usage(void) {
           "be made available \n"
           "through the web interface:\n"
           "  SERVICE := <url-path> ':' APP\n"
-          "  APP     := 'LOGIN' | USER ':' CWD ':' <cmdline>\n"
+          "  APP     := 'LOGIN' | 'SSH' [ : <host> ] | "
+                        "USER ':' CWD ':' <cmdline>\n"
           "  USER    := %s<username> ':' <groupname>\n"
           "  CWD     := 'HOME' | <dir>\n"
           "\n"
@@ -880,7 +881,8 @@ static void parseArgs(int argc, char * const argv[]) {
 
   // If the user did not register any services, provide the default service
   if (!getHashmapSize(serviceTable)) {
-    addToHashMap(serviceTable, "/", (char *)newService(":LOGIN"));
+    addToHashMap(serviceTable, "/", (char *)newService(geteuid() ? ":SSH" :
+                                                                   ":LOGIN"));
   }
   enumerateServices(serviceTable);
   deleteHashMap(serviceTable);

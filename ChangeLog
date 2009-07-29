@@ -1,3 +1,8 @@
+2009-07-29  Markus Gutschke  <markus@shellinabox.com>
+
+	* Allow unprivileged users to run the daemon. This requires
+	calling "ssh" instead of "login".
+
 2009-07-27  Markus Gutschke  <markus@shellinabox.com>
 
 	* Use JavaScript redirection for attaching the missing slash to
@@ -21,11 +26,11 @@
 	redirecting to a URL that includes a trailing slash.
 
 	* Run-time testing for availability of libpthread functions does not
-	  work reliably on some platforms. So, avoid doing so on anything
-	  other than Linux/i386. For all other platforms, assume that the code
-	  is not linked against libpthread. For ShellInABox, this is always
-	  the correct assumption. But if the code gets embedded into other
-	  projects, this might have to be changed.
+	work reliably on some platforms. So, avoid doing so on anything
+	other than Linux/i386. For all other platforms, assume that the code
+	is not linked against libpthread. For ShellInABox, this is always
+	the correct assumption. But if the code gets embedded into other
+	projects, this might have to be changed.
 
 2009-07-05  Markus Gutschke  <markus@shellinabox.com>
 
