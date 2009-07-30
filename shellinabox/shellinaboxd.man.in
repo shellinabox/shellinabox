@@ -518,6 +518,12 @@ with SSL/TLS support disabled.
 .B shellinaboxd -t -f beep.wav:/dev/null
 Runs all services with the audible-bell permanently disabled.
 .TP
+.B shellinaboxd -s /:SSH:example.org
+The terminal connects to a
+.B ssh
+session on
+.IR example.org .
+.TP
 .B shellinaboxd -t -s /:AUTH:HOME:/bin/bash
 Interactively request the user's name and password prior to launching
 a Bourne shell. This command can be run by unprivileged users. But if
