@@ -15,7 +15,8 @@ dist_doc_DATA        = AUTHORS                                                \
                        INSTALL                                                \
                        NEWS                                                   \
                        README                                                 \
-                       TODO
+                       TODO                                                   \
+                       shellinabox/white-on-black.css
 EXTRA_DIST           = demo/beep.wav                                          \
                        demo/favicon.ico                                       \
                        demo/demo.html                                         \
@@ -152,6 +153,11 @@ shellinaboxd.1: shellinabox/shellinaboxd.man.in config.h
 	  sed -e '/^#ifndef  *HAVE_PAM$$/,/^#endif$$/d';                      \
 	else                                                                  \
 	  sed -e '/^#ifdef  *HAVE_PAM$$/,/^#endif$$/d';                       \
+	fi |                                                                  \
+	if [ -n "${DPKGBUILD}" ]; then                                        \
+	  sed -e '/^#ifndef  *DPKGBUILD$$/,/^#endif$$/d';                     \
+	else                                                                  \
+	  sed -e '/^#ifdef  *DPKGBUILD$$/,/^#endif$$/d';                      \
 	fi |                                                                  \
 	sed -e '/^#/d' >"$@"
 	@out=`echo "$@" 2>/dev/null|sed -e 's/\.[^.]*$$/.ps/'`;               \

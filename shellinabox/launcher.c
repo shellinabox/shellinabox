@@ -772,6 +772,11 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
     check(!uname(&uts));
     hostname                   = uts.nodename;
   }
+  check(hostname               = strdup(hostname));
+  char *dot                    = strchr(hostname, '.');
+  if (dot) {
+    *dot                       = '\000';
+  }
 
   const struct passwd *pw;
   pam_handle_t *pam            = NULL;
@@ -786,12 +791,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
       _exit(1);
     }
     free(prompt);
-    char *localhost            = strstr(service->cmdline, "@localhost");
-    if (localhost) {
-      memcpy(localhost+1, "%s", 3);
-    }
-    char *cmdline              = stringPrintf(NULL, service->cmdline, user,
-                                              hostname);
+    char *cmdline              = stringPrintf(NULL, service->cmdline, user);
     free(user);
     free((void *)service->cmdline);
     service->cmdline           = cmdline;
@@ -892,6 +892,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
     pw                         = getPWEnt(service->uid);
 #endif
   }
+  free((void *)hostname);
 
   if (restricted &&
       (service->uid != restricted || service->gid != pw->pw_gid)) {

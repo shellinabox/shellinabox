@@ -55,6 +55,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 [\ \fB-c\fP\ | \fB--cert=\fP\fIcertdir\fP\ ]
 #endif
 [\ \fB--cert-fd=\fP\fIfd\fP\ ]
+[\ \fB--css=\fP\fIfilename\fP\ ]
 [\ \fB--cgi\fP[\fB=\fP\fIportrange\fP]\ ]
 [\ \fB-d\fP\ | \fB--debug\fP\ ]
 [\ \fB-f\fP\ | \fB--static-file=\fP\fIurl\fP:\fIfile\fP\ ]
@@ -157,6 +158,19 @@ where the certificate and key can be retrieved. While this option disables
 support, it does offer an alternative solution for securely providing
 the private key data to the daemon.
 #endif
+.TP
+\fB--css=\fP\fIfilename\fP
+Sometimes, it is not necessary to replace the entire style sheet using the
+.B --static-file
+option. But instead a small incremental change should be made to the visual
+appearance of the terminal. The
+.B --css
+option provides a means to append additional style rules to the end of
+the default
+.B styles.css
+sheet. More than one
+.B --css
+option can be given on the same command line.
 .TP
 \fB--cgi\fP[\fB=\fP\fIportrange\fP]
 Instead of running
@@ -540,6 +554,22 @@ terminal, publish a
 .B Wyse 60\*(Tm
 terminal. Again, this command should be run as
 .BR root .
+.TP
+#ifndef DPKGBUILD
+.B shellinaboxd --css white-on-black.css
+#endif
+#ifdef DPKGBUILD
+.B shellinaboxd --css /usr/share/doc/shellinabox/white-on-black.css
+#endif
+Loads the
+.B white-on-black.css
+style sheet
+#ifndef DPKGBUILD
+from the current directory
+#endif
+and appends it to the built-in
+.B styles.css
+sheet. This causes the terminal to render white text on a black background.
 .P
 .SH DIAGNOSTICS
 The daemon returns a non-zero exit code in case of failure. With the
@@ -553,6 +583,31 @@ Common failure conditions are reusing a port that is already in use,
 lack of sufficient privileges to run a service, failure to find
 SSL/TLS certificates, and failure to write newly generated
 certificates to the certification directory.
+#ifdef DPKGBUILD
+.SH FILES
+.TP 10
+.I /etc/default/shellinabox
+The system-wide installation of
+.B shellinaboxd
+can be configured by editing this file. After making any changes, restart
+the daemon with \fBsudo service shellinabox restart\fP.
+.TP
+.I /etc/init.d/shellinabox
+This is the system-wide service definition. Usually, there is no need to
+edit this file.
+.TP
+.I /var/lib/shellinabox
+This directory contains the certificate files that
+.B shellinaboxd
+uses when serving encrypted SSL sessions. If suitable files do not exist, yet,
+it tries to populate the directory with self-signed certificates the first
+time a particular certificate is needed. Over time, it should contain
+\fBcertificate.pem\fP, \fBcertificate-localhost.pem\fP, and
+\fBcertificate-\fP\fIHOSTNAME\fP\fB.pem\fP.
+.TP
+.I /var/run/shellinaboxd.pid
+This file is created any time the system-wide service gets started.
+#endif
 .SH "SEE ALSO"
 .BR chmod (1),
 .BR last (1),

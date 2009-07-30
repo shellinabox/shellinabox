@@ -1,0 +1,6 @@
+#vt100 #scrollable { 
+  color:            white;
+  background-color: black;
+}
+#vt100 #ansi0  { background-color: #ffffff; }
+#vt100 #ansi15 { background-color: #000000; }

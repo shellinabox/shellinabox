@@ -91,6 +91,7 @@ static HashMap *externalFiles;
 static Server  *cgiServer;
 static char    *cgiSessionKey;
 static int     cgiSessions;
+static char    *cssStyleSheet;
 
 static char *jsonEscape(const char *buf, int len) {
   static const char *hexDigit = "0123456789ABCDEF";
@@ -548,9 +549,8 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     httpTransfer(http, response, headerLength + contentLength);
   } else if (pathInfoLength == 10 && !memcmp(pathInfo, "styles.css", 10)) {
     // Serve the style sheet.
-    extern char stylesStart[];
-    extern char stylesEnd[];
-    serveStaticFile(http, "text/css; charset=utf-8", stylesStart, stylesEnd);
+    serveStaticFile(http, "text/css; charset=utf-8",
+                    cssStyleSheet, strrchr(cssStyleSheet, '\000'));
   } else {
     httpSendReply(http, 404, "File not found", NO_MSG);
   }
@@ -589,6 +589,7 @@ static void usage(void) {
           "List of command line options:\n"
           "  -b, --background[=PIDFILE]  run in background\n"
           "%s"
+          "      --css=FILE              attach contents to CSS style sheet\n"
           "      --cgi[=PORTMIN-PORTMAX] run as CGI\n"
           "  -d, --debug                 enable debug mode\n"
           "  -f, --static-file=URL:FILE  serve static file from URL path\n"
@@ -655,6 +656,12 @@ static void parseArgs(int argc, char * const argv[]) {
   int verbosity            = MSG_DEFAULT;
   externalFiles            = newHashMap(destroyExternalFileHashEntry, NULL);
   HashMap *serviceTable    = newHashMap(destroyServiceHashEntry, NULL);
+  extern char stylesStart[];
+  extern char stylesEnd[];
+  check(cssStyleSheet      = malloc(stylesEnd - stylesStart));
+  memcpy(cssStyleSheet, stylesStart, stylesEnd - stylesStart);
+  cssStyleSheet[stylesEnd - stylesStart] = '\000';
+
   for (;;) {
     static const char optstring[] = "+hb::c:df:g:np:s:tqu:v";
     static struct option options[] = {
@@ -662,6 +669,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "background",       2, 0, 'b' },
       { "cert",             1, 0, 'c' },
       { "cert-fd",          1, 0,  0  },
+      { "css",              1, 0,  0  },
       { "cgi",              2, 0,  0  },
       { "debug",            0, 0, 'd' },
       { "static-file",      1, 0, 'f' },
@@ -707,7 +715,7 @@ static void parseArgs(int argc, char * const argv[]) {
       if (optarg && pidfile) {
         fatal("Only one pidfile can be given");
       }
-      if (optarg) {
+      if (optarg && *optarg) {
         pidfile            = strdup(optarg);
       }
     } else if (!idx--) {
@@ -721,6 +729,10 @@ static void parseArgs(int argc, char * const argv[]) {
       if (certificateDir) {
         fatal("Only one certificate directory can be selected");
       }
+      struct stat st;
+      if (!optarg || !*optarg || stat(optarg, &st) || !S_ISDIR(st.st_mode)) {
+        fatal("\"--cert\" expects a directory name");
+      }
       check(certificateDir = strdup(optarg));
     } else if (!idx--) {
       // Certificate file descriptor
@@ -733,12 +745,35 @@ static void parseArgs(int argc, char * const argv[]) {
       if (certificateFd >= 0) {
         fatal("Only one certificate file handle can be provided");
       }
+      if (!optarg || *optarg < '0' || *optarg > '9') {
+        fatal("\"--cert-fd\" expects a valid file handle");
+      }
       int tmpFd            = strtoint(optarg, 3, INT_MAX);
       certificateFd        = dup(tmpFd);
       if (certificateFd < 0) {
         fatal("Invalid certificate file handle");
       }
       check(!NOINTR(close(tmpFd)));
+    } else if (!idx--) {
+      // CSS
+      struct stat st;
+      if (!optarg || !*optarg || stat(optarg, &st) || !S_ISREG(st.st_mode)) {
+        fatal("\"--css\" expects a file name");
+      }
+      FILE *css            = fopen(optarg, "r");
+      if (!css) {
+        fatal("Cannot read style sheet \"%s\"", optarg);
+      } else {
+        check(cssStyleSheet= realloc(cssStyleSheet, strlen(cssStyleSheet) +
+                                     st.st_size + 2));
+        char *newData      = strrchr(cssStyleSheet, '\000');
+        *newData++         = '\n';
+        if (fread(newData, 1, st.st_size, css) != st.st_size) {
+          fatal("Failed to read style sheet \"%s\"", optarg);
+        }
+        newData[st.st_size]= '\000';
+        fclose(css);
+      }
     } else if (!idx--) {
       // CGI
       if (demonize) {
@@ -748,7 +783,7 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Cannot specify a port for CGI operation");
       }
       cgi                  = 1;
-      if (optarg) {
+      if (optarg && *optarg) {
         char *ptr          = strchr(optarg, '-');
         if (!ptr) {
           fatal("Syntax error in port range specification");
@@ -784,6 +819,9 @@ static void parseArgs(int argc, char * const argv[]) {
       if (runAsGroup >= 0) {
         fatal("Duplicate --group option.");
       }
+      if (!optarg || !*optarg) {
+        fatal("\"--group\" expects a group name.");
+      }
       runAsGroup           = parseGroup(optarg, NULL);
     } else if (!idx--) {
       // Linkify
@@ -813,6 +851,9 @@ static void parseArgs(int argc, char * const argv[]) {
       }
       if (cgi) {
         fatal("Cannot specifiy a port for CGI operation");
+      }
+      if (!optarg || *optarg < '0' || *optarg > '9') {
+        fatal("\"--port\" expects a port number.");
       }
       port = strtoint(optarg, 1, 65535);
     } else if (!idx--) {
@@ -847,6 +888,9 @@ static void parseArgs(int argc, char * const argv[]) {
       // User
       if (runAsUser >= 0) {
         fatal("Duplicate --user option.");
+      }
+      if (!optarg || !*optarg) {
+        fatal("\"--user\" expects a user name.");
       }
       runAsUser            = parseUser(optarg, NULL);
     } else if (!idx--) {
