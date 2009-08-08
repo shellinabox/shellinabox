@@ -128,6 +128,9 @@
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "shellinabox"
 
+/* Define to the home page for this package. */
+#define PACKAGE_URL ""
+
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "2.9"
 
@@ -135,7 +138,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "161"
+#define VCS_REVISION "162"
 
 /* Version number of package */
 #define VERSION "2.9"
