@@ -497,7 +497,8 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     rootPage[rootPageEnd - rootPageStart] = '\000';
     char *html            = stringPrintf(NULL, rootPage,
                                          enableSSL ? "true" : "false");
-    httpSendReply(http, 200, "OK", html);
+    serveStaticFile(http, "text/html", html, strrchr(html, '\000'));
+    free(html);
     free(rootPage);
   } else if (pathInfoLength == 8 && !memcmp(pathInfo, "beep.wav", 8)) {
     // Serve the audio sample for the console bell.
