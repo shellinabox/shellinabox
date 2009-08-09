@@ -772,6 +772,8 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
     check(!uname(&uts));
     hostname                   = uts.nodename;
   }
+  const char *fqdn;
+  check(fqdn                   = strdup(hostname));
   check(hostname               = strdup(hostname));
   char *dot                    = strchr(hostname, '.');
   if (dot) {
@@ -785,14 +787,45 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
     char *user                 = NULL;
     char *prompt;
     check(prompt               = stringPrintf(NULL, "%s login: ", hostname));
-    if (read_string(1, prompt, &user) <= 0) {
+    for (;;) {
+      if (read_string(1, prompt, &user) <= 0) {
+        free(user);
+        free(prompt);
+        _exit(1);
+      }
+      if (*user) {
+        for (char *u = user; *u; u++) {
+          char ch              = *u;
+          if (!((ch >= '0' && ch <= '9') ||
+                (ch >= 'A' && ch <= 'Z') ||
+                (ch >= 'a' && ch <= 'z') ||
+                ch == '-' || ch == '_' || ch == '.')) {
+            goto invalid_user_name;
+          }
+        }
+        break;
+      }
+    invalid_user_name:
       free(user);
-      free(prompt);
-      _exit(1);
+      user                     = NULL;
     }
     free(prompt);
     char *cmdline              = stringPrintf(NULL, service->cmdline, user);
     free(user);
+
+    // Replace '@localhost' with the actual host name. This results in a nicer
+    // prompt when SSH asks for the password.
+    char *ptr                  = strrchr(cmdline, '@');
+    if (!strcmp(ptr + 1, "localhost")) {
+      int offset               = ptr + 1 - cmdline;
+      check(cmdline            = realloc(cmdline,
+                                         strlen(cmdline) + strlen(fqdn) -
+                                         strlen("localhost") + 1));
+      ptr                      = cmdline + offset;
+      *ptr                     = '\000';
+      strncat(ptr, fqdn, strlen(fqdn));
+    }
+
     free((void *)service->cmdline);
     service->cmdline           = cmdline;
 
@@ -892,6 +925,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
     pw                         = getPWEnt(service->uid);
 #endif
   }
+  free((void *)fqdn);
   free((void *)hostname);
 
   if (restricted &&

@@ -124,6 +124,19 @@ void initService(struct Service *service, const char *arg) {
         free(ptr);
       }
     }
+
+    // Don't allow manipulation of the SSH command line through "creative" use
+    // of the host name.
+    for (char *h = host; *h; h++) {
+      char ch                               = *h;
+      if (!((ch >= '0' && ch <= '9') ||
+            (ch >= 'A' && ch <= 'Z') ||
+            (ch >= 'a' && ch <= 'z') ||
+            ch == '-' || ch == '.')) {
+        fatal("Invalid hostname \"%s\" in service definition", host);
+      }
+    }
+
     service->cmdline                        = stringPrintf(NULL,
       "ssh -a -e none -i /dev/null -x -oChallengeResponseAuthentication=no "
           "-oCheckHostIP=no -oClearAllForwardings=yes -oCompression=no "

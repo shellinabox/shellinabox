@@ -1693,7 +1693,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.9 (revision 163)" +
+  alert("VT100 Terminal Emulator " + "2.9 (revision 164)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -1995,6 +1995,10 @@ VT100.prototype.handleKey = function(event) {
   }
 
   if (this.menu.style.visibility == 'hidden') {
+    // this.vt100('R: c=');
+    // for (var i = 0; i < ch.length; i++)
+    //   this.vt100((i != 0 ? ', ' : '') + ch.charCodeAt(i));
+    // this.vt100('\r\n');
     this.keysPressed(ch);
   }
 };
@@ -2111,6 +2115,12 @@ VT100.prototype.fixEvent = function(event) {
 };
 
 VT100.prototype.keyDown = function(event) {
+  // this.vt100('D: c=' + event.charCode + ', k=' + event.keyCode +
+  //            (event.shiftKey || event.ctrlKey || event.altKey ||
+  //             event.metaKey ? ', ' +
+  //             (event.shiftKey ? 'S' : '') + (event.ctrlKey ? 'C' : '') +
+  //             (event.altKey ? 'A' : '') + (event.metaKey ? 'M' : '') : '') +
+  //            '\r\n');
   this.checkComposedKeys(event);
   this.lastKeyPressedEvent      = undefined;
   this.lastKeyDownEvent         = undefined;
@@ -2196,6 +2206,12 @@ VT100.prototype.keyDown = function(event) {
 };
 
 VT100.prototype.keyPressed = function(event) {
+  // this.vt100('P: c=' + event.charCode + ', k=' + event.keyCode +
+  //            (event.shiftKey || event.ctrlKey || event.altKey ||
+  //             event.metaKey ? ', ' +
+  //             (event.shiftKey ? 'S' : '') + (event.ctrlKey ? 'C' : '') +
+  //             (event.altKey ? 'A' : '') + (event.metaKey ? 'M' : '') : '') +
+  //            '\r\n');
   if (this.lastKeyDownEvent) {
     // If we already processed the key on keydown, do not process it
     // again here. Ideally, the browser should not even have generated a
@@ -2226,6 +2242,12 @@ VT100.prototype.keyPressed = function(event) {
 };
 
 VT100.prototype.keyUp = function(event) {
+  // this.vt100('U: c=' + event.charCode + ', k=' + event.keyCode +
+  //            (event.shiftKey || event.ctrlKey || event.altKey ||
+  //             event.metaKey ? ', ' +
+  //             (event.shiftKey ? 'S' : '') + (event.ctrlKey ? 'C' : '') +
+  //             (event.altKey ? 'A' : '') + (event.metaKey ? 'M' : '') : '') +
+  //            '\r\n');
   if (this.lastKeyPressedEvent) {
     // The compose key on Linux occasionally confuses the browser and keeps
     // inserting bogus characters into the input field, even if just a regular
