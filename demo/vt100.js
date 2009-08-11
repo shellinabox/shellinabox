@@ -1801,7 +1801,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.9 (revision 165)" +
+  alert("VT100 Terminal Emulator " + "2.9 (revision 166)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -2251,7 +2251,8 @@ VT100.prototype.keyDown = function(event) {
     event.keyCode >=  65 && event.keyCode <=  90;
   var alphNumKey                =
     asciiKey                                     ||
-    event.keyCode >=  96 && event.keyCode <= 105;
+    event.keyCode >=  96 && event.keyCode <= 105 ||
+    event.keyCode == 226;
   var normalKey                 =
     alphNumKey                                   ||
     event.keyCode ==  59 || event.keyCode ==  61 ||
@@ -2259,7 +2260,7 @@ VT100.prototype.keyDown = function(event) {
     event.keyCode >= 109 && event.keyCode <= 111 ||
     event.keyCode >= 186 && event.keyCode <= 192 ||
     event.keyCode >= 219 && event.keyCode <= 222 ||
-    event.keyCode == 226 || event.keyCode == 252;
+    event.keyCode == 252;
   try {
     if (navigator.appName == 'Konqueror') {
       normalKey                |= event.keyCode < 128;

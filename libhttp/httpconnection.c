@@ -492,6 +492,16 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
   check(msg);
   check(len >= 0);
 
+  // Internet Explorer prior to version 7 seems to have difficulties with
+  // compressed data. It also has difficulties with SSL connections that
+  // are being proxied.
+  int ieBug                 = 0;
+  const char *userAgent     = getFromHashMap(&http->header, "user-agent");
+  const char *msie          = userAgent ? strstr(userAgent, "MSIE ") : NULL;
+  if (msie && msie[5] >= '4' && msie[5] <= '6') {
+    ieBug++;
+  }
+      
   int compress              = 0;
   char *contentLength       = NULL;
   if (!http->totalWritten) {
@@ -528,7 +538,7 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
 
         #ifdef HAVE_ZLIB
         // Compress replies that might exceed the size of a single IP packet
-        compress            = !isHead &&
+        compress            = !ieBug && !isHead &&
                               !http->isPartialReply &&
                               len > 1400 &&
                               httpAcceptsEncoding(http, "deflate");
@@ -630,18 +640,6 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
     http->msgLength         = len;
   }
 
-  // Internet Explorer prior to version 7 has a bug when sending
-  // XMLHttpRequests over HTTPS that go through a proxy. It won't see the
-  // reply until we close the connection.
-  int ieBug                 = 0;
-  if (http->sslHndl) {
-    const char *userAgent   = getFromHashMap(&http->header, "user-agent");
-    const char *msie        = userAgent ? strstr(userAgent, "MSIE ") : NULL;
-    if (msie && msie[5] >= '4' && msie[5] <= '6') {
-      ieBug++;
-    }
-  }
-
   // The caller can suspend the connection, so that it can send an
   // asynchronous reply. Once the reply has been sent, the connection
   // gets reactivated. Normally, this means it would go back to listening
@@ -688,7 +686,7 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
     }
   }
 
-  if (ieBug) {
+  if (http->sslHndl && ieBug) {
     httpCloseRead(http);
   }
 }
