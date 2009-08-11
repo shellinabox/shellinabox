@@ -76,6 +76,8 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/service.h                                  \
                        shellinabox/session.c                                  \
                        shellinabox/session.h                                  \
+                       shellinabox/usercss.c                                  \
+                       shellinabox/usercss.h                                  \
                        shellinabox/cgi_root.html                              \
                        shellinabox/root_page.html                             \
                        shellinabox/vt100.jspp                                 \

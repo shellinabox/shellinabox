@@ -259,6 +259,108 @@ VT100.prototype.addListener = function(elem, event, listener) {
   }
 };
 
+VT100.prototype.initializeUserCSSStyles = function() {
+  this.usercssActions                    = [];
+  if (typeof userCSSList != 'undefined') {
+    var menu                             = '';
+    var group                            = '';
+    var wasSingleSel                     = 1;
+    var beginOfGroup                     = 0;
+    for (var i = 0; i <= userCSSList.length; ++i) {
+      if (i < userCSSList.length) {
+        var label                        = userCSSList[i][0];
+        var newGroup                     = userCSSList[i][1];
+        var enabled                      = userCSSList[i][2];
+      
+        // Add user style sheet to document
+        var style                        = document.createElement('link');
+        var id                           = document.createAttribute('id');
+        id.nodeValue                     = 'usercss-' + i;
+        style.setAttributeNode(id);
+        var rel                          = document.createAttribute('rel');
+        rel.nodeValue                    = 'stylesheet';
+        style.setAttributeNode(rel);
+        var href                         = document.createAttribute('href');
+        href.nodeValue                   = 'usercss-' + i + '.css';
+        style.setAttributeNode(href);
+        var type                         = document.createAttribute('type');
+        type.nodeValue                   = 'text/css';
+        style.setAttributeNode(type);
+        document.getElementsByTagName('head')[0].appendChild(style);
+        style.disabled                   = !enabled;
+      }
+    
+      // Add entry to menu
+      if (newGroup || i == userCSSList.length) {
+        if (beginOfGroup != 0 && (i - beginOfGroup > 1 || !wasSingleSel)) {
+          // The last group had multiple entries that are mutually exclusive;
+          // or the previous to last group did. In either case, we need to
+          // append a "<hr />" before we can add the last group to the menu.
+          menu                          += '<hr />';
+        }
+        wasSingleSel                     = i - beginOfGroup < 1;
+        menu                            += group;
+        group                            = '';
+
+        for (var j = beginOfGroup; j < i; ++j) {
+          this.usercssActions[this.usercssActions.length] =
+            function(vt100, current, begin, count) {
+
+              // Deselect all other entries in the group, then either select
+              // (for multiple entries in group) or toggle (for on/off entry)
+              // the current entry.
+              return function() {
+                var entry                = vt100.getChildById(vt100.menu,
+                                                              'beginusercss');
+                var i                    = -1;
+                var j                    = -1;
+                for (var c = count; c > 0; ++j) {
+                  if (entry.tagName == 'LI') {
+                    if (++i >= begin) {
+                      --c;
+                      var label          = vt100.usercss.childNodes[j];
+                      label.innerHTML    =
+                                       label.innerHTML.replace(/^\u2714 /, '');
+                      var sheet          = document.getElementById(
+                                                               'usercss-' + i);
+                      if (i == current) {
+                        if (count == 1) {
+                          sheet.disabled = !sheet.disabled;
+                        } else {
+                          sheet.disabled = false;
+                        }
+                        if (!sheet.disabled) {
+                          label.innerHTML= '&#10004; ' + label.innerHTML;
+                        }
+                      } else {
+                        sheet.disabled   = true;
+                      }
+                    }
+                  }
+                  entry                  = entry.nextSibling;
+                }
+              };
+            }(this, j, beginOfGroup, i - beginOfGroup);
+        }
+
+        if (i == userCSSList.length) {
+          break;
+        }
+
+        beginOfGroup                     = i;
+      }
+      // Collect all entries in a group, before attaching them to the menu.
+      // This is necessary as we don't know whether this is a group of
+      // mutually exclusive options (which should be separated by "<hr />" on
+      // both ends), or whether this is a on/off toggle, which can be grouped
+      // together with other on/off options.
+      group                             +=
+        '<li>' + (enabled ? '&#10004; ' : '') + label + '</li>';
+    }
+    this.usercss.innerHTML               = menu;
+  }
+};
+
 VT100.prototype.initializeElements = function(container) {
   // If the necessary objects have not already been defined in the HTML
   // page, create them now.
@@ -279,6 +381,7 @@ VT100.prototype.initializeElements = function(container) {
       !this.getChildById(this.container, 'padding')     ||
       !this.getChildById(this.container, 'cursor')      ||
       !this.getChildById(this.container, 'lineheight')  ||
+      !this.getChildById(this.container, 'usercss')     ||
       !this.getChildById(this.container, 'space')       ||
       !this.getChildById(this.container, 'input')       ||
       !this.getChildById(this.container, 'cliphelper')  ||
@@ -325,6 +428,7 @@ VT100.prototype.initializeElements = function(container) {
                          '<pre id="cursor">&nbsp;</pre>' +
                        '</div>' +
                        '<div class="hidden">' +
+                         '<div id="usercss"></div>' +
                          '<pre><div><span id="space"></span></div></pre>' +
                          '<input type="textfield" id="input" />' +
                          '<input type="textfield" id="cliphelper" />' +
@@ -365,11 +469,15 @@ VT100.prototype.initializeElements = function(container) {
   var ieProbe                  = this.getChildById(this.container, 'ieprobe');
   this.padding                 = this.getChildById(this.container, 'padding');
   this.cursor                  = this.getChildById(this.container, 'cursor');
+  this.usercss                 = this.getChildById(this.container, 'usercss');
   this.space                   = this.getChildById(this.container, 'space');
   this.input                   = this.getChildById(this.container, 'input');
   this.cliphelper              = this.getChildById(this.container,
                                                                  'cliphelper');
   this.attributeHelper         = this.getChildById(this.container, 'attrib');
+
+  // Add any user selectable style sheets to the menu
+  this.initializeUserCSSStyles();
 
   // Remember the dimensions of a standard character glyph. We would
   // expect that we could just check cursor.clientWidth/Height at any time,
@@ -1693,7 +1801,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.9 (revision 164)" +
+  alert("VT100 Terminal Emulator " + "2.9 (revision 165)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -1724,7 +1832,11 @@ VT100.prototype.showContextMenu = function(x, y) {
              (this.utfEnabled ? '&#10004; ' : '') + 'Unicode</li>' +
           '<li id="endconfig">' +
              (this.visualBell ? '&#10004; ' : '') + 'Visual Bell</li>'+
-          '<hr />' +
+          (this.usercss.firstChild ?
+           '<hr id="beginusercss" />' +
+           this.usercss.innerHTML +
+           '<hr id="endusercss" />' :
+           '<hr />') +
           '<li id="about">About...</li>' +
         '</ul>' +
       '</td></tr>' +
@@ -1744,9 +1856,16 @@ VT100.prototype.showContextMenu = function(x, y) {
     menuentries.childNodes[1].className
                               = 'disabled';
   }
+
+  // Actions for default items
   var actions                 = [ this.copyLast, p, this.reset,
-                                  this.toggleUTF, this.toggleBell,
-                                  this.about ];
+                                  this.toggleUTF, this.toggleBell ];
+
+  // Actions for user CSS styles (if any)
+  for (var i = 0; i < this.usercssActions.length; ++i) {
+    actions[actions.length]   = this.usercssActions[i];
+  }
+  actions[actions.length]     = this.about;
 
   // Allow subclasses to dynamically add entries to the context menu
   this.extendContextMenu(menuentries, actions);

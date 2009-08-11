@@ -50,10 +50,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "shellinabox/service.h"
+#include "logging/logging.h"
 #include "shellinabox/launcher.h"
 #include "shellinabox/privileges.h"
-#include "logging/logging.h"
+#include "shellinabox/service.h"
 
 
 struct Service **services;

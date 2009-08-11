@@ -78,21 +78,22 @@
     --></script>
     <link rel="stylesheet" href="styles.css" type="text/css">
     <script type="text/javascript"><!--
-
-      // We would like to hide overflowing lines as this can lead to
-      // visually jarring results if the browser substitutes oversized
-      // Unicode characters from different fonts. Unfortunately, a bug
-      // in Firefox prevents it from allowing multi-line text
-      // selections whenever we change the "overflow" style. So, only
-      // do so for non-Netscape browsers.
-      if (typeof navigator.appName == 'undefined' ||
-          navigator.appName != 'Netscape') {
-        document.write('<style type="text/css">' +
-                       '#vt100 #console div, #vt100 #alt_console div {' +
-                       '  overflow: hidden;' +
-                       '}' +
-                       '</style>');
-      }
+      (function() {
+        // We would like to hide overflowing lines as this can lead to
+        // visually jarring results if the browser substitutes oversized
+        // Unicode characters from different fonts. Unfortunately, a bug
+        // in Firefox prevents it from allowing multi-line text
+        // selections whenever we change the "overflow" style. So, only
+        // do so for non-Netscape browsers.
+        if (typeof navigator.appName == 'undefined' ||
+            navigator.appName != 'Netscape') {
+          document.write('<style type="text/css">' +
+                         '#vt100 #console div, #vt100 #alt_console div {' +
+                         '  overflow: hidden;' +
+                         '}' +
+                         '</style>');
+        }
+      })();
     --></script>
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <script type="text/javascript" src="ShellInABox.js"></script>

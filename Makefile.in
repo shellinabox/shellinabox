@@ -73,7 +73,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am__dirstamp = $(am__leading_dot)dirstamp
 am_shellinaboxd_OBJECTS = shellinaboxd.$(OBJEXT) \
 	externalfile.$(OBJEXT) launcher.$(OBJEXT) privileges.$(OBJEXT) \
-	service.$(OBJEXT) session.$(OBJEXT) \
+	service.$(OBJEXT) session.$(OBJEXT) usercss.$(OBJEXT) \
 	shellinabox/cgi_root.$(OBJEXT) shellinabox/root_page.$(OBJEXT) \
 	shellinabox/vt100.$(OBJEXT) \
 	shellinabox/shell_in_a_box.$(OBJEXT) \
@@ -320,6 +320,8 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/service.h                                  \
                        shellinabox/session.c                                  \
                        shellinabox/session.h                                  \
+                       shellinabox/usercss.c                                  \
+                       shellinabox/usercss.h                                  \
                        shellinabox/cgi_root.html                              \
                        shellinabox/root_page.html                             \
                        shellinabox/vt100.jspp                                 \
@@ -503,6 +505,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/trie.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/url.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/usercss.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -657,6 +660,20 @@ session.obj: shellinabox/session.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='shellinabox/session.c' object='session.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o session.obj `if test -f 'shellinabox/session.c'; then $(CYGPATH_W) 'shellinabox/session.c'; else $(CYGPATH_W) '$(srcdir)/shellinabox/session.c'; fi`
+
+usercss.o: shellinabox/usercss.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT usercss.o -MD -MP -MF $(DEPDIR)/usercss.Tpo -c -o usercss.o `test -f 'shellinabox/usercss.c' || echo '$(srcdir)/'`shellinabox/usercss.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/usercss.Tpo $(DEPDIR)/usercss.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='shellinabox/usercss.c' object='usercss.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o usercss.o `test -f 'shellinabox/usercss.c' || echo '$(srcdir)/'`shellinabox/usercss.c
+
+usercss.obj: shellinabox/usercss.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT usercss.obj -MD -MP -MF $(DEPDIR)/usercss.Tpo -c -o usercss.obj `if test -f 'shellinabox/usercss.c'; then $(CYGPATH_W) 'shellinabox/usercss.c'; else $(CYGPATH_W) '$(srcdir)/shellinabox/usercss.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/usercss.Tpo $(DEPDIR)/usercss.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='shellinabox/usercss.c' object='usercss.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o usercss.obj `if test -f 'shellinabox/usercss.c'; then $(CYGPATH_W) 'shellinabox/usercss.c'; else $(CYGPATH_W) '$(srcdir)/shellinabox/usercss.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

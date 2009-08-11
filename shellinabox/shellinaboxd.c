@@ -72,26 +72,28 @@
 #include "shellinabox/privileges.h"
 #include "shellinabox/service.h"
 #include "shellinabox/session.h"
+#include "shellinabox/usercss.h"
 
 #define PORTNUM           4200
 #define MAX_RESPONSE      2048
 
-static int     port;
-static int     portMin;
-static int     portMax;
-static int     localhostOnly = 0;
-static int     noBeep        = 0;
-static int     numericHosts  = 0;
-static int     enableSSL     = 1;
-static int     enableSSLMenu = 1;
-static int     linkifyURLs   = 1;
-static char    *certificateDir;
-static int     certificateFd = -1;
-static HashMap *externalFiles;
-static Server  *cgiServer;
-static char    *cgiSessionKey;
-static int     cgiSessions;
-static char    *cssStyleSheet;
+static int            port;
+static int            portMin;
+static int            portMax;
+static int            localhostOnly = 0;
+static int            noBeep        = 0;
+static int            numericHosts  = 0;
+static int            enableSSL     = 1;
+static int            enableSSLMenu = 1;
+static int            linkifyURLs   = 1;
+static char           *certificateDir;
+static int            certificateFd = -1;
+static HashMap        *externalFiles;
+static Server         *cgiServer;
+static char           *cgiSessionKey;
+static int            cgiSessions;
+static char           *cssStyleSheet;
+static struct UserCSS *userCSSList;
 
 static char *jsonEscape(const char *buf, int len) {
   static const char *hexDigit = "0123456789ABCDEF";
@@ -517,15 +519,18 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     extern char vt100End[];
     extern char shellInABoxStart[];
     extern char shellInABoxEnd[];
+    char *userCSSString   = getUserCSSString(userCSSList);
     char *stateVars       = stringPrintf(NULL,
                                          "serverSupportsSSL = %s;\n"
                                          "disableSSLMenu    = %s;\n"
                                          "suppressAllAudio  = %s;\n"
-                                         "linkifyURLs       = %d;\n\n",
+                                         "linkifyURLs       = %d;\n"
+                                         "userCSSList       = %s;\n\n",
                                          enableSSL      ? "true" : "false",
                                          !enableSSLMenu ? "true" : "false",
                                          noBeep         ? "true" : "false",
-                                         linkifyURLs);
+                                         linkifyURLs, userCSSString);
+    free(userCSSString);
     int stateVarsLength   = strlen(stateVars);
     int contentLength     = stateVarsLength +
                             (addr(vt100End) - addr(vt100Start)) +
@@ -552,6 +557,18 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     // Serve the style sheet.
     serveStaticFile(http, "text/css; charset=utf-8",
                     cssStyleSheet, strrchr(cssStyleSheet, '\000'));
+  } else if (pathInfoLength > 8 && !memcmp(pathInfo, "usercss-", 8)) {
+    // Server user style sheets (if any)
+    struct UserCSS *css   = userCSSList;
+    for (int idx          = atoi(pathInfo + 8);
+         idx-- > 0 && css; css = css->next ) {
+    }
+    if (css) {
+      serveStaticFile(http, "text/css; charset=utf-8",
+                      css->style, css->style + css->styleLen);
+    } else {
+      httpSendReply(http, 404, "File not found", NO_MSG);
+    }
   } else {
     httpSendReply(http, 404, "File not found", NO_MSG);
   }
@@ -605,13 +622,14 @@ static void usage(void) {
           "%s"
           "  -q, --quiet                 turn off all messages\n"
           "  -u, --user=UID              switch to this user (default: %s)\n"
+          "      --user-css=STYLES       defines user-selectable CSS options\n"
           "  -v, --verbose               enable logging messages\n"
           "      --version               prints version information\n"
           "\n"
           "Debug, quiet, and verbose are mutually exclusive.\n"
           "\n"
           "One or more --service arguments define services that should "
-          "be made available \n"
+          "be made available\n"
           "through the web interface:\n"
           "  SERVICE := <url-path> ':' APP\n"
           "  APP     := 'LOGIN' | 'SSH' [ : <host> ] | "
@@ -627,7 +645,18 @@ static void usage(void) {
           "  ${lines}   - number of rows\n"
           "  ${peer}    - name of remote peer\n"
           "  ${uid}     - user id\n"
-          "  ${user}    - user name",
+          "  ${user}    - user name\n"
+          "\n"
+          "One or more --user-css arguments define optional user-selectable "
+          "CSS options.\n"
+          "These options show up in the right-click context menu:\n"
+          "  STYLES  := GROUP { ';' GROUP }*\n"
+          "  GROUP   := OPTION { ',' OPTION }*\n"
+          "  OPTION  := <label> ':' [ '-' | '+' ] <css-file>\n"
+          "\n"
+          "OPTIONs that make up a GROUP are mutually exclusive. But "
+          "individual GROUPs are\n"
+          "independent of each other.\n",
           !serverSupportsSSL() ? "" :
           "  -c, --cert=CERTDIR          set certificate dir "
           "(default: $PWD)\n"
@@ -685,6 +714,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "disable-ssl-menu", 0, 0,  0  },
       { "quiet",            0, 0, 'q' },
       { "user",             1, 0, 'u' },
+      { "user-css",         1, 0,  0  },
       { "verbose",          0, 0, 'v' },
       { "version",          0, 0,  0  },
       { 0,                  0, 0,  0  } };
@@ -703,7 +733,7 @@ static void parseArgs(int argc, char * const argv[]) {
     if (idx-- <= 0) {
       // Help (or invalid argument)
       usage();
-      if (idx == -1) {
+      if (idx < -1) {
         fatal("Failed to parse command line");
       }
       exit(0);
@@ -894,6 +924,12 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("\"--user\" expects a user name.");
       }
       runAsUser            = parseUser(optarg, NULL);
+    } else if (!idx--) {
+      // User CSS
+      if (!optarg || !*optarg) {
+        fatal("\"--user-css\" expects a list of styles sheets and labels");
+      }
+      parseUserCSS(&userCSSList, optarg);
     } else if (!idx--) {
       // Verbose
       if (!logIsDefault() && (!logIsInfo() || logIsDebug())) {
