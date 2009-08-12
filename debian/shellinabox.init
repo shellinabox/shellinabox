@@ -40,11 +40,11 @@ d_start() {
     return 0
   fi
 
-  start-stop-daemon --start --oknodo --pidfile "$PIDFILE"                     \
-                    --exec "$DAEMON" -- -q --background="$PIDFILE"            \
-                    -c "${SHELLINABOX_DATADIR}" -p "${SHELLINABOX_PORT}"      \
-                    -u "${SHELLINABOX_USER}" -g "${SHELLINABOX_GROUP}"        \
-                    ${SHELLINABOX_ARGS}
+  eval start-stop-daemon --start --oknodo --pidfile "'$PIDFILE'"              \
+                    --exec "'$DAEMON'" -- -q --background="'$PIDFILE'"        \
+                    -c "'${SHELLINABOX_DATADIR}'" -p "'${SHELLINABOX_PORT}'"  \
+                    -u "'${SHELLINABOX_USER}'" -g "'${SHELLINABOX_GROUP}'"    \
+                    "${SHELLINABOX_ARGS}"
 }
 
 #
