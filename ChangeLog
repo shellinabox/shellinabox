@@ -1,3 +1,11 @@
+2009-08-11  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added support for user selectable style sheets. Included example
+	style sheets that allow switching to white-on-black or to monochrome
+	mode from the right click context menu.
+
+	* Fixed the "|" key on Swedish keyboards.
+
 2009-07-30  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added the --css command line option to make incremental changes

@@ -1195,12 +1195,24 @@ static void execService(int width, int height, struct Service *service,
 
 void setWindowSize(int pty, int width, int height) {
   if (width > 0 && height > 0) {
-    struct winsize win;
-    win.ws_row    = height;
-    win.ws_col    = width;
-    win.ws_xpixel = 0;
-    win.ws_ypixel = 0;
-    ioctl(pty, TIOCSWINSZ, &win);
+    #ifdef TIOCSSIZE
+    {
+      struct ttysize win;
+      ioctl(pty, TIOCGSIZE, &win);
+      win.ts_lines = height;
+      win.ts_cols  = width;
+      ioctl(pty, TIOCSSIZE, &win);
+    }
+    #endif
+    #ifdef TIOCGWINSZ
+    {
+      struct winsize win;
+      ioctl(pty, TIOCGWINSZ, &win);
+      win.ws_row   = height;
+      win.ws_col   = width;
+      ioctl(pty, TIOCSWINSZ, &win);
+    }
+    #endif
   }
 }
 

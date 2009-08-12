@@ -16,15 +16,23 @@ dist_doc_DATA        = AUTHORS                                                \
                        NEWS                                                   \
                        README                                                 \
                        TODO                                                   \
-                       shellinabox/white-on-black.css
+                       shellinabox/white-on-black.css                         \
+                       shellinabox/black-on-white.css                         \
+                       shellinabox/monochrome.css                             \
+                       shellinabox/color.css
 EXTRA_DIST           = demo/beep.wav                                          \
                        demo/favicon.ico                                       \
                        demo/demo.html                                         \
                        demo/demo.js                                           \
                        demo/demo.jspp                                         \
                        demo/demo.xml                                          \
+                       demo/enabled.gif                                       \
                        demo/styles.css                                        \
                        demo/vt100.js                                          \
+                       demo/usercss-0.css                                     \
+                       demo/usercss-1.css                                     \
+                       demo/usercss-2.css                                     \
+                       demo/usercss-3.css                                     \
                        shellinabox/shellinaboxd.man.in                        \
                        shellinabox/shell_in_a_box.js                          \
                        shellinabox/vt100.js                                   \
@@ -83,6 +91,7 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/vt100.jspp                                 \
                        shellinabox/shell_in_a_box.jspp                        \
                        shellinabox/styles.css                                 \
+                       shellinabox/enabled.gif                                \
                        shellinabox/favicon.ico                                \
                        shellinabox/beep.wav                                   \
                        config.h
@@ -122,9 +131,17 @@ ${top_srcdir}/demo/demo.js: ${top_srcdir}/demo/beep.wav                       \
                             ${top_srcdir}/demo/demo.jspp                      \
                             ${top_srcdir}/demo/favicon.ico                    \
                             ${top_srcdir}/demo/styles.css                     \
-                            ${top_srcdir}/demo/vt100.js
+                            ${top_srcdir}/demo/vt100.js                       \
+                            ${top_srcdir}/demo/usercss-0.css                  \
+                            ${top_srcdir}/demo/usercss-1.css                  \
+                            ${top_srcdir}/demo/usercss-2.css                  \
+                            ${top_srcdir}/demo/usercss-3.css
 
 ${top_srcdir}/demo/beep.wav: ${top_srcdir}/shellinabox/beep.wav
+	@rm -f "$@"
+	ln "$<" "$@"
+
+${top_srcdir}/demo/enabled.gif: ${top_srcdir}/shellinabox/enabled.gif
 	@rm -f "$@"
 	ln "$<" "$@"
 
@@ -133,6 +150,22 @@ ${top_srcdir}/demo/favicon.ico: ${top_srcdir}/shellinabox/favicon.ico
 	ln "$<" "$@"
 
 ${top_srcdir}/demo/styles.css: ${top_srcdir}/shellinabox/styles.css
+	@rm -f "$@"
+	ln "$<" "$@"
+
+${top_srcdir}/demo/usercss-0.css: ${top_srcdir}/shellinabox/white-on-black.css
+	@rm -f "$@"
+	ln "$<" "$@"
+
+${top_srcdir}/demo/usercss-1.css: ${top_srcdir}/shellinabox/black-on-white.css
+	@rm -f "$@"
+	ln "$<" "$@"
+
+${top_srcdir}/demo/usercss-2.css: ${top_srcdir}/shellinabox/monochrome.css
+	@rm -f "$@"
+	ln "$<" "$@"
+
+${top_srcdir}/demo/usercss-3.css: ${top_srcdir}/shellinabox/color.css
 	@rm -f "$@"
 	ln "$<" "$@"
 
@@ -174,6 +207,11 @@ clean-local:
                 debian/tmp
 
 .css.o:
+	@echo objcopy "$<" "$@"
+	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
+	  "$<" "$@"
+
+.gif.o:
 	@echo objcopy "$<" "$@"
 	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"

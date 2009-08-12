@@ -174,7 +174,6 @@ function VT100(container) {
     '(?:[?](?:(?![ \u00A0]|[,.)}"\u0027!]+[ \u00A0]|[,.)}"\u0027!]+$).)*)?');
   }
   this.initializeElements(container);
-  this.initializeAnsiColors();
   this.maxScrollbackLines = 500;
   this.npar               = 0;
   this.par                = [ ];
@@ -210,6 +209,7 @@ VT100.prototype.reset = function(clearHistory) {
                                           suppressAllAudio;
   this.utfCount                         = 0;
   this.utfChar                          = 0;
+  this.color                            = 'ansi0 bgAnsi15';
   this.style                            = '';
   this.attr                             = 0x00F0 /* ATTR_DEFAULT */;
   this.useGMap                          = 0;
@@ -236,19 +236,8 @@ VT100.prototype.reset = function(clearHistory) {
   this.showCursor();
   this.isInverted                       = false;
   this.refreshInvertedState();
-  this.clearRegion(0, 0, this.terminalWidth, this.terminalHeight, this.style);
-};
-
-VT100.prototype.initializeAnsiColors = function() {
-  var elem           = document.createElement('pre');
-  this.container.appendChild(elem);
-  this.setTextContent(elem, ' ');
-  this.ansi          = [ ];
-  for (var i = 0; i < 16; i++) {
-    elem.id          = 'ansi' + i;
-    this.ansi[i]     = this.getCurrentComputedStyle(elem, 'backgroundColor');
-  }
-  this.container.removeChild(elem);
+  this.clearRegion(0, 0, this.terminalWidth, this.terminalHeight,
+                   this.color, this.style);
 };
 
 VT100.prototype.addListener = function(elem, event, listener) {
@@ -319,8 +308,17 @@ VT100.prototype.initializeUserCSSStyles = function() {
                     if (++i >= begin) {
                       --c;
                       var label          = vt100.usercss.childNodes[j];
-                      label.innerHTML    =
-                                       label.innerHTML.replace(/^\u2714 /, '');
+
+                      // Restore label to just the text content
+                      if (typeof label.textContent == 'undefined') {
+                        var s            = label.innerText;
+                        label.innerHTML  = '';
+                        label.appendChild(document.createTextNode(s));
+                      } else {
+                        label.textContent= label.textContent;
+                      }
+
+                      // User style sheets are number sequentially
                       var sheet          = document.getElementById(
                                                                'usercss-' + i);
                       if (i == current) {
@@ -330,7 +328,8 @@ VT100.prototype.initializeUserCSSStyles = function() {
                           sheet.disabled = false;
                         }
                         if (!sheet.disabled) {
-                          label.innerHTML= '&#10004; ' + label.innerHTML;
+                          label.innerHTML= '<img src="enabled.gif" />' +
+                                           label.innerHTML;
                         }
                       } else {
                         sheet.disabled   = true;
@@ -355,7 +354,9 @@ VT100.prototype.initializeUserCSSStyles = function() {
       // both ends), or whether this is a on/off toggle, which can be grouped
       // together with other on/off options.
       group                             +=
-        '<li>' + (enabled ? '&#10004; ' : '') + label + '</li>';
+        '<li>' + (enabled ? '<img src="enabled.gif" />' : '') +
+                 label +
+        '</li>';
     }
     this.usercss.innerHTML               = menu;
   }
@@ -384,8 +385,7 @@ VT100.prototype.initializeElements = function(container) {
       !this.getChildById(this.container, 'usercss')     ||
       !this.getChildById(this.container, 'space')       ||
       !this.getChildById(this.container, 'input')       ||
-      !this.getChildById(this.container, 'cliphelper')  ||
-      !this.getChildById(this.container, 'attrib')) {
+      !this.getChildById(this.container, 'cliphelper')) {
     // Only enable the "embed" object, if we have a suitable plugin. Otherwise,
     // we might get a pointless warning that a suitable plugin is not yet
     // installed. If in doubt, we'd rather just stay silent.
@@ -432,7 +432,6 @@ VT100.prototype.initializeElements = function(container) {
                          '<pre><div><span id="space"></span></div></pre>' +
                          '<input type="textfield" id="input" />' +
                          '<input type="textfield" id="cliphelper" />' +
-                         '<span id="attrib">&nbsp;</span>' +
                          (typeof suppressAllAudio != 'undefined' &&
                           suppressAllAudio ? "" :
                          embed + '<bgsound id="beep_bgsound" loop=1 />') +
@@ -474,7 +473,6 @@ VT100.prototype.initializeElements = function(container) {
   this.input                   = this.getChildById(this.container, 'input');
   this.cliphelper              = this.getChildById(this.container,
                                                                  'cliphelper');
-  this.attributeHelper         = this.getChildById(this.container, 'attrib');
 
   // Add any user selectable style sheets to the menu
   this.initializeUserCSSStyles();
@@ -636,12 +634,13 @@ VT100.prototype.repairElements = function(console) {
   for (var line = console.firstChild; line; line = line.nextSibling) {
     if (!line.clientHeight) {
       var newLine = document.createElement(line.tagName);
-      newLine.style.cssText     = line.style.cssText;
-      newLine.className         = line.className;
+      newLine.style.cssText       = line.style.cssText;
+      newLine.className           = line.className;
       if (line.tagName == 'DIV') {
         for (var span = line.firstChild; span; span = span.nextSibling) {
-          var newSpan           = document.createElement(span.tagName);
-          newSpan.style.cssText = span.style.cssText;
+          var newSpan             = document.createElement(span.tagName);
+          newSpan.style.cssText   = span.style.cssText;
+          newSpan.style.className = span.style.className;
           this.setTextContent(newSpan, this.getTextContent(span));
           newLine.appendChild(newSpan);
         }
@@ -649,7 +648,7 @@ VT100.prototype.repairElements = function(console) {
         this.setTextContent(newLine, this.getTextContent(line));
       }
       line.parentNode.replaceChild(newLine, line);
-      line                      = newLine;
+      line                        = newLine;
     }
   }
 };
@@ -1015,7 +1014,7 @@ VT100.prototype.setTextContent = function(elem, s) {
   }
 };
 
-VT100.prototype.insertBlankLine = function(y, style) {
+VT100.prototype.insertBlankLine = function(y, color, style) {
   // Insert a blank line a position y. This method ignores the scrollback
   // buffer. The caller has to add the length of the scrollback buffer to
   // the position, if necessary.
@@ -1023,22 +1022,26 @@ VT100.prototype.insertBlankLine = function(y, style) {
   // method just adds a new line right after the last existing one. It does
   // not add any missing lines in between. It is the caller's responsibility
   // to do so.
-  if (style == undefined) {
-    style              = '';
+  if (!color) {
+    color                = 'ansi0 bgAnsi15';
+  }
+  if (!style) {
+    style                = '';
   }
   var line;
-  if (!style) {
-    line               = document.createElement('pre');
+  if (color != 'ansi0 bgAnsi15' && !style) {
+    line                 = document.createElement('pre');
     this.setTextContent(line, '\n');
   } else {
-    line               = document.createElement('div');
-    var span           = document.createElement('span');
-    span.style.cssText = style;
+    line                 = document.createElement('div');
+    var span             = document.createElement('span');
+    span.style.cssText   = style;
+    span.style.className = color;
     this.setTextContent(span, this.spaces(this.terminalWidth));
     line.appendChild(span);
   }
-  line.style.height    = this.cursorHeight + 'px';
-  var console          = this.console[this.currentScreen];
+  line.style.height      = this.cursorHeight + 'px';
+  var console            = this.console[this.currentScreen];
   if (console.childNodes.length > y) {
     console.insertBefore(line, console.childNodes[y]);
   } else {
@@ -1104,7 +1107,9 @@ VT100.prototype.truncateLines = function(width) {
       }
       // Prune white space from the end of the current line
       var span       = line.lastChild;
-      while (span && !span.style.cssText.length) {
+      while (span &&
+             span.className == 'ansi0 bgAnsi15' &&
+             !span.style.cssText.length) {
         // Scan backwards looking for first non-space character
         var s         = this.getTextContent(span);
         for (var i = s.length; i--; ) {
@@ -1135,7 +1140,10 @@ VT100.prototype.truncateLines = function(width) {
   }
 };
 
-VT100.prototype.putString = function(x, y, text, style) {
+VT100.prototype.putString = function(x, y, text, color, style) {
+  if (!color) {
+    color                           = 'ansi0 bgAnsi15';
+  }
   if (!style) {
     style                           = '';
   }
@@ -1192,12 +1200,15 @@ VT100.prototype.putString = function(x, y, text, style) {
       // If current <span> is not long enough, pad with spaces or add new
       // span
       s                             = this.getTextContent(span);
+      var oldColor                  = span.className;
       var oldStyle                  = span.style.cssText;
       if (xPos + s.length < x) {
-        if (oldStyle != '') {
+        if (oldColor != 'ansi0 bgAnsi15' || oldStyle != '') {
           span                      = document.createElement('span');
           line.appendChild(span);
+          span.className            = 'ansi0 bgAnsi15';
           span.style.cssText        = '';
+          oldColor                  = 'ansi0 bgAnsi15';
           oldStyle                  = '';
           xPos                     += s.length;
           s                         = '';
@@ -1209,7 +1220,8 @@ VT100.prototype.putString = function(x, y, text, style) {
     
       // If styles do not match, create a new <span>
       var del                       = text.length - s.length + x - xPos;
-      if (oldStyle != style && (oldStyle || style)) {
+      if (oldColor != color ||
+          (oldStyle != style && (oldStyle || style))) {
         if (xPos == x) {
           // Replacing text at beginning of existing <span>
           if (text.length >= s.length) {
@@ -1236,6 +1248,7 @@ VT100.prototype.putString = function(x, y, text, style) {
             span                    = sibling;
             if (remainder.length) {
               sibling               = document.createElement('span');
+              sibling.className     = oldColor;
               sibling.style.cssText = oldStyle;
               this.setTextContent(sibling, remainder);
               line.insertBefore(sibling, span.nextSibling);
@@ -1245,6 +1258,7 @@ VT100.prototype.putString = function(x, y, text, style) {
             span                    = sibling;
             if (remainder.length) {
               sibling               = document.createElement('span');
+              sibling.className     = oldColor;
               sibling.style.cssText = oldStyle;
               this.setTextContent(sibling, remainder);
               line.appendChild(sibling);
@@ -1252,6 +1266,7 @@ VT100.prototype.putString = function(x, y, text, style) {
           }
           s                         = text;
         }
+        span.className              = color;
         span.style.cssText          = style;
       } else {
         // Overwrite (partial) <span> with new text
@@ -1278,7 +1293,8 @@ VT100.prototype.putString = function(x, y, text, style) {
       }
       
       // Merge <span> with next sibling, if styles are identical
-      if (sibling && span.style.cssText == sibling.style.cssText) {
+      if (sibling && span.className == sibling.className &&
+          span.style.cssText == sibling.style.cssText) {
         this.setTextContent(span,
                             this.getTextContent(span) +
                             this.getTextContent(sibling));
@@ -1348,6 +1364,7 @@ VT100.prototype.putString = function(x, y, text, style) {
   if (text.length) {
     // Merge <span> with previous sibling, if styles are identical
     if ((sibling = span.previousSibling) &&
+        span.className == sibling.className &&
         span.style.cssText == sibling.style.cssText) {
       this.setTextContent(span,
                           this.getTextContent(sibling) +
@@ -1357,7 +1374,9 @@ VT100.prototype.putString = function(x, y, text, style) {
     
     // Prune white space from the end of the current line
     span                            = line.lastChild;
-    while (span && !span.style.cssText.length) {
+    while (span &&
+           span.className == 'ansi0 bgAnsi15' &&
+           !span.style.cssText.length) {
       // Scan backwards looking for first non-space character
       s                             = this.getTextContent(span);
       for (var i = s.length; i--; ) {
@@ -1418,11 +1437,10 @@ VT100.prototype.gotoXaY = function(x, y) {
 
 VT100.prototype.refreshInvertedState = function() {
   if (this.isInverted) {
-    this.scrollable.style.color           = this.ansi[15];
-    this.scrollable.style.backgroundColor = this.ansi[0];
+    this.scrollable.className += ' inverted';
   } else {
-    this.scrollable.style.color           = '';
-    this.scrollable.style.backgroundColor = '';
+    this.scrollable.className = this.scrollable.className.
+                                                     replace(/ *inverted/, '');
   }
 };
 
@@ -1502,7 +1520,7 @@ VT100.prototype.spaces = function(i) {
   return s;
 };
 
-VT100.prototype.clearRegion = function(x, y, w, h, style) {
+VT100.prototype.clearRegion = function(x, y, w, h, color, style) {
   w         += x;
   if (x < 0) {
     x        = 0;
@@ -1529,7 +1547,7 @@ VT100.prototype.clearRegion = function(x, y, w, h, style) {
   // child nodes.
   if (!this.numScrollbackLines &&
       w == this.terminalWidth && h == this.terminalHeight &&
-      !style) {
+      (color == undefined || color == 'ansi0 bgAnsi15') && !style) {
     var console = this.console[this.currentScreen];
     while (console.lastChild) {
       console.removeChild(console.lastChild);
@@ -1541,54 +1559,66 @@ VT100.prototype.clearRegion = function(x, y, w, h, style) {
     var cy     = this.cursorY;
     var s      = this.spaces(w);
     for (var i = y+h; i-- > y; ) {
-      this.putString(x, i, s, style);
+      this.putString(x, i, s, color, style);
     }
     hidden ? this.showCursor(cx, cy) : this.putString(cx, cy, '', undefined);
   }
 };
 
 VT100.prototype.copyLineSegment = function(dX, dY, sX, sY, w) {
-  var text                    = [ ];
-  var style                   = [ ];
-  var console                 = this.console[this.currentScreen];
+  var text                            = [ ];
+  var className                       = [ ];
+  var style                           = [ ];
+  var console                         = this.console[this.currentScreen];
   if (sY >= console.childNodes.length) {
-    text[0]                   = this.spaces(w);
-    style[0]                  = null;
+    text[0]                           = this.spaces(w);
+    className[0]                      = undefined;
+    style[0]                          = undefined;
   } else {
     var line = console.childNodes[sY];
     if (line.tagName != 'DIV' || !line.childNodes.length) {
-      text[0]                 = this.spaces(w);
-      style[0]                = null;
+      text[0]                         = this.spaces(w);
+      className[0]                    = undefined;
+      style[0]                        = undefined;
     } else {
-      var x                   = 0;
+      var x                           = 0;
       for (var span = line.firstChild; span && w > 0; span = span.nextSibling){
-        var s                 = this.getTextContent(span);
-        var len               = s.length;
+        var s                         = this.getTextContent(span);
+        var len                       = s.length;
         if (x + len > sX) {
-          var o               = sX > x ? sX - x : 0;
-          text[text.length]   = s.substr(o, w);
-          style[style.length] = span.style.cssText;
-          w                  -= len - o;
+          var o                       = sX > x ? sX - x : 0;
+          text[text.length]           = s.substr(o, w);
+          className[className.length] = span.className;
+          style[style.length]         = span.style.cssText;
+          w                          -= len - o;
         }
-        x                    += len;
+        x                            += len;
       }
       if (w > 0) {
-        text[text.length]     = this.spaces(w);
-        style[style.length]   = null;
+        text[text.length]             = this.spaces(w);
+        className[className.length]   = undefined;
+        style[style.length]           = undefined;
       }
     }
   }
-  var hidden                  = this.hideCursor();
-  var cx                      = this.cursorX;
-  var cy                      = this.cursorY;
+  var hidden                          = this.hideCursor();
+  var cx                              = this.cursorX;
+  var cy                              = this.cursorY;
   for (var i = 0; i < text.length; i++) {
-    this.putString(dX, dY - this.numScrollbackLines, text[i], style[i]);
-    dX                       += text[i].length;
+    var color;
+    if (className[i]) {
+      color                           = className[i];
+    } else {
+      color                           = 'ansi0 bgAnsi15';
+    }
+    this.putString(dX, dY - this.numScrollbackLines, text[i], color, style[i]);
+    dX                               += text[i].length;
   }
   hidden ? this.showCursor(cx, cy) : this.putString(cx, cy, '', undefined);
 };
 
-VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY, style) {
+VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY,
+                                        color, style) {
   var left             = incX < 0 ? -incX : 0;
   var right            = incX > 0 ?  incX : 0;
   var up               = incY < 0 ? -incY : 0;
@@ -1623,9 +1653,7 @@ VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY, style) {
       // fill with underlined spaces. N.B. this is different from the
       // cases when the user blanks a region. User-initiated blanking
       // always fills with all of the current attributes.
-      this.attributeHelper.cssText
-                       = style.replace(/text-decoration:underline;/, "");
-      style            = this.attributeHelper.cssText;
+      style            = style.replace(/text-decoration:underline;/, '');
     }
 
     // Compute current scroll position
@@ -1654,7 +1682,7 @@ VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY, style) {
           
           // Add new lines at bottom in order to force scrolling
           for (var i = 0; i < y; i++) {
-            this.insertBlankLine(console.childNodes.length, style);
+            this.insertBlankLine(console.childNodes.length, color, style);
           }
 
           // Adjust the number of lines in the scrollback buffer by
@@ -1691,7 +1719,7 @@ VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY, style) {
               console.childNodes.length > this.numScrollbackLines+y+h+incY) {
             for (var i = -incY; i-- > 0; ) {
               this.insertBlankLine(this.numScrollbackLines + y + h + incY,
-                                   style);
+                                   color, style);
             }
           }
         }
@@ -1703,7 +1731,7 @@ VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY, style) {
           console.removeChild(console.childNodes[this.numScrollbackLines+y+h]);
         }
         for (var i = incY; i--; ) {
-          this.insertBlankLine(this.numScrollbackLines + y, style);
+          this.insertBlankLine(this.numScrollbackLines + y, color, style);
         }
       }
     } else {
@@ -1725,14 +1753,14 @@ VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY, style) {
 
       // Clear blank regions
       if (incX > 0) {
-        this.clearRegion(x, y, incX, h, style);
+        this.clearRegion(x, y, incX, h, color, style);
       } else if (incX < 0) {
-        this.clearRegion(x + w + incX, y, -incX, h, style);
+        this.clearRegion(x + w + incX, y, -incX, h, color, style);
       }
       if (incY > 0) {
-        this.clearRegion(x, y, w, incY, style);
+        this.clearRegion(x, y, w, incY, color, style);
       } else if (incY < 0) {
-        this.clearRegion(x, y + h + incY, w, -incY, style);
+        this.clearRegion(x, y + h + incY, w, -incY, color, style);
       }
     }
 
@@ -1801,7 +1829,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.9 (revision 166)" +
+  alert("VT100 Terminal Emulator " + "2.9 (revision 167)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -1829,9 +1857,11 @@ VT100.prototype.showContextMenu = function(x, y) {
           '<li id="reset">Reset</li>' +
           '<hr />' +
           '<li id="beginconfig">' +
-             (this.utfEnabled ? '&#10004; ' : '') + 'Unicode</li>' +
+             (this.utfEnabled ? '<img src="enabled.gif" />' : '') +
+             'Unicode</li>' +
           '<li id="endconfig">' +
-             (this.visualBell ? '&#10004; ' : '') + 'Visual Bell</li>'+
+             (this.visualBell ? '<img src="enabled.gif" />' : '') +
+             'Visual Bell</li>'+
           (this.usercss.firstChild ?
            '<hr id="beginusercss" />' +
            this.usercss.innerHTML +
@@ -2576,7 +2606,7 @@ VT100.prototype.lf = function(count) {
     if (this.cursorY == this.bottom - 1) {
       this.scrollRegion(0, this.top + 1,
                         this.terminalWidth, this.bottom - this.top - 1,
-                        0, -1, this.style);
+                        0, -1, this.color, this.style);
       offset = undefined;
     } else if (this.cursorY < this.terminalHeight - 1) {
       this.gotoXY(this.cursorX, this.cursorY + 1);
@@ -2599,7 +2629,7 @@ VT100.prototype.ri = function(count) {
     if (this.cursorY == this.top) {
       this.scrollRegion(0, this.top,
                         this.terminalWidth, this.bottom - this.top - 1,
-                        0, 1, this.style);
+                        0, 1, this.color, this.style);
     } else if (this.cursorY > 0) {
       this.gotoXY(this.cursorX, this.cursorY - 1);
     }
@@ -2615,48 +2645,42 @@ VT100.prototype.respondSecondaryDA = function() {
   this.respondString += '\u001B[>0;0;0c';
 };
 
+
 VT100.prototype.updateStyle = function() {
-  var style  = '';
+  this.style   = '';
   if (this.attr & 0x0200 /* ATTR_UNDERLINE */) {
-    style   += 'text-decoration:underline;';
+    this.style = 'text-decoration:underline;';
   }
-  var bg     = (this.attr >> 4) & 0xF;
-  var fg     =  this.attr       & 0xF;
+  var bg       = (this.attr >> 4) & 0xF;
+  var fg       =  this.attr       & 0xF;
   if (this.attr & 0x0100 /* ATTR_REVERSE */) {
-    var tmp  = bg;
-    bg       = fg;
-    fg       = tmp;
+    var tmp    = bg;
+    bg         = fg;
+    fg         = tmp;
   }
   if ((this.attr & (0x0100 /* ATTR_REVERSE */ | 0x0400 /* ATTR_DIM */)) == 0x0400 /* ATTR_DIM */) {
-    fg       = 8; // Dark grey
+    fg         = 8; // Dark grey
   } else if (this.attr & 0x0800 /* ATTR_BRIGHT */) {
-    fg      |= 8;
+    fg        |= 8;
   }
   if (this.attr & 0x1000 /* ATTR_BLINK */) {
-    bg      ^= 8;
+    bg        ^= 8;
   }
   // Make some readability enhancements. Most notably, disallow identical
   // background and foreground colors.
   if (bg == fg) {
-    if ((fg ^= 8) == 7) {
-      fg     = 8;
+    if ((fg   ^= 8) == 7) {
+      fg       = 8;
     }
   }
   // And disallow bright colors on a light-grey background.
   if (bg == 7 && fg >= 8) {
-    if ((fg -= 8) == 7) {
-      fg     = 8;
+    if ((fg   -= 8) == 7) {
+      fg       = 8;
     }
   }
 
-  if (fg != 0) {
-    style += 'color:' + this.ansi[fg] + ';';
-  }
-  if (bg != 15) {
-    style += 'background-color:' + this.ansi[bg] + ';';
-  }
-  this.attributeHelper.cssText = style;
-  this.style                   = this.attributeHelper.cssText;
+  this.color   = 'ansi' + fg + ' bgAnsi' + bg;
 };
 
 VT100.prototype.setAttrColors = function(attr) {
@@ -2750,7 +2774,7 @@ VT100.prototype.csiAt = function(number) {
   }
   this.scrollRegion(this.cursorX, this.cursorY,
                     this.terminalWidth - this.cursorX - number, 1,
-                    number, 0, this.style);
+                    number, 0, this.color, this.style);
   this.needWrap = false;
 };
 
@@ -2758,22 +2782,26 @@ VT100.prototype.csiJ = function(number) {
   switch (number) {
   case 0: // Erase from cursor to end of display
     this.clearRegion(this.cursorX, this.cursorY,
-                     this.terminalWidth - this.cursorX, 1, this.style);
+                     this.terminalWidth - this.cursorX, 1,
+                     this.color, this.style);
     if (this.cursorY < this.terminalHeight-2) {
       this.clearRegion(0, this.cursorY+1,
                        this.terminalWidth, this.terminalHeight-this.cursorY-1,
-                       this.style);
+                       this.color, this.style);
     }
     break;
   case 1: // Erase from start to cursor
     if (this.cursorY > 0) {
       this.clearRegion(0, 0,
-                       this.terminalWidth, this.cursorY, this.style);
+                       this.terminalWidth, this.cursorY,
+                       this.color, this.style);
     }
-    this.clearRegion(0, this.cursorY, this.cursorX + 1, 1, this.style);
+    this.clearRegion(0, this.cursorY, this.cursorX + 1, 1,
+                     this.color, this.style);
     break;
   case 2: // Erase whole display
-    this.clearRegion(0, 0, this.terminalWidth, this.terminalHeight,this.style);
+    this.clearRegion(0, 0, this.terminalWidth, this.terminalHeight,
+                     this.color, this.style);
     break;
   default:
     return;
@@ -2785,13 +2813,16 @@ VT100.prototype.csiK = function(number) {
   switch (number) {
   case 0: // Erase from cursor to end of line
     this.clearRegion(this.cursorX, this.cursorY,
-                     this.terminalWidth - this.cursorX, 1, this.style);
+                     this.terminalWidth - this.cursorX, 1,
+                     this.color, this.style);
     break;
   case 1: // Erase from start of line to cursor
-    this.clearRegion(0, this.cursorY, this.cursorX + 1, 1, this.style);
+    this.clearRegion(0, this.cursorY, this.cursorX + 1, 1,
+                     this.color, this.style);
     break;
   case 2: // Erase whole line
-    this.clearRegion(0, this.cursorY, this.terminalWidth, 1, this.style);
+    this.clearRegion(0, this.cursorY, this.terminalWidth, 1,
+                     this.color, this.style);
     break;
   default:
     return;
@@ -2812,7 +2843,7 @@ VT100.prototype.csiL = function(number) {
   }
   this.scrollRegion(0, this.cursorY,
                     this.terminalWidth, this.bottom - this.cursorY - number,
-                    0, number, this.style);
+                    0, number, this.color, this.style);
   needWrap = false;
 };
 
@@ -2829,7 +2860,7 @@ VT100.prototype.csiM = function(number) {
   }
   this.scrollRegion(0, this.cursorY + number,
                     this.terminalWidth, this.bottom - this.cursorY - number,
-                    0, -number, this.style);
+                    0, -number, this.color, this.style);
   needWrap = false;
 };
 
@@ -2890,7 +2921,7 @@ VT100.prototype.csiP = function(number) {
   }
   this.scrollRegion(this.cursorX + number, this.cursorY,
                     this.terminalWidth - this.cursorX - number, 1,
-                    -number, 0, this.style);
+                    -number, 0, this.color, this.style);
   needWrap = false;
 };
 
@@ -2902,7 +2933,8 @@ VT100.prototype.csiX = function(number) {
   if (number > this.terminalWidth - this.cursorX) {
     number = this.terminalWidth - this.cursorX;
   }
-  this.clearRegion(this.cursorX, this.cursorY, number, 1, this.style);
+  this.clearRegion(this.cursorX, this.cursorY, number, 1,
+                   this.color, this.style);
   needWrap = false;
 };
 
@@ -3224,7 +3256,7 @@ VT100.prototype.renderString = function(s, showCursor) {
     // call to this.showCursor()
     this.cursor.style.visibility = '';
   }
-  this.putString(this.cursorX, this.cursorY, s, this.style);
+  this.putString(this.cursorX, this.cursorY, s, this.color, this.style);
 };
 
 VT100.prototype.vt100 = function(s) {
@@ -3299,7 +3331,7 @@ VT100.prototype.vt100 = function(s) {
       if (this.insertMode) {
         this.scrollRegion(this.cursorX, this.cursorY,
                           this.terminalWidth - this.cursorX - 1, 1,
-                          1, 0, this.style);
+                          1, 0, this.color, this.style);
       }
       this.lastCharacter  = String.fromCharCode(ch);
       lineBuf            += this.lastCharacter;

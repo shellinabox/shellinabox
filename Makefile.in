@@ -77,8 +77,8 @@ am_shellinaboxd_OBJECTS = shellinaboxd.$(OBJEXT) \
 	shellinabox/cgi_root.$(OBJEXT) shellinabox/root_page.$(OBJEXT) \
 	shellinabox/vt100.$(OBJEXT) \
 	shellinabox/shell_in_a_box.$(OBJEXT) \
-	shellinabox/styles.$(OBJEXT) shellinabox/favicon.$(OBJEXT) \
-	shellinabox/beep.$(OBJEXT)
+	shellinabox/styles.$(OBJEXT) shellinabox/enabled.$(OBJEXT) \
+	shellinabox/favicon.$(OBJEXT) shellinabox/beep.$(OBJEXT)
 shellinaboxd_OBJECTS = $(am_shellinaboxd_OBJECTS)
 shellinaboxd_DEPENDENCIES = liblogging.la libhttp.la
 shellinaboxd_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -255,7 +255,10 @@ dist_doc_DATA = AUTHORS                                                \
                        NEWS                                                   \
                        README                                                 \
                        TODO                                                   \
-                       shellinabox/white-on-black.css
+                       shellinabox/white-on-black.css                         \
+                       shellinabox/black-on-white.css                         \
+                       shellinabox/monochrome.css                             \
+                       shellinabox/color.css
 
 EXTRA_DIST = demo/beep.wav                                          \
                        demo/favicon.ico                                       \
@@ -263,8 +266,13 @@ EXTRA_DIST = demo/beep.wav                                          \
                        demo/demo.js                                           \
                        demo/demo.jspp                                         \
                        demo/demo.xml                                          \
+                       demo/enabled.gif                                       \
                        demo/styles.css                                        \
                        demo/vt100.js                                          \
+                       demo/usercss-0.css                                     \
+                       demo/usercss-1.css                                     \
+                       demo/usercss-2.css                                     \
+                       demo/usercss-3.css                                     \
                        shellinabox/shellinaboxd.man.in                        \
                        shellinabox/shell_in_a_box.js                          \
                        shellinabox/vt100.js                                   \
@@ -327,6 +335,7 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/vt100.jspp                                 \
                        shellinabox/shell_in_a_box.jspp                        \
                        shellinabox/styles.css                                 \
+                       shellinabox/enabled.gif                                \
                        shellinabox/favicon.ico                                \
                        shellinabox/beep.wav                                   \
                        config.h
@@ -363,7 +372,7 @@ all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .css .html .ico .js .jspp .lo .o .obj .wav
+.SUFFIXES: .c .css .gif .html .ico .js .jspp .lo .o .obj .wav
 am--refresh:
 	@:
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
@@ -471,6 +480,8 @@ shellinabox/shell_in_a_box.$(OBJEXT): shellinabox/$(am__dirstamp) \
 	shellinabox/$(DEPDIR)/$(am__dirstamp)
 shellinabox/styles.$(OBJEXT): shellinabox/$(am__dirstamp) \
 	shellinabox/$(DEPDIR)/$(am__dirstamp)
+shellinabox/enabled.$(OBJEXT): shellinabox/$(am__dirstamp) \
+	shellinabox/$(DEPDIR)/$(am__dirstamp)
 shellinabox/favicon.$(OBJEXT): shellinabox/$(am__dirstamp) \
 	shellinabox/$(DEPDIR)/$(am__dirstamp)
 shellinabox/beep.$(OBJEXT): shellinabox/$(am__dirstamp) \
@@ -483,6 +494,7 @@ mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 	-rm -f shellinabox/beep.$(OBJEXT)
 	-rm -f shellinabox/cgi_root.$(OBJEXT)
+	-rm -f shellinabox/enabled.$(OBJEXT)
 	-rm -f shellinabox/favicon.$(OBJEXT)
 	-rm -f shellinabox/root_page.$(OBJEXT)
 	-rm -f shellinabox/shell_in_a_box.$(OBJEXT)
@@ -1052,9 +1064,17 @@ ${top_srcdir}/demo/demo.js: ${top_srcdir}/demo/beep.wav                       \
                             ${top_srcdir}/demo/demo.jspp                      \
                             ${top_srcdir}/demo/favicon.ico                    \
                             ${top_srcdir}/demo/styles.css                     \
-                            ${top_srcdir}/demo/vt100.js
+                            ${top_srcdir}/demo/vt100.js                       \
+                            ${top_srcdir}/demo/usercss-0.css                  \
+                            ${top_srcdir}/demo/usercss-1.css                  \
+                            ${top_srcdir}/demo/usercss-2.css                  \
+                            ${top_srcdir}/demo/usercss-3.css
 
 ${top_srcdir}/demo/beep.wav: ${top_srcdir}/shellinabox/beep.wav
+	@rm -f "$@"
+	ln "$<" "$@"
+
+${top_srcdir}/demo/enabled.gif: ${top_srcdir}/shellinabox/enabled.gif
 	@rm -f "$@"
 	ln "$<" "$@"
 
@@ -1063,6 +1083,22 @@ ${top_srcdir}/demo/favicon.ico: ${top_srcdir}/shellinabox/favicon.ico
 	ln "$<" "$@"
 
 ${top_srcdir}/demo/styles.css: ${top_srcdir}/shellinabox/styles.css
+	@rm -f "$@"
+	ln "$<" "$@"
+
+${top_srcdir}/demo/usercss-0.css: ${top_srcdir}/shellinabox/white-on-black.css
+	@rm -f "$@"
+	ln "$<" "$@"
+
+${top_srcdir}/demo/usercss-1.css: ${top_srcdir}/shellinabox/black-on-white.css
+	@rm -f "$@"
+	ln "$<" "$@"
+
+${top_srcdir}/demo/usercss-2.css: ${top_srcdir}/shellinabox/monochrome.css
+	@rm -f "$@"
+	ln "$<" "$@"
+
+${top_srcdir}/demo/usercss-3.css: ${top_srcdir}/shellinabox/color.css
 	@rm -f "$@"
 	ln "$<" "$@"
 
@@ -1104,6 +1140,11 @@ clean-local:
                 debian/tmp
 
 .css.o:
+	@echo objcopy "$<" "$@"
+	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
+	  "$<" "$@"
+
+.gif.o:
 	@echo objcopy "$<" "$@"
 	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"

@@ -507,6 +507,11 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     extern char beepStart[];
     extern char beepEnd[];
     serveStaticFile(http, "audio/x-wav", beepStart, beepEnd);
+  } else if (pathInfoLength == 11 && !memcmp(pathInfo, "enabled.gif", 11)) {
+    // Serve the checkmark icon used in the context menu
+    extern char enabledStart[];
+    extern char enabledEnd[];
+    serveStaticFile(http, "image/gif", enabledStart, enabledEnd);
   } else if (pathInfoLength == 11 && !memcmp(pathInfo, "favicon.ico", 11)) {
     // Serve the favicon
     extern char faviconStart[];
