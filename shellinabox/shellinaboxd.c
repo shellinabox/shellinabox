@@ -350,11 +350,16 @@ static int dataHandler(HttpConnection *http, struct Service *service,
 
   // Create a new session, if the client did not provide an existing one
   if (isNew) {
-    if (cgiServer && cgiSessions++) {
-      serverExitLoop(cgiServer, 1);
+    if (keys) {
+    bad_new_session:
       abandonSession(session);
       httpSendReply(http, 400, "Bad Request", NO_MSG);
       return HTTP_DONE;
+    }
+
+    if (cgiServer && cgiSessions++) {
+      serverExitLoop(cgiServer, 1);
+      goto bad_new_session;
     }
     session->http         = http;
     if (launchChild(service->id, session) < 0) {
