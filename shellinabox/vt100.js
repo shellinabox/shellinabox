@@ -173,6 +173,7 @@ function VT100(container) {
     // Optional arguments
     '(?:[?](?:(?![ \u00A0]|[,.)}"\u0027!]+[ \u00A0]|[,.)}"\u0027!]+$).)*)?');
   }
+  this.getUserSettings();
   this.initializeElements(container);
   this.maxScrollbackLines = 500;
   this.npar               = 0;
@@ -203,10 +204,7 @@ VT100.prototype.reset = function(clearHistory) {
   this.crLfMode                         = false;
   this.offsetMode                       = false;
   this.mouseReporting                   = false;
-  this.utfEnabled                       = true;
-  this.visualBell                       = typeof suppressAllAudio !=
-                                          'undefined' &&
-                                          suppressAllAudio;
+  this.utfEnabled                       = this.utfPreferred;
   this.utfCount                         = 0;
   this.utfChar                          = 0;
   this.color                            = 'ansi0 bgAnsi15';
@@ -246,6 +244,66 @@ VT100.prototype.addListener = function(elem, event, listener) {
   } else {
     elem.attachEvent('on' + event, listener);
   }
+};
+
+VT100.prototype.getUserSettings = function() {
+  // Compute hash signature to identify the entries in the userCSS menu.
+  // If the menu is unchanged from last time, default values can be
+  // looked up in a cookie associated with this page.
+  this.signature            = 0;
+  this.utfPreferred         = true;
+  this.visualBell           = typeof suppressAllAudio != 'undefined' &&
+                              suppressAllAudio;
+  if (this.visualBell) {
+    this.signature          = Math.floor(16807*this.signature + 1) %
+                                         ((1 << 31) - 1);
+  }
+  if (typeof userCSSList != 'undefined') {
+    for (var i = 0; i < userCSSList.length; ++i) {
+      var label             = userCSSList[i][0];
+      for (var j = 0; j < label.length; ++j) {
+        this.signature      = Math.floor(16807*this.signature+
+                                         label.charCodeAt(j)) %
+                                         ((1 << 31) - 1);
+      }
+      if (userCSSList[i][1]) {
+        this.signature      = Math.floor(16807*this.signature + 1) %
+                                         ((1 << 31) - 1);
+      }
+    }
+  }
+
+  var key                   = 'shellInABox=' + this.signature + ':';
+  var settings              = document.cookie.indexOf(key);
+  if (settings >= 0) {
+    settings                = document.cookie.substr(settings + key.length).
+                                                   replace(/([0-1]*).*/, "$1");
+    if (settings.length == 2 + (typeof userCSSList == 'undefined' ?
+                                0 : userCSSList.length)) {
+      this.utfPreferred     = settings.charAt(0) != '0';
+      this.visualBell       = settings.charAt(1) != '0';
+      if (typeof userCSSList != 'undefined') {
+        for (var i = 0; i < userCSSList.length; ++i) {
+          userCSSList[i][2] = settings.charAt(i + 2) != '0';
+        }
+      }
+    }
+  }
+  this.utfEnabled           = this.utfPreferred;
+};
+
+VT100.prototype.storeUserSettings = function() {
+  var settings  = 'shellInABox=' + this.signature + ':' +
+                  (this.utfEnabled ? '1' : '0') +
+                  (this.visualBell ? '1' : '0');
+  if (typeof userCSSList != 'undefined') {
+    for (var i = 0; i < userCSSList.length; ++i) {
+      settings += userCSSList[i][2] ? '1' : '0';
+    }
+  }
+  var d         = new Date();
+  d.setDate(d.getDate() + 3653);
+  document.cookie = settings + ';expires=' + d.toGMTString();
 };
 
 VT100.prototype.initializeUserCSSStyles = function() {
@@ -334,6 +392,7 @@ VT100.prototype.initializeUserCSSStyles = function() {
                       } else {
                         sheet.disabled   = true;
                       }
+                      userCSSList[i][2]  = !sheet.disabled;
                     }
                   }
                   entry                  = entry.nextSibling;
@@ -1821,7 +1880,11 @@ VT100.prototype.pasteFnc = function() {
 };
 
 VT100.prototype.toggleUTF = function() {
-  this.utfEnabled = !this.utfEnabled;
+  this.utfEnabled   = !this.utfEnabled;
+
+  // We always persist the last value that the user selected. Not necessarily
+  // the last value that a random program requested.
+  this.utfPreferred = this.utfEnabled;
 };
 
 VT100.prototype.toggleBell = function() {
@@ -1829,7 +1892,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.9 (revision 169)" +
+  alert("VT100 Terminal Emulator " + "2.9 (revision 170)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -1922,6 +1985,7 @@ VT100.prototype.showContextMenu = function(x, y) {
                            return function(event) {
                              vt100.hideContextMenu();
                              action.call(vt100);
+                             vt100.storeUserSettings();
                              return vt100.cancelEvent(event || window.event);
                            }
                          }(this, actions[i]));

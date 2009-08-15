@@ -37,6 +37,8 @@ EXTRA_DIST           = demo/beep.wav                                          \
                        shellinabox/shell_in_a_box.js                          \
                        shellinabox/vt100.js                                   \
                        debian/README                                          \
+                       debian/README.available                                \
+                       debian/README.enabled                                  \
                        debian/changelog                                       \
                        debian/compat                                          \
                        debian/control                                         \

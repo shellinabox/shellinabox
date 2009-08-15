@@ -72,8 +72,23 @@ install: build
 	dh_clean -k 
 	dh_installdirs
 	@# Add here commands to install the package into debian/tmp
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
-
+	$(MAKE) install DESTDIR="$(CURDIR)/debian/tmp"
+	# Set up system-wide user CSS style options
+	mkdir -p "$(CURDIR)/debian/tmp/etc/shellinabox/options-available"     \
+	         "$(CURDIR)/debian/tmp/etc/shellinabox/options-enabled"
+	for i in "00+Black on White" "00_White On Black"                      \
+	         "01_Monochrome"     "01+Color Terminal"; do                  \
+	  ln "$(CURDIR)/debian/tmp/usr/share/doc/shellinabox/$$(echo "$$i"|   \
+                                        sed -e 's/[0-9]*[_+]\([^ ]*\).*/\1/'| \
+	                                tr A-Z a-z)"*.css                     \
+	     "$(CURDIR)/debian/tmp/etc/shellinabox/options-available/$$i.css";\
+	done
+	cd "$(CURDIR)/debian/tmp/etc/shellinabox/options-enabled" &&          \
+	ln -s ../options-available/*.css .
+	cp "$(CURDIR)/debian/README.available"                                \
+	   "$(CURDIR)/debian/tmp/etc/shellinabox/options-available/README"
+	cp "$(CURDIR)/debian/README.enabled"                                  \
+	   "$(CURDIR)/debian/tmp/etc/shellinabox/options-enabled/README"
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -86,7 +101,7 @@ binary-arch: build install
 	dh_installchangelogs ChangeLog
 	dh_installdocs --exclude COPYING --exclude INSTALL --exclude ChangeLog
 	dh_installexamples
-	dh_install --sourcedir=debian/tmp
+	dh_install
 #	dh_installmenu
 #	dh_installdebconf
 #	dh_installlogrotate
