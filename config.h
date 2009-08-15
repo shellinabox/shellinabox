@@ -138,7 +138,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "170"
+#define VCS_REVISION "171"
 
 /* Version number of package */
 #define VERSION "2.9"

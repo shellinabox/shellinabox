@@ -66,6 +66,8 @@
 #ifdef HAVE_STRLCAT
 #define strncat(a,b,c) ({ char *_a = (a); strlcat(_a, (b), (c)+1); _a; })
 #endif
+#define max(a, b) ({ typeof(a) _a = (a); typeof(b) _b = (b);                  \
+                     _a > _b ? _a : _b; })
 
 #include "libhttp/httpconnection.h"
 #include "logging/logging.h"
@@ -488,6 +490,58 @@ static int httpAcceptsEncoding(struct HttpConnection *http,
 }
 #endif
 
+static void removeHeader(char *header, int *headerLength, const char *id) {
+  check(header);
+  check(headerLength);
+  check(*headerLength >= 0);
+  check(id);
+  check(strchr(id, ':'));
+  int idLength       = strlen(id);
+  if (idLength <= 0) {
+    return;
+  }
+  for (char *ptr = header; header + *headerLength - ptr >= idLength; ) {
+    char *end        = ptr;
+    do {
+      end            = memchr(end, '\n', header + *headerLength - end);
+      if (end == NULL) {
+        end          = header + *headerLength;
+      } else {
+        ++end;
+      }
+    } while (end < header + *headerLength && *end == ' ');
+    if (!strncasecmp(ptr, id, idLength)) {
+      memmove(ptr, end, header + *headerLength - end);
+      *headerLength -= end - ptr;
+    } else {
+      ptr            = end;
+    }
+  }
+}
+
+static void addHeader(char **header, int *headerLength, const char *fmt, ...) {
+  check(header);
+  check(headerLength);
+  check(*headerLength >= 0);
+  check(strstr(fmt, "\r\n"));
+
+  va_list ap;
+  va_start(ap, fmt);
+  char *tmp        = vStringPrintf(NULL, fmt, ap);
+  va_end(ap);
+  int tmpLength    = strlen(tmp);
+
+  if (*headerLength >= 2 && !memcmp(*header + *headerLength - 2, "\r\n", 2)) {
+    *headerLength -= 2;
+  }
+  check(*header    = realloc(*header, *headerLength + tmpLength + 2));
+
+  memcpy(*header + *headerLength, tmp, tmpLength);
+  memcpy(*header + *headerLength + tmpLength, "\r\n", 2);
+  *headerLength   += tmpLength + 2;
+  free(tmp);
+}
+
 void httpTransfer(struct HttpConnection *http, char *msg, int len) {
   check(msg);
   check(len >= 0);
@@ -501,9 +555,12 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
   if (msie && msie[5] >= '4' && msie[5] <= '6') {
     ieBug++;
   }
-      
+
+  char *header              = NULL;
+  int headerLength          = 0;
+  int bodyOffset            = 0;
+
   int compress              = 0;
-  char *contentLength       = NULL;
   if (!http->totalWritten) {
     // Perform some basic sanity checks. This does not necessarily catch all
     // possible problems, though.
@@ -549,12 +606,6 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
         // lines
         if (*line != ' ' && *line != '\t') {
           check(memchr(line, ':', eol - line));
-
-          // Remember where we saw the Content-Length header. We need to edit
-          // it, if we end up sending compressed data
-          if (!strncasecmp(line, "Content-Length:", 15)) {
-            contentLength   = line;
-          }
         }
       }
       lastLine              = line;
@@ -562,41 +613,34 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
       line                  = eol + 1;
     }
 
+    if (ieBug || compress) {
+      if (l >= 2 && !memcmp(line, "\r\n", 2)) {
+        line               += 2;
+        l                  -= 2;
+      }
+      headerLength          = line - msg;
+      bodyOffset            = headerLength;
+      check(header          = malloc(headerLength));
+      memcpy(header, msg, headerLength);
+    }
+    if (ieBug) {
+      removeHeader(header, &headerLength, "connection:");
+      addHeader(&header, &headerLength, "Connection: close\r\n");
+    }
+
     if (compress) {
       #ifdef HAVE_ZLIB
-      // Create a copy of msg, and edit existing Content-Length line
-      // out of header.
-      char *compressed, *ptr;
-      check(compressed      = malloc(len + 100));
-      if (contentLength) {
-        memcpy(compressed, msg, contentLength - msg);
-        char *part2         = strchr(contentLength, '\n');
-        check(part2++);
-        memcpy(compressed + (contentLength - msg), part2, line - part2);
-        ptr                 = compressed + (contentLength - msg) +
-                                           (line - part2);
-      } else {
-        memcpy(compressed, msg, line - msg);
-        ptr                 = compressed + (line - msg);
-      }
-
-      // Add new Content-Encoding and new Content-Length lines. Leave enough
-      // space to later edit the actual length back in.
-      memcpy(ptr,
-             "Content-Encoding: deflate\r\n"
-             "Content-Length:                    \r\n\r\n",
-             66);
-      contentLength         = ptr + 42;
-      ptr                  += 66;
-      
       // Compress the message
+      char *compressed;
+      check(compressed      = malloc(len));
+      check(len >= bodyOffset + 2);
       z_stream strm         = { .zalloc    = Z_NULL,
                                 .zfree     = Z_NULL,
                                 .opaque    = Z_NULL,
                                 .avail_in  = l - 2,
                                 .next_in   = (unsigned char *)line + 2,
-                                .avail_out = len - (ptr - compressed),
-                                .next_out  = (unsigned char *)ptr
+                                .avail_out = len,
+                                .next_out  = (unsigned char *)compressed
                               };
       if (deflateInit(&strm, Z_DEFAULT_COMPRESSION) == Z_OK) {
         if (deflate(&strm, Z_FINISH) == Z_STREAM_END) {
@@ -605,9 +649,11 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
           free(msg);
           msg               = compressed;
           len              -= strm.avail_out;
-          snprintf(contentLength, 21, "%20lu",
-                   (unsigned long)(len - (ptr - compressed)));
-          contentLength[20] = '\r';
+          bodyOffset        = 0;
+          removeHeader(header, &headerLength, "content-length:");
+          removeHeader(header, &headerLength, "content-encoding:");
+          addHeader(&header, &headerLength, "Content-Length: %d\r\n", len);
+          addHeader(&header, &headerLength, "Content-Encoding: deflate\r\n");
         } else {
           free(compressed);
         }
@@ -619,25 +665,50 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
     }
   }
 
-  http->totalWritten       += len;
-  if (!len) {
-    free(msg);
+  http->totalWritten       += headerLength + (len - bodyOffset);
+  if (!headerLength) {
+    free(header);
   } else if (http->msg) {
     check(http->msg         = realloc(http->msg,
-                                     http->msgLength - http->msgOffset + len));
+                                      http->msgLength - http->msgOffset +
+                                      max(http->msgOffset, headerLength)));
     if (http->msgOffset) {
       memmove(http->msg, http->msg + http->msgOffset,
               http->msgLength - http->msgOffset);
       http->msgLength      -= http->msgOffset;
       http->msgOffset       = 0;
     }
-    memcpy(http->msg + http->msgLength, msg, len);
-    http->msgLength        += len;
+    memcpy(http->msg + http->msgLength, header, headerLength);
+    http->msgLength        += headerLength;
+    free(header);
+  } else {
+    check(!http->msgOffset);
+    http->msg               = header;
+    http->msgLength         = headerLength;
+  }
+
+  if (len <= bodyOffset) {
+    free(msg);
+  } else if (http->msg) {
+    check(http->msg         = realloc(http->msg,
+                                      http->msgLength - http->msgOffset +
+                                      max(http->msgOffset, len - bodyOffset)));
+    if (http->msgOffset) {
+      memmove(http->msg, http->msg + http->msgOffset,
+              http->msgLength - http->msgOffset);
+      http->msgLength      -= http->msgOffset;
+      http->msgOffset       = 0;
+    }
+    memcpy(http->msg + http->msgLength, msg + bodyOffset, len - bodyOffset);
+    http->msgLength        += len - bodyOffset;
     free(msg);
   } else {
     check(!http->msgOffset);
+    if (bodyOffset) {
+      memmove(msg, msg + bodyOffset, len - bodyOffset);
+    }
     http->msg               = msg;
-    http->msgLength         = len;
+    http->msgLength         = len - bodyOffset;
   }
 
   // The caller can suspend the connection, so that it can send an
@@ -686,7 +757,7 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
     }
   }
 
-  if (http->sslHndl && ieBug) {
+  if (ieBug) {
     httpCloseRead(http);
   }
 }
