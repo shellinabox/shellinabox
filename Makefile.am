@@ -153,7 +153,7 @@ ${top_srcdir}/demo/favicon.ico: ${top_srcdir}/shellinabox/favicon.ico
 
 ${top_srcdir}/demo/styles.css: ${top_srcdir}/shellinabox/styles.css
 	@rm -f "$@"
-	ln "$<" "$@"
+	sed -e '/\[if DEFINES_COLORS\]/,/\[endif DEFINES_COLORS\]/d' "$<" >"$@"
 
 ${top_srcdir}/demo/usercss-0.css: ${top_srcdir}/shellinabox/white-on-black.css
 	@rm -f "$@"

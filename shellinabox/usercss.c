@@ -55,21 +55,41 @@
 
 #include "logging/logging.h"
 #include "shellinabox/usercss.h"
+#include "libhttp/hashmap.h"
 
+static struct HashMap *defines;
 
-static void readStylesheet(const char *filename, char **style, size_t *len) {
-  int fd               = open(filename, O_RDONLY);
+static void definesDestructor(void *arg, char *key, char *value) {
+  free(key);
+}
+
+static void readStylesheet(struct UserCSS *userCSS, const char *filename,
+                           char **style, size_t *len) {
+  int fd                  = open(filename, O_RDONLY);
   struct stat st;
   if (fd < 0 || fstat(fd, &st)) {
     fatal("Cannot access style sheet \"%s\"", filename);
   }
   FILE *fp;
-  check(fp             = fdopen(fd, "r"));
-  check(*style         = malloc(st.st_size + 1));
+  check(fp                = fdopen(fd, "r"));
+  check(*style            = malloc(st.st_size + 1));
   check(fread(*style, 1, st.st_size, fp) == st.st_size);
-  (*style)[st.st_size] = '\000';
-  *len                 = st.st_size;
+  (*style)[st.st_size]    = '\000';
+  *len                    = st.st_size;
   fclose(fp);
+  if (!memcmp(*style, "/* DEFINES_", 11)) {
+    char *e               = strchr(*style + 11, ' ');
+    if (e) {
+      if (!defines) {
+        defines           = newHashMap(definesDestructor, NULL);
+      }
+      char *def;
+      check(def           = malloc(e - *style - 2));
+      memcpy(def, *style + 3, e - *style - 3);
+      def[e - *style - 3] = '\000';
+      addToHashMap(defines, def, (char *)userCSS);
+    }
+  }
 }
 
 void initUserCSS(struct UserCSS *userCSS, const char *arg) {
@@ -130,7 +150,8 @@ void initUserCSS(struct UserCSS *userCSS, const char *arg) {
               "active by default");
     }
 
-    readStylesheet(filename + 1, (char **)&userCSS->style, &userCSS->styleLen);
+    readStylesheet(userCSS, filename + 1, (char **)&userCSS->style,
+                   &userCSS->styleLen);
     free(filename);
 
     arg                                   = colon + 1 + filenameLen;
@@ -207,4 +228,11 @@ char *getUserCSSString(struct UserCSS *userCSS) {
     userCSS = userCSS->next;
   }
   return stringPrintf(s, " ]");
+}
+
+struct UserCSS *userCSSGetDefine(const char *def) {
+  if (!defines) {
+    return NULL;
+  }
+  return (struct UserCSS *)getFromHashMap(defines, def);
 }

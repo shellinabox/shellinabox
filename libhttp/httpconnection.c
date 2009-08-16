@@ -546,13 +546,12 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
   check(msg);
   check(len >= 0);
 
-  // Internet Explorer prior to version 7 seems to have difficulties with
-  // compressed data. It also has difficulties with SSL connections that
-  // are being proxied.
+  // Internet Explorer seems to have difficulties with compressed data. It
+  // also has difficulties with SSL connections that are being proxied.
   int ieBug                 = 0;
   const char *userAgent     = getFromHashMap(&http->header, "user-agent");
   const char *msie          = userAgent ? strstr(userAgent, "MSIE ") : NULL;
-  if (msie && msie[5] >= '4' && msie[5] <= '6') {
+  if (msie) {
     ieBug++;
   }
 
@@ -637,8 +636,8 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
       z_stream strm         = { .zalloc    = Z_NULL,
                                 .zfree     = Z_NULL,
                                 .opaque    = Z_NULL,
-                                .avail_in  = l - 2,
-                                .next_in   = (unsigned char *)line + 2,
+                                .avail_in  = l,
+                                .next_in   = (unsigned char *)line,
                                 .avail_out = len,
                                 .next_out  = (unsigned char *)compressed
                               };

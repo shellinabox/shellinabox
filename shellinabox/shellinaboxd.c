@@ -445,18 +445,129 @@ static int dataHandler(HttpConnection *http, struct Service *service,
 
 static void serveStaticFile(HttpConnection *http, const char *contentType,
                             const char *start, const char *end) {
+  char *body                     = (char *)start;
+  char *bodyEnd                  = (char *)end;
+
+  // Unfortunately, there are still some browsers that are so buggy that they
+  // need special conditional code. In anything that has a "text" MIME type,
+  // we allow simple conditionals. Nested conditionals are not supported.
+  if (!memcmp(contentType, "text/", 5)) {
+    char *tag                    = NULL;
+    int condTrue                 = -1;
+    char *ifPtr                  = NULL;
+    char *elsePtr                = NULL;
+    for (char *ptr = body; bodyEnd - ptr >= 6; ) {
+      char *eol                  = ptr;
+      eol                        = memchr(eol, '\n', bodyEnd - eol);
+      if (eol == NULL) {
+        eol                      = bodyEnd;
+      } else {
+        ++eol;
+      }
+      if (!memcmp(ptr, "[if ", 4)) {
+        char *bracket            = memchr(ptr + 4, ']', eol - ptr - 4);
+        if (bracket != NULL && bracket > ptr + 4) {
+          check(tag              = malloc(bracket - ptr - 3));
+          memcpy(tag, ptr + 4, bracket - ptr - 4);
+          tag[bracket - ptr - 4] = '\000';
+          condTrue               = 0;
+          const char *userAgent  = getFromHashMap(httpGetHeaders(http),
+                                                  "user-agent");
+          if (userAgent) {
+            // Allow multiple comma separated conditions
+            for (char *tagPtr = tag; *tagPtr; ) {
+              char *e            = strchr(tagPtr, ',');
+              if (!e) {
+                e                = strchr(tag, '\000');
+              } else {
+                *e++             = '\000';
+              }
+              condTrue           = userCSSGetDefine(tagPtr) ||
+                                   strstr(userAgent, tagPtr) != NULL;
+              if (*e) {
+                e[-1]            = ',';
+              }
+              if (condTrue) {
+                break;
+              }
+              tagPtr             = e;
+            }
+          }
+
+          // If we find any conditionals, then we need to make a copy of
+          // the text document. We do this lazily, as presumably the majority
+          // of text documents won't have conditionals.
+          if (body == start) {
+            check(body           = malloc(end - start));
+            memcpy(body, start, end - start);
+            bodyEnd             += body - start;
+            ptr                 += body - start;
+            eol                 += body - start;
+          }
+
+          // Remember the beginning of the "[if ...]" statement
+          ifPtr                  = ptr;
+        }
+      } else if (ifPtr && !elsePtr && eol - ptr >= strlen(tag) + 7 &&
+                 !memcmp(ptr, "[else ", 6) &&
+                 !memcmp(ptr + 6, tag, strlen(tag)) &&
+                 ptr[6 + strlen(tag)] == ']') {
+        // Found an "[else ...]" statement. Remember where it started.
+        elsePtr                  = ptr;
+      } else if (ifPtr && eol - ptr >= strlen(tag) + 8 &&
+                 !memcmp(ptr, "[endif ", 7) &&
+                 !memcmp(ptr + 7, tag, strlen(tag)) &&
+                 ptr[7 + strlen(tag)] == ']') {
+        // Found the closing "[endif ...]" statement. Now we can remove those
+        // parts of the conditionals that do not apply to this user agent.
+        char *s, *e;
+        if (condTrue) {
+          s                      = strchr(ifPtr, '\n') + 1;
+          e                      = elsePtr ? elsePtr : ptr;
+        } else {
+          if (elsePtr) {
+            s                    = strchr(elsePtr, '\n') + 1;
+            e                    = ptr;
+          } else {
+            s                    = ifPtr;
+            e                    = ifPtr;
+          }
+        }
+        memmove(ifPtr, s, e - s);
+        memmove(ifPtr + (e - s), eol, bodyEnd - eol);
+        bodyEnd                 -= (s - ifPtr) + (eol - e);
+        eol                      = ifPtr + (e - s);
+        ifPtr                    = NULL;
+        elsePtr                  = NULL;
+        free(tag);
+        tag                      = NULL;
+      }
+      ptr                        = eol;
+    }
+    free(tag);
+  }
+
   char *response   = stringPrintf(NULL,
                                   "HTTP/1.1 200 OK\r\n"
                                   "Content-Type: %s\r\n"
                                   "Content-Length: %ld\r\n"
-                                  "\r\n",
-                                  contentType, (long)(end - start));
+                                  "%s\r\n",
+                                  contentType, (long)(bodyEnd - body),
+                                  body == start ? "" :
+                                  "Cache-Control: no-cache\r\n");
   int len          = strlen(response);
   if (strcmp(httpGetMethod(http), "HEAD")) {
-    check(response = realloc(response, len + (end - start)));
-    memcpy(response + len, start, end - start);
-    len           += end - start;
+    check(response = realloc(response, len + (bodyEnd - body)));
+    memcpy(response + len, body, bodyEnd - body);
+    len           += bodyEnd - body;
   }
+
+  // If we expanded conditionals, we had to create a temporary copy. Delete
+  // it now.
+  if (body != start) {
+    free(body);
+  }
+
   httpTransfer(http, response, len);
 }
 

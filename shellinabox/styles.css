@@ -135,6 +135,11 @@
 
 #vt100 #scrollable.inverted { color:            #ffffff;
                               background-color: #000000; }
+[if DEFINES_COLORS]
+/* IE cannot properly handle "inherit" properties. So, the monochrome.css
+ * style sheet cannot work, if we define colors by default.
+ */
+[else DEFINES_COLORS]
 #vt100 .ansi0               {                            }
 #vt100 .ansi1               { color:            #cd0000; }
 #vt100 .ansi2               { color:            #00cd00; }
@@ -168,6 +173,7 @@
 #vt100 .bgAnsi13            { background-color: #ff00ff; }
 #vt100 .bgAnsi14            { background-color: #00ffff; }
 #vt100 .bgAnsi15            {                            }
+[endif DEFINES_COLORS]
 
 @media print {
   #vt100 .scrollback {
