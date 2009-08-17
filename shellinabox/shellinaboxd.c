@@ -1220,7 +1220,7 @@ int main(int argc, char * const argv[]) {
     printf("X-ShellInABox-Port: %d\r\n"
            "X-ShellInABox-Pid: %d\r\n"
            "Content-type: text/html; charset=utf-8\r\n\r\n",
-           port, pid);
+           port, getpid());
     printfUnchecked(cgiRoot, port, cgiSessionKey);
     fflush(stdout);
     free(cgiRoot);

@@ -36,6 +36,7 @@ EXTRA_DIST           = demo/beep.wav                                          \
                        shellinabox/shellinaboxd.man.in                        \
                        shellinabox/shell_in_a_box.js                          \
                        shellinabox/vt100.js                                   \
+                       shellinabox/cgi-mode-example.sh                        \
                        debian/README                                          \
                        debian/README.available                                \
                        debian/README.enabled                                  \
