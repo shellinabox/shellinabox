@@ -341,6 +341,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
   const char *width       = getFromHashMap(args, "width");
   const char *height      = getFromHashMap(args, "height");
   const char *keys        = getFromHashMap(args, "keys");
+  const char *rootURL     = getFromHashMap(args, "rooturl");
 
   // Adjust window dimensions if provided by client
   if (width && height) {
@@ -362,7 +363,8 @@ static int dataHandler(HttpConnection *http, struct Service *service,
       goto bad_new_session;
     }
     session->http         = http;
-    if (launchChild(service->id, session) < 0) {
+    if (launchChild(service->id, session,
+                    rootURL && *rootURL ? rootURL : urlGetURL(url)) < 0) {
       abandonSession(session);
       httpSendReply(http, 500, "Internal Error", NO_MSG);
       return HTTP_DONE;
@@ -809,7 +811,7 @@ static void parseArgs(int argc, char * const argv[]) {
   HashMap *serviceTable    = newHashMap(destroyServiceHashEntry, NULL);
   extern char stylesStart[];
   extern char stylesEnd[];
-  check(cssStyleSheet      = malloc(stylesEnd - stylesStart));
+  check(cssStyleSheet      = malloc(stylesEnd - stylesStart + 1));
   memcpy(cssStyleSheet, stylesStart, stylesEnd - stylesStart);
   cssStyleSheet[stylesEnd - stylesStart] = '\000';
 

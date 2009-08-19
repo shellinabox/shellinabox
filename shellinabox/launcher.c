@@ -401,21 +401,27 @@ static int getpwuid_r(uid_t uid, struct passwd *pwd, char *buf, size_t buflen,
 }
 #endif
 
-int launchChild(int service, struct Session *session) {
+int launchChild(int service, struct Session *session, const char *url) {
   if (launcher < 0) {
     errno              = EINVAL;
     return -1;
   }
 
-  struct LaunchRequest request = {
-    .service           = service,
-    .width             = session->width,
-    .height            = session->height };
-  strncat(request.peerName, httpGetPeerName(session->http),
-          sizeof(request.peerName) - 1);
-  if (NOINTR(write(launcher, &request, sizeof(request))) != sizeof(request)) {
+  struct LaunchRequest *request;
+  size_t len           = sizeof(struct LaunchRequest) + strlen(url) + 1;
+  check(request        = calloc(len, 1));
+  request->service     = service;
+  request->width       = session->width;
+  request->height      = session->height;
+  strncat(request->peerName, httpGetPeerName(session->http),
+          sizeof(request->peerName) - 1);
+  request->urlLength   = strlen(url);
+  memcpy(&request->url, url, request->urlLength);
+  if (NOINTR(write(launcher, request, len)) != len) {
+    free(request);
     return -1;
   }
+  free(request);
   pid_t pid;
   char cmsg_buf[CMSG_SPACE(sizeof(int))];
   struct iovec iov     = { 0 };
@@ -1023,7 +1029,8 @@ static void destroyVariableHashEntry(void *arg, char *key, char *value) {
 }
 
 static void execService(int width, int height, struct Service *service,
-                        const char *peerName, char **environment) {
+                        const char *peerName, char **environment,
+                        const char *url) {
   // Create a hash table with all the variables that we can expand. This
   // includes all environment variables being passed to the child.
   HashMap *vars;
@@ -1059,6 +1066,8 @@ static void execService(int width, int height, struct Service *service,
   addToHashMap(vars, key, value);
   check(key                   = strdup("uid"));
   addToHashMap(vars, key, stringPrintf(NULL, "%d", service->uid));
+  check(key                   = strdup("url"));
+  addToHashMap(vars, key, strdup(url));
 
   enum { ENV, ARGS } state    = ENV;
   enum { NONE, SINGLE, DOUBLE
@@ -1110,11 +1119,26 @@ static void execService(int width, int height, struct Service *service,
         if (ch) {
           end++;
         }
+        int incr              = replLen - (end - ptr);
+        if (incr > 0) {
+          char *oldCmdline    = cmdline;
+          check(cmdline       = realloc(cmdline,
+                                        (end - cmdline) + strlen(end) +
+                                        incr + 1));
+          ptr                += cmdline - oldCmdline;
+          end                += cmdline - oldCmdline;
+          if (key) {
+            key              += cmdline - oldCmdline;
+          }
+          if (value) {
+            value            += cmdline - oldCmdline;
+          }
+        }
         memmove(ptr + replLen, end, strlen(end) + 1);
         if (repl) {
           memcpy(ptr, repl, replLen);
         }
-        ptr                  += replLen;
+        ptr                  += replLen - 1;
       }
       break;
     case '\\':
@@ -1168,7 +1192,7 @@ static void execService(int width, int height, struct Service *service,
         } else {
           // Add entry to argv.
           state               = ARGS;
-          argv[argc++]        = key;
+          argv[argc++]        = strdup(key);
           check(argv          = realloc(argv, (argc + 1)*sizeof(char *)));
         }
       }
@@ -1183,6 +1207,7 @@ static void execService(int width, int height, struct Service *service,
     }
   }
  done:
+  free(cmdline);
   argv[argc]                  = NULL;
   deleteHashMap(vars);
   check(argc);
@@ -1217,7 +1242,8 @@ void setWindowSize(int pty, int width, int height) {
 }
 
 static void childProcess(struct Service *service, int width, int height,
-                         struct Utmp *utmp, const char *peerName) {
+                         struct Utmp *utmp, const char *peerName,
+                         const char *url) {
   // Set initial window size
   setWindowSize(0, width, height);
 
@@ -1343,7 +1369,7 @@ static void childProcess(struct Service *service, int width, int height,
     execle("/usr/bin/login", "login", "-p", "-h", peerName,
            (void *)0, environment);
   } else {
-    execService(width, height, service, peerName, environment);
+    execService(width, height, service, peerName, environment, url);
   }
   _exit(1);
 }
@@ -1363,6 +1389,9 @@ static void launcherDaemon(int fd) {
     errno                     = 0;
     int len                   = read(fd, &request, sizeof(request));
     if (len != sizeof(request) && errno != EINTR) {
+      if (len) {
+        debug("Failed to read launch request");
+      }
       break;
     }
 
@@ -1379,6 +1408,26 @@ static void launcherDaemon(int fd) {
     }
     if (len != sizeof(request)) {
       continue;
+    }
+
+    char *url;
+    check(url                 = calloc(request.urlLength + 1, 1));
+  readURL:
+    len                       = read(fd, url, request.urlLength + 1);
+    if (len != request.urlLength + 1 && errno != EINTR) {
+      debug("Failed to read URL");
+      free(url);
+      break;
+    }
+    while (NOINTR(pid = waitpid(-1, &status, WNOHANG)) > 0) {
+      if (WIFEXITED(pid) || WIFSIGNALED(pid)) {
+        char key[32];
+        snprintf(&key[0], sizeof(key), "%d", pid);
+        deleteFromHashMap(childProcesses, key);
+      }
+    }
+    if (len != request.urlLength + 1) {
+      goto readURL;
     }
 
     check(request.service >= 0);
@@ -1403,11 +1452,13 @@ static void launcherDaemon(int fd) {
                                         services[request.service]->useLogin,
                                         &utmp, request.peerName)) == 0) {
       childProcess(services[request.service], request.width, request.height,
-                   utmp, request.peerName);
+                   utmp, request.peerName, url);
+      free(url);
       _exit(1);
     } else {
       // Remember the utmp entry so that we can clean up when the child
       // terminates.
+      free(url);
       if (pid > 0) {
         if (!childProcesses) {
           childProcesses      = newHashMap(destroyUtmpHashEntry, NULL);

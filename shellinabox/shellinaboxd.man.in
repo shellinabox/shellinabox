@@ -403,6 +403,9 @@ name of remote peer.
 .B ${uid}
 numeric user id.
 .TP
+.B ${url}
+the URL that serves the terminal session.
+.TP
 .B ${user}
 user name.
 .P

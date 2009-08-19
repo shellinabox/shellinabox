@@ -1,3 +1,7 @@
+2009-08-19  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added a ${url} parameter that can be used in the service description.
+
 2009-08-11  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added support for user selectable style sheets. Included example
