@@ -475,25 +475,29 @@ static void serveStaticFile(HttpConnection *http, const char *contentType,
           condTrue               = 0;
           const char *userAgent  = getFromHashMap(httpGetHeaders(http),
                                                   "user-agent");
-          if (userAgent) {
-            // Allow multiple comma separated conditions
-            for (char *tagPtr = tag; *tagPtr; ) {
-              char *e            = strchr(tagPtr, ',');
-              if (!e) {
-                e                = strchr(tag, '\000');
-              } else {
-                *e++             = '\000';
-              }
-              condTrue           = userCSSGetDefine(tagPtr) ||
-                                   strstr(userAgent, tagPtr) != NULL;
-              if (*e) {
-                e[-1]            = ',';
-              }
-              if (condTrue) {
-                break;
-              }
-              tagPtr             = e;
+          if (!userAgent) {
+            userAgent            = "";
+          }
+
+          // Allow multiple comma separated conditions. Conditions are either
+          // substrings found in the user agent, or they are "DEFINES_..."
+          // tags at the top of user CSS files.
+          for (char *tagPtr = tag; *tagPtr; ) {
+            char *e              = strchr(tagPtr, ',');
+            if (!e) {
+              e                  = strchr(tag, '\000');
+            } else {
+              *e++               = '\000';
             }
+            condTrue             = userCSSGetDefine(tagPtr) ||
+                                   strstr(userAgent, tagPtr) != NULL;
+            if (*e) {
+              e[-1]              = ',';
+            }
+            if (condTrue) {
+              break;
+            }
+            tagPtr               = e;
           }
 
           // If we find any conditionals, then we need to make a copy of
@@ -680,6 +684,12 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     // Serve the style sheet.
     serveStaticFile(http, "text/css; charset=utf-8",
                     cssStyleSheet, strrchr(cssStyleSheet, '\000'));
+  } else if (pathInfoLength == 16 && !memcmp(pathInfo, "print-styles.css",16)){
+    // Serve the style sheet.
+    extern char printStylesStart[];
+    extern char printStylesEnd[];
+    serveStaticFile(http, "text/css; charset=utf-8",
+                    printStylesStart, printStylesEnd);
   } else if (pathInfoLength > 8 && !memcmp(pathInfo, "usercss-", 8)) {
     // Server user style sheets (if any)
     struct UserCSS *css   = userCSSList;
@@ -1232,7 +1242,8 @@ int main(int argc, char * const argv[]) {
   }
 
   // Set log file format
-  serverSetNumericHosts(server, numericHosts);
+  serverSetNumericHosts(server, numericHosts ||
+                        logIsQuiet() || logIsDefault());
 
   // Disable /quit handler
   serverRegisterHttpHandler(server, "/quit", NULL, NULL);

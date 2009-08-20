@@ -204,6 +204,12 @@ VT100.prototype.reset = function(clearHistory) {
   this.crLfMode                         = false;
   this.offsetMode                       = false;
   this.mouseReporting                   = false;
+  this.printing                         = false;
+  if (typeof this.printWin != 'undefined' &&
+      this.printWin && !this.printWin.closed) {
+    this.printWin.close();
+  }
+  this.printWin                         = null;
   this.utfEnabled                       = this.utfPreferred;
   this.utfCount                         = 0;
   this.utfChar                          = 0;
@@ -250,10 +256,11 @@ VT100.prototype.getUserSettings = function() {
   // Compute hash signature to identify the entries in the userCSS menu.
   // If the menu is unchanged from last time, default values can be
   // looked up in a cookie associated with this page.
-  this.signature            = 0;
+  this.signature            = 1;
   this.utfPreferred         = true;
   this.visualBell           = typeof suppressAllAudio != 'undefined' &&
                               suppressAllAudio;
+  this.autoprint            = true;
   if (this.visualBell) {
     this.signature          = Math.floor(16807*this.signature + 1) %
                                          ((1 << 31) - 1);
@@ -278,13 +285,14 @@ VT100.prototype.getUserSettings = function() {
   if (settings >= 0) {
     settings                = document.cookie.substr(settings + key.length).
                                                    replace(/([0-1]*).*/, "$1");
-    if (settings.length == 2 + (typeof userCSSList == 'undefined' ?
+    if (settings.length == 3 + (typeof userCSSList == 'undefined' ?
                                 0 : userCSSList.length)) {
       this.utfPreferred     = settings.charAt(0) != '0';
       this.visualBell       = settings.charAt(1) != '0';
+      this.autoprint        = settings.charAt(2) != '0';
       if (typeof userCSSList != 'undefined') {
         for (var i = 0; i < userCSSList.length; ++i) {
-          userCSSList[i][2] = settings.charAt(i + 2) != '0';
+          userCSSList[i][2] = settings.charAt(i + 3) != '0';
         }
       }
     }
@@ -295,7 +303,8 @@ VT100.prototype.getUserSettings = function() {
 VT100.prototype.storeUserSettings = function() {
   var settings  = 'shellInABox=' + this.signature + ':' +
                   (this.utfEnabled ? '1' : '0') +
-                  (this.visualBell ? '1' : '0');
+                  (this.visualBell ? '1' : '0') +
+                  (this.autoprint  ? '1' : '0');
   if (typeof userCSSList != 'undefined') {
     for (var i = 0; i < userCSSList.length; ++i) {
       settings += userCSSList[i][2] ? '1' : '0';
@@ -1892,7 +1901,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.9 (revision 174)" +
+  alert("VT100 Terminal Emulator " + "2.9 (revision 176)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -2828,6 +2837,187 @@ VT100.prototype.setCursorAttr = function(setAttr, xorAttr) {
   // Changing of cursor color is not implemented.
 };
 
+VT100.prototype.openPrinterWindow = function() {
+  var rc            = true;
+  try {
+    if (!this.printWin || this.printWin.closed) {
+      this.printWin = window.open('', 'print-output',
+        'width=800,height=600,directories=no,location=no,menubar=yes,' +
+        'status=no,toolbar=no,titlebar=yes,scrollbars=yes,resizable=yes');
+      this.printWin.document.body.innerHTML =
+        '<link rel="stylesheet" href="' +
+          document.location.protocol + '//' + document.location.host +
+          document.location.pathname.replace(/[^/]*$/, '') +
+          'print-styles.css" type="text/css">\n' +
+        '<div id="options"><input id="autoprint" type="checkbox"' +
+          (this.autoprint ? ' checked' : '') + '>' +
+          'Automatically, print page(s) when job is ready' +
+        '</input></div>\n' +
+        '<pre id="print"></pre>\n';
+      var autoprint = this.printWin.document.getElementById('autoprint');
+      this.addListener(autoprint, 'click',
+                       (function(vt100, autoprint) {
+                         return function() {
+                           vt100.autoprint = autoprint.checked;
+                           vt100.storeUserSettings();
+                           return false;
+                         };
+                       })(this, autoprint));
+      this.printWin.document.title = 'ShellInABox Printer Output';
+    }
+  } catch (e) {
+    // Maybe, a popup blocker prevented us from working. Better catch the
+    // exception, so that we won't break the entire terminal session. The
+    // user probably needs to disable the blocker first before retrying the
+    // operation.
+    rc              = false;
+  }
+  rc               &= this.printWin && !this.printWin.closed &&
+                      (this.printWin.innerWidth ||
+                       this.printWin.document.documentElement.clientWidth ||
+                       this.printWin.document.body.clientWidth) > 1;
+
+  if (!rc && this.printing == 100) {
+    // Different popup blockers work differently. We try to detect a couple
+    // of common methods. And then we retry again a brief amount later, as
+    // false positives are otherwise possible. If we are sure that there is
+    // a popup blocker in effect, we alert the user to it. This is helpful
+    // as some popup blockers have minimal or no UI, and the user might not
+    // notice that they are missing the popup. In any case, we only show at
+    // most one message per print job.
+    this.printing   = true;
+    setTimeout((function(win) {
+                  return function() {
+                    if (!win || win.closed ||
+                        (win.innerWidth ||
+                         win.document.documentElement.clientWidth ||
+                         win.document.body.clientWidth) <= 1) {
+                      alert('Attempted to print, but a popup blocker ' +
+                            'prevented the printer window from opening');
+                    }
+                  };
+                })(this.printWin), 2000);
+  }
+  return rc;
+};
+
+VT100.prototype.sendToPrinter = function(s) {
+  this.openPrinterWindow();
+  try {
+    var doc   = this.printWin.document;
+    var print = doc.getElementById('print');
+    if (print.lastChild && print.lastChild.nodeName == '#text') {
+      print.lastChild.textContent += this.replaceChar(s, ' ', '\u00A0');
+    } else {
+      print.appendChild(doc.createTextNode(this.replaceChar(s, ' ','\u00A0')));
+    }
+  } catch (e) {
+    // There probably was a more aggressive popup blocker that prevented us
+    // from accessing the printer windows.
+  }
+};
+
+VT100.prototype.sendControlToPrinter = function(ch) {
+  // We get called whenever doControl() is active. But for the printer, we
+  // only implement a basic line printer that doesn't understand most of
+  // the escape sequences of the VT100 terminal. In fact, the only escape
+  // sequence that we really need to recognize is '^[[5i' for turning the
+  // printer off.
+  try {
+    switch (ch) {
+    case  9:
+      // HT
+      this.openPrinterWindow();
+      var doc                 = this.printWin.document;
+      var print               = doc.getElementById('print');
+      var chars               = print.lastChild &&
+                                print.lastChild.nodeName == '#text' ?
+                                print.lastChild.textContent.length : 0;
+      this.sendToPrinter(this.spaces(8 - (chars % 8)));
+      break;
+    case 10:
+      // CR
+      break;
+    case 12:
+      // FF
+      this.openPrinterWindow();
+      var pageBreak           = this.printWin.document.createElement('div');
+      pageBreak.className     = 'pagebreak';
+      pageBreak.innerHTML     = '<hr />';
+      this.printWin.document.getElementById('print').appendChild(pageBreak);
+      break;
+    case 13:
+      // LF
+      this.openPrinterWindow();
+      var lineBreak           = this.printWin.document.createElement('br');
+      this.printWin.document.getElementById('print').appendChild(lineBreak);
+      break;
+    case 27:
+      // ESC
+      this.isEsc              = 1 /* ESesc */;
+      break;
+    default:
+      switch (this.isEsc) {
+      case 1 /* ESesc */:
+        this.isEsc            = 0 /* ESnormal */;
+        switch (ch) {
+        case 0x5B /*[*/:
+          this.isEsc          = 2 /* ESsquare */;
+          break;
+        default:
+          break;
+        }
+        break;
+      case 2 /* ESsquare */:
+        this.npar             = 0;
+        this.par              = [ 0, 0, 0, 0, 0, 0, 0, 0,
+                                  0, 0, 0, 0, 0, 0, 0, 0 ];
+        this.isEsc            = 3 /* ESgetpars */;
+        this.isQuestionMark   = ch == 0x3F /*?*/;
+        if (this.isQuestionMark) {
+          break;
+        }
+        // Fall through
+      case 3 /* ESgetpars */: 
+        if (ch == 0x3B /*;*/) {
+          this.npar++;
+          break;
+        } else if (ch >= 0x30 /*0*/ && ch <= 0x39 /*9*/) {
+          var par             = this.par[this.npar];
+          if (par == undefined) {
+            par               = 0;
+          }
+          this.par[this.npar] = 10*par + (ch & 0xF);
+          break;
+        } else {
+          this.isEsc          = 4 /* ESgotpars */;
+        }
+        // Fall through
+      case 4 /* ESgotpars */:
+        this.isEsc            = 0 /* ESnormal */;
+        if (this.isQuestionMark) {
+          break;
+        }
+        switch (ch) {
+        case 0x69 /*i*/:
+          this.csii(this.par[0]);
+          break;
+        default:
+          break;
+        }
+        break;
+      default:
+        this.isEsc            = 0 /* ESnormal */;
+        break;
+      }
+      break;
+    }
+  } catch (e) {
+    // There probably was a more aggressive popup blocker that prevented us
+    // from accessing the printer windows.
+  }
+};
+
 VT100.prototype.csiAt = function(number) {
   // Insert spaces
   if (number == 0) {
@@ -2840,6 +3030,41 @@ VT100.prototype.csiAt = function(number) {
                     this.terminalWidth - this.cursorX - number, 1,
                     number, 0, this.color, this.style);
   this.needWrap = false;
+};
+
+VT100.prototype.csii = function(number) {
+  // Printer control
+  switch (number) {
+  case 0: // Print Screen
+    window.print();
+    break;
+  case 4: // Start printing
+    if (!this.printing && this.printWin && !this.printWin.closed) {
+      this.printWin.document.getElementById('print').innerHTML = '';
+    }
+    this.printing = 100;
+    break;
+  case 5: // Stop printing
+    try {
+      if (this.printing && this.printWin && !this.printWin.closed) {
+        var print = this.printWin.document.getElementById('print');
+        while (print.lastChild &&
+               print.lastChild.tagName == 'DIV' &&
+               print.lastChild.className == 'pagebreak') {
+          // Remove trailing blank pages
+          print.removeChild(print.lastChild);
+        }
+        if (this.autoprint) {
+          this.printWin.print();
+        }
+      }
+    } catch (e) {
+    }
+    this.printing = false;
+    break;
+  default:
+    break;
+  }
 };
 
 VT100.prototype.csiJ = function(number) {
@@ -3007,6 +3232,10 @@ VT100.prototype.settermCommand = function() {
 };
 
 VT100.prototype.doControl = function(ch) {
+  if (this.printing) {
+    this.sendControlToPrinter(ch);
+    return '';
+  }
   var lineBuf                = '';
   switch (ch) {
   case 0x00: /* ignored */                                              break;
@@ -3174,6 +3403,7 @@ VT100.prototype.doControl = function(ch) {
 /*f*/ case 0x66: this.gotoXaY(this.par[1] - 1, this.par[0] - 1);        break;
 /*I*/ case 0x49: this.ht(this.par[0] ? this.par[0] : 1);                break;
 /*@*/ case 0x40: this.csiAt(this.par[0]);                               break;
+/*i*/ case 0x69: this.csii(this.par[0]);                                break;
 /*J*/ case 0x4A: this.csiJ(this.par[0]);                                break;
 /*K*/ case 0x4B: this.csiK(this.par[0]);                                break;
 /*L*/ case 0x4C: this.csiL(this.par[0]);                                break;
@@ -3305,6 +3535,14 @@ VT100.prototype.doControl = function(ch) {
 };
 
 VT100.prototype.renderString = function(s, showCursor) {
+  if (this.printing) {
+    this.sendToPrinter(s);
+    if (showCursor) {
+      this.showCursor();
+    }
+    return;
+  }
+
   // We try to minimize the number of DOM operations by coalescing individual
   // characters into strings. This is a significant performance improvement.
   var incX = s.length;
@@ -3383,23 +3621,26 @@ VT100.prototype.vt100 = function(s) {
       } else if (ch == 0xFEFF || (ch >= 0x200A && ch <= 0x200F)) {
         continue;
       }
-      if (this.needWrap || this.insertMode) {
-        if (lineBuf) {
-          this.renderString(lineBuf);
-          lineBuf         = '';
+      if (!this.printing) {
+        if (this.needWrap || this.insertMode) {
+          if (lineBuf) {
+            this.renderString(lineBuf);
+            lineBuf       = '';
+          }
         }
-      }
-      if (this.needWrap) {
-        this.cr(); this.lf();
-      }
-      if (this.insertMode) {
-        this.scrollRegion(this.cursorX, this.cursorY,
-                          this.terminalWidth - this.cursorX - 1, 1,
-                          1, 0, this.color, this.style);
+        if (this.needWrap) {
+          this.cr(); this.lf();
+        }
+        if (this.insertMode) {
+          this.scrollRegion(this.cursorX, this.cursorY,
+                            this.terminalWidth - this.cursorX - 1, 1,
+                            1, 0, this.color, this.style);
+        }
       }
       this.lastCharacter  = String.fromCharCode(ch);
       lineBuf            += this.lastCharacter;
-      if (this.cursorX + lineBuf.length >= this.terminalWidth) {
+      if (!this.printing &&
+          this.cursorX + lineBuf.length >= this.terminalWidth) {
         this.needWrap     = this.autoWrapMode;
       }
     } else {

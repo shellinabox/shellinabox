@@ -28,6 +28,7 @@ EXTRA_DIST           = demo/beep.wav                                          \
                        demo/demo.xml                                          \
                        demo/enabled.gif                                       \
                        demo/styles.css                                        \
+                       demo/print-styles.css                                  \
                        demo/vt100.js                                          \
                        demo/usercss-0.css                                     \
                        demo/usercss-1.css                                     \
@@ -94,6 +95,7 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/vt100.jspp                                 \
                        shellinabox/shell_in_a_box.jspp                        \
                        shellinabox/styles.css                                 \
+                       shellinabox/print-styles.css                           \
                        shellinabox/enabled.gif                                \
                        shellinabox/favicon.ico                                \
                        shellinabox/beep.wav                                   \
@@ -117,10 +119,10 @@ renamesymbols        =                                                        \
       -e ':0'                                                                 \
       -e 's/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/'         \
       -e ':1'                                                                 \
-      -e 's/\(=[^_]*\)_\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/'                \
+      -e 's/\(=[^-_]*\)[-_]\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/'            \
       -e 't1'                                                                 \
       -e 's/.\{53\}$$//'                                                      \
-      -e 's/[/.]/_/g'                                                         \
+      -e 's/[-/.]/_/g'                                                        \
       -e 's/^/--redefine-sym _binary_/'                                       \
       -e 's/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/'                               \
       -e 's/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/'                           \
@@ -134,6 +136,7 @@ ${top_srcdir}/demo/demo.js: ${top_srcdir}/demo/beep.wav                       \
                             ${top_srcdir}/demo/demo.jspp                      \
                             ${top_srcdir}/demo/favicon.ico                    \
                             ${top_srcdir}/demo/styles.css                     \
+                            ${top_srcdir}/demo/print-styles.css               \
                             ${top_srcdir}/demo/vt100.js                       \
                             ${top_srcdir}/demo/usercss-0.css                  \
                             ${top_srcdir}/demo/usercss-1.css                  \
@@ -155,6 +158,10 @@ ${top_srcdir}/demo/favicon.ico: ${top_srcdir}/shellinabox/favicon.ico
 ${top_srcdir}/demo/styles.css: ${top_srcdir}/shellinabox/styles.css
 	@rm -f "$@"
 	sed -e '/\[if DEFINES_COLORS\]/,/\[endif DEFINES_COLORS\]/d' "$<" >"$@"
+
+${top_srcdir}/demo/print-styles.css: ${top_srcdir}/shellinabox/print-styles.css
+	@rm -f "$@"
+	ln "$<" "$@"
 
 ${top_srcdir}/demo/usercss-0.css: ${top_srcdir}/shellinabox/white-on-black.css
 	@rm -f "$@"

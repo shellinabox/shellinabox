@@ -236,6 +236,10 @@ JavaScript file implementing the AJAX terminal emulator.
 .TP
 .B styles.css
 CSS style file that controls the visual appearance of the terminal.
+.TP
+.B print-styles.css
+CSS style file that controls the visual appearance of printed pages when using
+the VT100 transparent printing feature.
 .P
 It is not recommended to override the root HTML page for a particular
 .IR service .

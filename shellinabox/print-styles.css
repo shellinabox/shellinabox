@@ -1,0 +1,35 @@
+/* Set styles used when opening the printer window */
+#print {
+  margin: 4ex 0px 0px 0px;
+}
+
+#options {
+  position:         fixed;
+  top:              0px;
+  left:             0px;
+  right:            0px;
+  background-color: #EEEEEE;
+  border-style:     solid;
+  border-top:       0px solid black;
+  border-left:      0px solid black;
+  border-right:     0px solid black;
+  border-bottom:    1px solid black;
+}
+
+@media print {
+  body {
+    margin: 0px;
+  }
+
+  #print { 
+    margin: 0px;
+  }
+
+  #print .pagebreak {
+    page-break-before: always;
+  }
+
+  #print .pagebreak hr, #options {
+    display: none;
+  }
+}

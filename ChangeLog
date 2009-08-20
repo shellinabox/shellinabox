@@ -1,3 +1,9 @@
+2009-08-20  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added transparent printing support. The development of this
+	feature is sponsored by De Bortoli Wines Pty Limited and by
+	Eternity Technologies.
+
 2009-08-19  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added a ${url} parameter that can be used in the service description.
