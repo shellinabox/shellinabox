@@ -1,9 +1,11 @@
 /* Set styles used when opening the printer window */
 #print {
-  margin: 4ex 0px 0px 0px;
+  margin: 0.5ex 0px 0px 0px;
 }
 
-#options {
+#options, #spacer {
+  font-family:      sans;
+  font-size:        smaller;
   position:         fixed;
   top:              0px;
   left:             0px;
@@ -14,6 +16,11 @@
   border-left:      0px solid black;
   border-right:     0px solid black;
   border-bottom:    1px solid black;
+}
+
+#spacer {
+  position:   static;
+  visibility: hidden;
 }
 
 @media print {

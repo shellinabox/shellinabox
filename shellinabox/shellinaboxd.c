@@ -778,6 +778,7 @@ static void usage(void) {
           "  ${lines}   - number of rows\n"
           "  ${peer}    - name of remote peer\n"
           "  ${uid}     - user id\n"
+          "  ${url}     - the URL that serves the terminal session\n"
           "  ${user}    - user name\n"
           "\n"
           "One or more --user-css arguments define optional user-selectable "

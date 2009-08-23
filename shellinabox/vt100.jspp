@@ -2853,6 +2853,7 @@ VT100.prototype.openPrinterWindow = function() {
           (this.autoprint ? ' checked' : '') + '>' +
           'Automatically, print page(s) when job is ready' +
         '</input></div>\n' +
+        '<div id="spacer"><input type="checkbox">&nbsp;</input></div>' +
         '<pre id="print"></pre>\n';
       var autoprint = this.printWin.document.getElementById('autoprint');
       this.addListener(autoprint, 'click',

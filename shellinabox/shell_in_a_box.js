@@ -91,8 +91,10 @@ function extend(subClass, baseClass) {
 
 function ShellInABox(url, container) {
   if (url == undefined) {
+    this.rooturl    = document.location.href;
     this.url        = document.location.href.replace(/[?#].*/, '');
   } else {
+    this.rooturl    = url;
     this.url        = url;
   }
   if (document.location.hash != '') {
@@ -168,7 +170,8 @@ ShellInABox.prototype.sendRequest = function(request) {
   var content                = 'width=' + this.terminalWidth +
                                '&height=' + this.terminalHeight +
                                (this.session ? '&session=' +
-                                encodeURIComponent(this.session) : '');
+                                encodeURIComponent(this.session) : '&rooturl='+
+                                encodeURIComponent(this.rooturl));
   request.setRequestHeader('Content-Length', content.length);
 
   request.onreadystatechange = function(shellInABox) {
@@ -355,7 +358,7 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
 };
 
 ShellInABox.prototype.about = function() {
-  alert("Shell In A Box version " + "2.9 (revision 176)" +
+  alert("Shell In A Box version " + "2.9 (revision 178)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com" +
         (typeof serverSupportsSSL != 'undefined' && serverSupportsSSL ?

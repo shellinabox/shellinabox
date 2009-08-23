@@ -101,7 +101,7 @@ binary-arch: build install
 	dh_installchangelogs ChangeLog
 	dh_installdocs --exclude COPYING --exclude INSTALL --exclude ChangeLog
 	dh_installexamples
-	dh_install
+	dh_install --sourcedir=debian/tmp
 #	dh_installmenu
 #	dh_installdebconf
 #	dh_installlogrotate
