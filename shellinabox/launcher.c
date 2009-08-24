@@ -407,16 +407,28 @@ int launchChild(int service, struct Session *session, const char *url) {
     return -1;
   }
 
+  char *u;
+  check(u              = strdup(url));
+  for (int i; u[i = strcspn(u, "\\\"'`${};() \r\n\t\v\f")]; ) {
+    static const char hex[] = "0123456789ABCDEF";
+    check(u            = realloc(u, strlen(u) + 4));
+    memmove(u + i + 3, u + i + 1, strlen(u + i));
+    u[i + 2]           = hex[ u[i]       & 0xF];
+    u[i + 1]           = hex[(u[i] >> 4) & 0xF];
+    u[i]               = '%';
+  }
+
   struct LaunchRequest *request;
-  size_t len           = sizeof(struct LaunchRequest) + strlen(url) + 1;
+  size_t len           = sizeof(struct LaunchRequest) + strlen(u) + 1;
   check(request        = calloc(len, 1));
   request->service     = service;
   request->width       = session->width;
   request->height      = session->height;
   strncat(request->peerName, httpGetPeerName(session->http),
           sizeof(request->peerName) - 1);
-  request->urlLength   = strlen(url);
-  memcpy(&request->url, url, request->urlLength);
+  request->urlLength   = strlen(u);
+  memcpy(&request->url, u, request->urlLength);
+  free(u);
   if (NOINTR(write(launcher, request, len)) != len) {
     free(request);
     return -1;
