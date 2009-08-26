@@ -1901,7 +1901,7 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.9 (revision 179)" +
+  alert("VT100 Terminal Emulator " + "2.9 (revision 180)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -3039,13 +3039,7 @@ VT100.prototype.csii = function(number) {
   case 0: // Print Screen
     window.print();
     break;
-  case 4: // Start printing
-    if (!this.printing && this.printWin && !this.printWin.closed) {
-      this.printWin.document.getElementById('print').innerHTML = '';
-    }
-    this.printing = 100;
-    break;
-  case 5: // Stop printing
+  case 4: // Stop printing
     try {
       if (this.printing && this.printWin && !this.printWin.closed) {
         var print = this.printWin.document.getElementById('print');
@@ -3062,6 +3056,12 @@ VT100.prototype.csii = function(number) {
     } catch (e) {
     }
     this.printing = false;
+    break;
+  case 5: // Start printing
+    if (!this.printing && this.printWin && !this.printWin.closed) {
+      this.printWin.document.getElementById('print').innerHTML = '';
+    }
+    this.printing = 100;
     break;
   default:
     break;
