@@ -45,8 +45,14 @@
 
 #include "config.h"
 
+#define _XOPEN_SOURCE 500
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef HAVE_STRINGS_H
+#include <strings.h> // for strncasecmp()
+#endif
 
 #include "libhttp/url.h"
 

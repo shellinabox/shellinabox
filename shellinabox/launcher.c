@@ -453,7 +453,7 @@ int launchChild(int service, struct Session *session, const char *url) {
   check(cmsg);
   check(cmsg->cmsg_level == SOL_SOCKET);
   check(cmsg->cmsg_type  == SCM_RIGHTS);
-  session->pty         = *(int *)CMSG_DATA(cmsg);
+  memcpy(&session->pty, CMSG_DATA(cmsg), sizeof(int));
   return pid;
 }
 
@@ -1501,7 +1501,7 @@ static void launcherDaemon(int fd) {
       cmsg->cmsg_level        = SOL_SOCKET;
       cmsg->cmsg_type         = SCM_RIGHTS;
       cmsg->cmsg_len          = CMSG_LEN(sizeof(int));
-      *(int *)CMSG_DATA(cmsg) = pty;
+      memcpy(CMSG_DATA(cmsg), &pty, sizeof(int));
       if (NOINTR(sendmsg(fd, &msg, 0)) != sizeof(pid)) {
         break;
       }

@@ -5,7 +5,7 @@
 #define HAVE_DLFCN_H 1
 
 /* Define to 1 if you have the `dlopen' function. */
-#define HAVE_DLOPEN 1
+/* #undef HAVE_DLOPEN */
 
 /* Define to 1 if you have the `getgrgid_r' function. */
 #define HAVE_GETGRGID_R 1
@@ -138,10 +138,10 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "180"
+#define VCS_REVISION "181"
 
 /* Version number of package */
 #define VERSION "2.9"
 
 /* Define to empty if `const' does not conform to ANSI C. */
-/* #undef const */
+#define const /**/
