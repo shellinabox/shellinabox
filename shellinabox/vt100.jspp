@@ -2055,7 +2055,36 @@ VT100.prototype.keysPressed = function(ch) {
   }
 };
 
+VT100.prototype.applyModifiers = function(ch, event) {
+  if (ch) {
+    if (event.ctrlKey) {
+      if (ch >= 32 && ch <= 127) {
+        // For historic reasons, some control characters are treated specially
+        switch (ch) {
+        case /* 3 */ 51: ch  =  27; break;
+        case /* 4 */ 52: ch  =  28; break;
+        case /* 5 */ 53: ch  =  29; break;
+        case /* 6 */ 54: ch  =  30; break;
+        case /* 7 */ 55: ch  =  31; break;
+        case /* 8 */ 56: ch  = 127; break;
+        case /* ? */ 63: ch  = 127; break;
+        default:         ch &=  31; break;
+        }
+      }
+    }
+    return String.fromCharCode(ch);
+  } else {
+    return undefined;
+  }
+};
+
 VT100.prototype.handleKey = function(event) {
+  // this.vt100('H: c=' + event.charCode + ', k=' + event.keyCode +
+  //            (event.shiftKey || event.ctrlKey || event.altKey ||
+  //             event.metaKey ? ', ' +
+  //             (event.shiftKey ? 'S' : '') + (event.ctrlKey ? 'C' : '') +
+  //             (event.altKey ? 'A' : '') + (event.metaKey ? 'M' : '') : '') +
+  //            '\r\n');
   var ch, key;
   if (typeof event.charCode != 'undefined') {
     // non-IE keypress events have a translated charCode value. Also, our
@@ -2073,29 +2102,12 @@ VT100.prototype.handleKey = function(event) {
   // Apply modifier keys (ctrl and shift)
   if (ch) {
     key                               = undefined;
-    if (event.ctrlKey) {
-      if (ch >= 32 && ch <= 127) {
-        ch                           &= 0x1F;
-      }
-    } else {
-      if (event.shiftKey) {
-        if (ch >= 97 && ch <= 122) {
-          ch                         -= 32;
-        }
-      } else {
-        if (ch >= 65 && ch <= 90) {
-          ch                         += 32;
-        }
-      }
-    }
-  } else {
-    ch                                = undefined;
   }
+  ch                                  = this.applyModifiers(ch, event);
 
   // By this point, "ch" is either defined and contains the character code, or
   // it is undefined and "key" defines the code of a function key 
   if (ch != undefined) {
-    ch                                = String.fromCharCode(ch);
     this.scrollable.scrollTop         = this.numScrollbackLines *
                                         this.cursorHeight + 1;
   } else {
@@ -2104,83 +2116,94 @@ VT100.prototype.handleKey = function(event) {
       // sequences for function keys. Thus, if ALT is the only modifier
       // key, return Emacs-style keycodes for commonly used keys.
       switch (key) {
-      case  33: /* Page Up      */ ch = '\u001B<';     break;
-      case  34: /* Page Down    */ ch = '\u001B>';     break;
-      case  37: /* Left         */ ch = '\u001Bb';     break;
-      case  38: /* Up           */ ch = '\u001Bp';     break;
-      case  39: /* Right        */ ch = '\u001Bf';     break;
-      case  40: /* Down         */ ch = '\u001Bn';     break;
-      case  46: /* Delete       */ ch = '\u001Bd';     break;
-      default:                                         break;
+      case  33: /* Page Up      */ ch = '\u001B<';                      break;
+      case  34: /* Page Down    */ ch = '\u001B>';                      break;
+      case  37: /* Left         */ ch = '\u001Bb';                      break;
+      case  38: /* Up           */ ch = '\u001Bp';                      break;
+      case  39: /* Right        */ ch = '\u001Bf';                      break;
+      case  40: /* Down         */ ch = '\u001Bn';                      break;
+      case  46: /* Delete       */ ch = '\u001Bd';                      break;
+      default:                                                          break;
       }
     } else if (event.shiftKey && !event.ctrlKey &&
                !event.altKey && !event.metaKey) {
       switch (key) {
-      case  33: /* Page Up      */ this.scrollBack();  return;
-      case  34: /* Page Down    */ this.scrollFore();  return;
-      default:                                         break;
+      case  33: /* Page Up      */ this.scrollBack();                   return;
+      case  34: /* Page Down    */ this.scrollFore();                   return;
+      default:                                                          break;
       }
     }
     if (ch == undefined) {
       switch (key) {
-      case   8: /* Backspace    */ ch = '\u007f';      break;
-      case   9: /* Tab          */ ch = '\u0009';      break;
-      case  10: /* Return       */ ch = '\u000A';      break;
+      case   8: /* Backspace    */ ch = '\u007f';                       break;
+      case   9: /* Tab          */ ch = '\u0009';                       break;
+      case  10: /* Return       */ ch = '\u000A';                       break;
       case  13: /* Enter        */ ch = this.crLfMode ?
-                                        '\r\n' : '\r'; break;
-      case  16: /* Shift        */                     return;
-      case  17: /* Ctrl         */                     return;
-      case  18: /* Alt          */                     return;
-      case  19: /* Break        */                     return;
-      case  20: /* Caps Lock    */                     return;
-      case  27: /* Escape       */ ch = '\u001B';      break;
-      case  33: /* Page Up      */ ch = '\u001B[5~';   break;
-      case  34: /* Page Down    */ ch = '\u001B[6~';   break;
-      case  35: /* End          */ ch = '\u001BOF';    break;
-      case  36: /* Home         */ ch = '\u001BOH';    break;
+                                        '\r\n' : '\r';                  break;
+      case  16: /* Shift        */                                      return;
+      case  17: /* Ctrl         */                                      return;
+      case  18: /* Alt          */                                      return;
+      case  19: /* Break        */                                      return;
+      case  20: /* Caps Lock    */                                      return;
+      case  27: /* Escape       */ ch = '\u001B';                       break;
+      case  33: /* Page Up      */ ch = '\u001B[5~';                    break;
+      case  34: /* Page Down    */ ch = '\u001B[6~';                    break;
+      case  35: /* End          */ ch = '\u001BOF';                     break;
+      case  36: /* Home         */ ch = '\u001BOH';                     break;
       case  37: /* Left         */ ch = this.cursorKeyMode ?
-                             '\u001BOD' : '\u001B[D';  break;
+                             '\u001BOD' : '\u001B[D';                   break;
       case  38: /* Up           */ ch = this.cursorKeyMode ?
-                             '\u001BOA' : '\u001B[A';  break;
+                             '\u001BOA' : '\u001B[A';                   break;
       case  39: /* Right        */ ch = this.cursorKeyMode ?
-                             '\u001BOC' : '\u001B[C';  break;
+                             '\u001BOC' : '\u001B[C';                   break;
       case  40: /* Down         */ ch = this.cursorKeyMode ?
-                             '\u001BOB' : '\u001B[B';  break;
-      case  45: /* Insert       */ ch = '\u001B[2~';   break;
-      case  46: /* Delete       */ ch = '\u001B[3~';   break;
-      case  91: /* Left Window  */                     return;
-      case  92: /* Right Window */                     return;
-      case  93: /* Select       */                     return;
-      case  96: /* 0            */ ch = '0';           break;
-      case  97: /* 1            */ ch = '1';           break;
-      case  98: /* 2            */ ch = '2';           break;
-      case  99: /* 3            */ ch = '3';           break;
-      case 100: /* 4            */ ch = '4';           break;
-      case 101: /* 5            */ ch = '5';           break;
-      case 102: /* 6            */ ch = '6';           break;
-      case 103: /* 7            */ ch = '7';           break;
-      case 104: /* 8            */ ch = '8';           break;
-      case 105: /* 9            */ ch = '9';           break;
-      case 106: /* *            */ ch = '*';           break;
-      case 107: /* +            */ ch = '+';           break;
-      case 109: /* -            */ ch = '-';           break;
-      case 110: /* .            */ ch = '.';           break;
-      case 111: /* /            */ ch = '/';           break;
-      case 112: /* F1           */ ch = '\u001BOP';    break;
-      case 113: /* F2           */ ch = '\u001BOQ';    break;
-      case 114: /* F3           */ ch = '\u001BOR';    break;
-      case 115: /* F4           */ ch = '\u001BOS';    break;
-      case 116: /* F5           */ ch = '\u001B[15~';  break;
-      case 117: /* F6           */ ch = '\u001B[17~';  break;
-      case 118: /* F7           */ ch = '\u001B[18~';  break;
-      case 119: /* F8           */ ch = '\u001B[19~';  break;
-      case 120: /* F9           */ ch = '\u001B[20~';  break;
-      case 121: /* F10          */ ch = '\u001B[21~';  break;
-      case 122: /* F11          */ ch = '\u001B[23~';  break;
-      case 123: /* F12          */ ch = '\u001B[24~';  break;
-      case 144: /* Num Lock     */                     return;
-      case 145: /* Scroll Lock  */                     return;
-      default:                                         return;
+                             '\u001BOB' : '\u001B[B';                   break;
+      case  45: /* Insert       */ ch = '\u001B[2~';                    break;
+      case  46: /* Delete       */ ch = '\u001B[3~';                    break;
+      case  91: /* Left Window  */                                      return;
+      case  92: /* Right Window */                                      return;
+      case  93: /* Select       */                                      return;
+      case  96: /* 0            */ ch = this.applyModifiers(48, event); break;
+      case  97: /* 1            */ ch = this.applyModifiers(49, event); break;
+      case  98: /* 2            */ ch = this.applyModifiers(50, event); break;
+      case  99: /* 3            */ ch = this.applyModifiers(51, event); break;
+      case 100: /* 4            */ ch = this.applyModifiers(52, event); break;
+      case 101: /* 5            */ ch = this.applyModifiers(53, event); break;
+      case 102: /* 6            */ ch = this.applyModifiers(54, event); break;
+      case 103: /* 7            */ ch = this.applyModifiers(55, event); break;
+      case 104: /* 8            */ ch = this.applyModifiers(56, event); break;
+      case 105: /* 9            */ ch = this.applyModifiers(58, event); break;
+      case 106: /* *            */ ch = this.applyModifiers(42, event); break;
+      case 107: /* +            */ ch = this.applyModifiers(43, event); break;
+      case 109: /* -            */ ch = this.applyModifiers(45, event); break;
+      case 110: /* .            */ ch = this.applyModifiers(46, event); break;
+      case 111: /* /            */ ch = this.applyModifiers(47, event); break;
+      case 112: /* F1           */ ch = '\u001BOP';                     break;
+      case 113: /* F2           */ ch = '\u001BOQ';                     break;
+      case 114: /* F3           */ ch = '\u001BOR';                     break;
+      case 115: /* F4           */ ch = '\u001BOS';                     break;
+      case 116: /* F5           */ ch = '\u001B[15~';                   break;
+      case 117: /* F6           */ ch = '\u001B[17~';                   break;
+      case 118: /* F7           */ ch = '\u001B[18~';                   break;
+      case 119: /* F8           */ ch = '\u001B[19~';                   break;
+      case 120: /* F9           */ ch = '\u001B[20~';                   break;
+      case 121: /* F10          */ ch = '\u001B[21~';                   break;
+      case 122: /* F11          */ ch = '\u001B[23~';                   break;
+      case 123: /* F12          */ ch = '\u001B[24~';                   break;
+      case 144: /* Num Lock     */                                      return;
+      case 145: /* Scroll Lock  */                                      return;
+      case 186: /* ;            */ ch = this.applyModifiers(59, event); break;
+      case 187: /* =            */ ch = this.applyModifiers(61, event); break;
+      case 188: /* ,            */ ch = this.applyModifiers(44, event); break;
+      case 189: /* -            */ ch = this.applyModifiers(45, event); break;
+      case 190: /* .            */ ch = this.applyModifiers(46, event); break;
+      case 191: /* /            */ ch = this.applyModifiers(47, event); break;
+      case 192: /* `            */ ch = this.applyModifiers(96, event); break;
+      case 219: /* [            */ ch = this.applyModifiers(91, event); break;
+      case 220: /* \            */ ch = this.applyModifiers(92, event); break;
+      case 221: /* ]            */ ch = this.applyModifiers(93, event); break;
+      case 222: /* '            */ ch = this.applyModifiers(39, event); break;
+      default:                                                          return;
       }
       this.scrollable.scrollTop       = this.numScrollbackLines *
                                         this.cursorHeight + 1;
@@ -2486,6 +2509,7 @@ VT100.prototype.keyUp = function(event) {
     // for non-alphanumerical keys. Patch things up for now, but in the
     // future we will catch these keys earlier (in the keydown handler).
     if (this.lastNormalKeyDownEvent) {
+      // this.vt100('ENABLING EARLY CATCHING OF MODIFIER KEYS\r\n');
       this.catchModifiersEarly    = true;
       var asciiKey                =
         event.keyCode ==  32                         ||

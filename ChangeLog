@@ -1,3 +1,17 @@
+2009-11-18  Markus Gutschke  <markus@shellinabox.com>
+
+	* Fixed some compiler warnings when using more recent versions of
+	gcc and glibc.
+
+	* Tweak the handling of CTRL keys, so that some of the more unusual
+	combinations work. For historic reasons, there is an expectation that
+	CTRL-3..CTRL-8 return specific control characters. Also fixed the
+	handling of CTRL-\ which could cause problems with some browsers.
+
+	* Rely on the browser for capitalization. This should fix Capslock
+	behavior. Hopefully, it won't break any other keyboard features or
+	layouts.
+
 2009-08-20  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added transparent printing support. The development of this
