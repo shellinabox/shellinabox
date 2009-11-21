@@ -1,3 +1,9 @@
+2009-11-21  Markus Gutschke  <markus@shellinabox.com>
+
+	* Updated manual page documenting --user-css
+
+	* Released version 2.10
+
 2009-11-18  Markus Gutschke  <markus@shellinabox.com>
 
 	* Fixed some compiler warnings when using more recent versions of

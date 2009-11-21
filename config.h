@@ -123,7 +123,7 @@
 #define PACKAGE_NAME "shellinabox"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "shellinabox 2.9"
+#define PACKAGE_STRING "shellinabox 2.10"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "shellinabox"
@@ -132,16 +132,16 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "2.9"
+#define PACKAGE_VERSION "2.10"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "185"
+#define VCS_REVISION "186"
 
 /* Version number of package */
-#define VERSION "2.9"
+#define VERSION "2.10"
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #define const /**/
