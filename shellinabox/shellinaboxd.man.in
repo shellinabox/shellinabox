@@ -44,7 +44,7 @@
 .\" The most up-to-date version of this program is always available from
 .\" http://shellinabox.com
 .\"
-.TH SHELLINABOXD 1 "Dec 25, 2008"
+.TH SHELLINABOXD 1 "Nov 21, 2009"
 .SH NAME
 shellinaboxd \- publish command line shell through AJAX interface
 .SH SYNOPSIS
@@ -73,6 +73,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 [\ \fB--disable-ssl-menu\fP\ ]
 [\ \fB-q\fP\ | \fB--quiet\fP\ ]
 [\ \fB-u\fP\ | \fB--user=\fP\fIuid\fP\ ]
+[\ \fB--user-css=\fP\fIstyles\fP\ ]
 [\ \fB-v\fP\ | \fB--verbose\fP\ ]
 [\ \fB--version\fP\ ]
 .SH DESCRIPTION
@@ -486,6 +487,44 @@ For more details, refer to the description of the
 .B --group
 option.
 .TP
+\fB--user-css=\fP\fIstyles\fP
+The visual appearance of the terminal emulator can be customized
+through user-selectable style sheets. These style sheets will show up
+as options in the right-click context menu of the terminal emulator.
+
+Styles sheet make up either independently selectable on/off options,
+or multiple style sheets can be grouped together. When forming a group,
+only one member of the group can be active at any given time. This is
+used for multiple-choice options.
+
+Multiple independent groups are separated by semicolons:
+.in +4
+\fISTYLES\fP := \fIGROUP\fP { ';' \fIGROUP\fP }*
+.in
+
+The members of a group are separated by commas:
+.in +4
+\fIGROUP\fP := \fIOPTION\fP { ',' OPTION }*
+.in
+
+Groups with exactly one member are used for options that can be
+independently turned on and off.
+
+Options include a human readable label that will be shown in the
+context menu, followed by the name of the CSS file. They also must
+include an indicator showing whether the option should initially be
+turned on or turned off. Within a group, exactly one option should be
+turned on:
+.in +4
+\fIOPTION\fP := <label> ':' [ '-' | '+' ] <css-file>
+.in
+
+The user's selection of options will be persisted in a cookie. This
+means, the default settings of options as passed on the command line
+only takes effect the very first time the user visits the terminal
+emulator in his browser. On all subsequent visits, the user's
+preferences take precedence.
+.TP
 \fB-v\fP\ |\ \fB--verbose\fP
 Enables logging of
 .IR Apache -style
@@ -499,10 +538,52 @@ and
 \fB--version\fP
 Prints the version number of the binary and exits.
 .SH CONFIGURATION
+#ifndef DPKGBUILD
 There are no configuration files or permanent settings for
 .BR shell\%ina\%boxd .
+#endif
+#ifdef DPKGBUILD
+Except for the options in
+.I /etc/default/shellinabox
+that are used when running the daemon as a system-wide service, and
+except for the style sheet definitions in
+.IR /etc/shellinabox ,
+there are no other configuration options.
+#endif
+
 A small number of run-time configuration options are available from a
-context menu that becomes available when clicking the right mouse button.
+context menu that becomes available when clicking the right mouse
+button. These options get persisted in a browser cookie.
+
+Many sites already have a web server running and would like to
+integrate
+.B shellinaboxd
+into their existing site. This is most commonly done by means of a
+reverse-proxy entry for the main web server. For
+.I Apache
+this would require adding an option such as:
+.in +4
+ <Location /shell>
+     ProxyPass  http://localhost:4200/
+     Order      allow,deny
+     Allow      from all
+ </Location>
+.in
+
+If you are using a different web server, refer to that server's
+documentation on how to configure reverse proxy operations.
+
+When using a reverse proxy, the
+.B --localhost-only
+option would normally be enabled as well.
+#ifdef DPKGBUILD
+This can be done in
+.IR /etc/default/shellinabox .
+#endif
+In addition, the
+.B --disable-ssl
+might also be considered depending on the exact configuration details
+of the reverse proxy.
 .SH EXAMPLES
 .TP \w'shellinaboxd\ 'u
 .B shellinaboxd
@@ -572,17 +653,41 @@ terminal. Again, this command should be run as
 .B shellinaboxd --css white-on-black.css
 #endif
 #ifdef DPKGBUILD
-.B shellinaboxd --css /usr/share/doc/shellinabox/white-on-black.css
+.B shellinaboxd --css '/etc/shellinabox/options-available/00_White On Black.css'
 #endif
 Loads the
+#ifndef DPKGBUILD
 .B white-on-black.css
+#endif
+#ifdef DPKGBUILD
+.B 00_White On Black.css
+#endif
 style sheet
 #ifndef DPKGBUILD
 from the current directory
 #endif
 and appends it to the built-in
 .B styles.css
-sheet. This causes the terminal to render white text on a black background.
+sheet. This causes the terminal to always render white text on a black
+background.
+.TP
+.B shellinaboxd --user-css Normal:+black-on-white.css,Reverse:-white-on-black.css
+Allow the user to select whether they want text to be rendered
+normally or in reverse video. This command line option adds a new
+entry to the right-click context menu.
+#ifdef DPKGBUILD
+
+If starting
+.B shellinaboxd
+as a system process, the
+.I /etc/init.d/shellinabox
+script looks in
+.I /etc/shell\%in\%a\%box/op\%tions-\%en\%abled
+for style sheets that should be added to the command line. See the
+.I README
+file in that directory for details on how to configure system-wide
+options.
+#endif
 .P
 .SH DIAGNOSTICS
 The daemon returns a non-zero exit code in case of failure. With the
@@ -604,6 +709,13 @@ The system-wide installation of
 .B shellinaboxd
 can be configured by editing this file. After making any changes, restart
 the daemon with \fBsudo service shellinabox restart\fP.
+.TP
+.I /etc/shellinabox
+This directory contains style sheets that will be used for the
+.B --user-css 
+command line option, when running
+.B shellinaboxd
+as a system-wide service.
 .TP
 .I /etc/init.d/shellinabox
 This is the system-wide service definition. Usually, there is no need to

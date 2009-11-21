@@ -8,7 +8,7 @@ restart the daemon with "sudo /etc/init.d/shellinabox restart".
 
 All options are of the form "ID_Name of Option.css". Any options with
 identical IDs will be put into the same option group. They are
-mutually exclusive and only one such option can selected at any given
+mutually exclusive and only one such option can be selected at any given
 time.
 
 Please note that ':', ',', and ';' are all invalid characters in
