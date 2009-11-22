@@ -610,7 +610,7 @@ static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
 }
 #endif
 
-#if defined(HAVE_OPENSSL) && 1
+#if defined(HAVE_OPENSSL)
 // This is a not-thread-safe replacement for gethostbyname_r()
 #define gethostbyname_r x_gethostbyname_r
 static int gethostbyname_r(const char *name, struct hostent *ret,
