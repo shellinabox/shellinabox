@@ -111,6 +111,7 @@ objcopyflags         = case "$(host_cpu)" in                                  \
                          i[0-9]86) echo '-O elf32-i386 -B i386';;             \
                          x86_64)   echo '-O elf64-x86-64 -B i386:x86-64';;    \
                          arm*)     echo '-O elf32-littlearm -B arm';;         \
+                         powerpc*) echo '-O elf32-powerpc -B powerpc';;       \
                        esac
 
 renamesymbols        =                                                        \
