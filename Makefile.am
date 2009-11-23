@@ -20,7 +20,9 @@ dist_doc_DATA        = AUTHORS                                                \
                        shellinabox/black-on-white.css                         \
                        shellinabox/monochrome.css                             \
                        shellinabox/color.css
-EXTRA_DIST           = demo/beep.wav                                          \
+EXTRA_DIST           = INSTALL.Debian                                         \
+                       README.Fedora                                          \
+                       demo/beep.wav                                          \
                        demo/favicon.ico                                       \
                        demo/demo.html                                         \
                        demo/demo.js                                           \
@@ -34,6 +36,7 @@ EXTRA_DIST           = demo/beep.wav                                          \
                        demo/usercss-1.css                                     \
                        demo/usercss-2.css                                     \
                        demo/usercss-3.css                                     \
+                       etc-pam.d-shellinabox-example                          \
                        shellinabox/shellinaboxd.man.in                        \
                        shellinabox/shell_in_a_box.js                          \
                        shellinabox/vt100.js                                   \

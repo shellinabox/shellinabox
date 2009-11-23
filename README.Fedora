@@ -1,0 +1,27 @@
+When running in SELinux mode on Fedora, some operations don't work out of the
+box.
+
+Until somebody contributes a complete SELinux policy for ShellInABox, here are
+some tips on getting things working:
+
+- avoid using the default "LOGIN" service. Calling /bin/login does not do
+  the right thing.
+  The "LOGIN" service is the default service when running "shellinaboxd" as
+  "root". This means, you will most likely see all logins failing, whenever
+  you start the daemon as "root".
+  To fix this problem, consider explicitly specifying a service definition.
+  One of these two should work:
+    --service /:AUTH:HOME:/bin/bash
+  or
+    --service /:SSH
+  The latter requires that you have a locally running "sshd" daemon.
+
+- On Fedora, PAM authentication does not work for shellinabox until you
+  explicitly configure it. This means, using "AUTH" in the service definition
+  will not allow you to log in.
+  You can fix this by defining a proper "/etc/pam.d/shellinabox" file. Take a
+  look at "etc-pam.d-shellinabox-example" for a working example.
+  Make sure you assign the correct SELinux labels to this file when copying
+  it into "/etc/pam.d":
+    cp -Z system_u:object_r:etc_t:s0 etc-pam.d-shellinabox-example /etc/pam.d/
+
