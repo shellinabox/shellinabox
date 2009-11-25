@@ -358,7 +358,7 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
 };
 
 ShellInABox.prototype.about = function() {
-  alert("Shell In A Box version " + "2.10 (revision 189)" +
+  alert("Shell In A Box version " + "2.10 (revision 190)" +
         "\nCopyright 2008-2009 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com" +
         (typeof serverSupportsSSL != 'undefined' && serverSupportsSSL ?

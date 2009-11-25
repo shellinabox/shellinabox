@@ -193,39 +193,39 @@ function VT100(container) {
 }
 
 VT100.prototype.reset = function(clearHistory) {
-  this.isEsc                            = ESnormal;
-  this.needWrap                         = false;
-  this.autoWrapMode                     = true;
-  this.dispCtrl                         = false;
-  this.toggleMeta                       = false;
-  this.insertMode                       = false;
-  this.applKeyMode                      = false;
-  this.cursorKeyMode                    = false;
-  this.crLfMode                         = false;
-  this.offsetMode                       = false;
-  this.mouseReporting                   = false;
-  this.printing                         = false;
+  this.isEsc                                         = ESnormal;
+  this.needWrap                                      = false;
+  this.autoWrapMode                                  = true;
+  this.dispCtrl                                      = false;
+  this.toggleMeta                                    = false;
+  this.insertMode                                    = false;
+  this.applKeyMode                                   = false;
+  this.cursorKeyMode                                 = false;
+  this.crLfMode                                      = false;
+  this.offsetMode                                    = false;
+  this.mouseReporting                                = false;
+  this.printing                                      = false;
   if (typeof this.printWin != 'undefined' &&
       this.printWin && !this.printWin.closed) {
     this.printWin.close();
   }
-  this.printWin                         = null;
-  this.utfEnabled                       = this.utfPreferred;
-  this.utfCount                         = 0;
-  this.utfChar                          = 0;
-  this.color                            = 'ansi0 bgAnsi15';
-  this.style                            = '';
-  this.attr                             = ATTR_DEFAULT;
-  this.useGMap                          = 0;
-  this.GMap                             = [ this.Latin1Map,
-                                            this.VT100GraphicsMap,
-                                            this.CodePage437Map,
-                                            this.DirectToFontMap ];
-  this.translate                        = this.GMap[this.useGMap];
-  this.top                              = 0;
-  this.bottom                           = this.terminalHeight;
-  this.lastCharacter                    = ' ';
-  this.userTabStop                      = [ ];
+  this.printWin                                      = null;
+  this.utfEnabled                                    = this.utfPreferred;
+  this.utfCount                                      = 0;
+  this.utfChar                                       = 0;
+  this.color                                         = 'ansi0 bgAnsi15';
+  this.style                                         = '';
+  this.attr                                          = ATTR_DEFAULT;
+  this.useGMap                                       = 0;
+  this.GMap                                          = [ this.Latin1Map,
+                                                         this.VT100GraphicsMap,
+                                                         this.CodePage437Map,
+                                                         this.DirectToFontMap];
+  this.translate                                     = this.GMap[this.useGMap];
+  this.top                                           = 0;
+  this.bottom                                        = this.terminalHeight;
+  this.lastCharacter                                 = ' ';
+  this.userTabStop                                   = [ ];
 
   if (clearHistory) {
     for (var i = 0; i < 2; i++) {
@@ -236,9 +236,34 @@ VT100.prototype.reset = function(clearHistory) {
   }
 
   this.enableAlternateScreen(false);
+
+  var wasCompressed                                  = false;
+  var styles                                         = [ 'transform',
+                                                         'WebkitTransform',
+                                                         'MozTransform',
+                                                         'filter' ];
+  for (var i = 0; i < styles.length; ++i) {
+    if (typeof this.console[0].style[styles[i]] != 'undefined') {
+      for (var j = 0; j < 1; ++j) {
+        wasCompressed                |= this.console[j].style[styles[i]] != '';
+        this.console[j].style[styles[i]]             = '';
+      }
+      this.cursor.style[styles[i]]                   = '';
+      this.space.style[styles[i]]                    = '';
+      if (styles[i] == 'filter') {
+        this.console[this.currentScreen].style.width = '';
+      }
+      break;
+    }
+  }
+  this.scale                                         = 1.0;
+  if (wasCompressed) {
+    this.resizer();
+  }
+
   this.gotoXY(0, 0);
   this.showCursor();
-  this.isInverted                       = false;
+  this.isInverted                                    = false;
   this.refreshInvertedState();
   this.clearRegion(0, 0, this.terminalWidth, this.terminalHeight,
                    this.color, this.style);
@@ -658,6 +683,7 @@ VT100.prototype.initializeElements = function(container) {
   this.numScrollbackLines      = 0;
   this.top                     = 0;
   this.bottom                  = 0x7FFFFFFF;
+  this.scale                   = 1.0;
   this.resizer();
   this.focusCursor();
   this.input.focus();
@@ -833,7 +859,8 @@ VT100.prototype.resizer = function() {
   }
 
   // Reposition the reconnect button
-  this.reconnectBtn.style.left = (this.terminalWidth*this.cursorWidth -
+  this.reconnectBtn.style.left = (this.terminalWidth*this.cursorWidth/
+                                  this.scale -
                                   this.reconnectBtn.clientWidth)/2 + 'px';
   this.reconnectBtn.style.top  = (this.terminalHeight*this.cursorHeight-
                                   this.reconnectBtn.clientHeight)/2 + 'px';
@@ -849,7 +876,8 @@ VT100.prototype.showCurrentSize = function() {
   this.curSizeBox.innerHTML             = '' + this.terminalWidth + 'x' +
                                                this.terminalHeight;
   this.curSizeBox.style.left            =
-                                      (this.terminalWidth*this.cursorWidth -
+                                      (this.terminalWidth*this.cursorWidth/
+                                       this.scale -
                                        this.curSizeBox.clientWidth)/2 + 'px';
   this.curSizeBox.style.top             =
                                       (this.terminalHeight*this.cursorHeight -
@@ -1119,7 +1147,7 @@ VT100.prototype.insertBlankLine = function(y, color, style) {
 
 VT100.prototype.updateWidth = function() {
   this.terminalWidth = Math.floor(this.console[this.currentScreen].offsetWidth/
-                                  this.cursorWidth);
+                                  this.cursorWidth*this.scale);
   return this.terminalWidth;
 };
 
@@ -1415,11 +1443,12 @@ VT100.prototype.putString = function(x, y, text, color, style) {
     }
   }
   if (pixelX >= 0) {
-    this.cursor.style.left          = (pixelX + (this.isIE ? 1 : 0))  + 'px';
+    this.cursor.style.left          = (pixelX + (this.isIE ? 1 : 0))/
+                                      this.scale + 'px';
   } else {
     this.setTextContent(this.space, this.spaces(this.cursorX));
-    this.cursor.style.left          = this.space.offsetWidth +
-                                      console.offsetLeft + 'px';
+    this.cursor.style.left          = (this.space.offsetWidth +
+                                       console.offsetLeft)/this.scale + 'px';
   }
   this.cursorY                      = yIdx - this.numScrollbackLines;
   if (pixelY >= 0) {
@@ -1529,9 +1558,34 @@ VT100.prototype.enableAlternateScreen = function(state) {
   }
 
   // Display new screen, and initialize state (the resizer does that for us).
-  this.currentScreen                               = state ? 1 : 0;
-  this.console[1-this.currentScreen].style.display = 'none';
-  this.console[this.currentScreen].style.display   = '';
+  this.currentScreen                                 = state ? 1 : 0;
+  this.console[1-this.currentScreen].style.display   = 'none';
+  this.console[this.currentScreen].style.display     = '';
+
+  // Select appropriate character pitch.
+  var styles                                         = [ 'transform',
+                                                         'WebkitTransform',
+                                                         'MozTransform',
+                                                         'filter' ];
+  for (var i = 0; i < styles.length; ++i) {
+    if (typeof this.console[0].style[styles[i]] != 'undefined') {
+      if (state) {
+        // Upon enabling the alternate screen, we switch to 80 column mode. But
+        // upon returning to the regular screen, we restore the mode that was
+        // in effect previously.
+        this.console[1].style[styles[i]]             = '';
+      }
+      var style                                      =
+                             this.console[this.currentScreen].style[styles[i]];
+      this.cursor.style[styles[i]]                   = style;
+      this.space.style[styles[i]]                    = style;
+      this.scale                                     = style == '' ? 1.0:1.65;
+      if (styles[i] == 'filter') {
+        this.console[this.currentScreen].style.width = style == '' ? '165%':'';
+      }
+      break;
+    }
+  }
   this.resizer();
 
   // If we switched to the alternate screen, reset it completely. Otherwise,
@@ -2814,12 +2868,50 @@ VT100.prototype.restoreCursor = function() {
               this.savedY[this.currentScreen]);
 };
 
+VT100.prototype.set80_132Mode = function(state) {
+  var transform                                       = undefined;
+  var styles                                          = [ 'transform',
+                                                          'WebkitTransform',
+                                                          'MozTransform',
+                                                          'filter'
+                                                        ];
+  for (var i = 0; i < styles.length; ++i) {
+    if (typeof this.console[0].style[styles[i]] != 'undefined') {
+      transform                                       = styles[i];
+      break;
+    }
+  }
+
+  if (transform) {
+    if ((this.console[this.currentScreen].style[transform] != '') == state) {
+      return;
+    }
+    var style                                         =
+      state ? transform == 'filter'
+            ? 'progid:DXImageTransform.Microsoft.Matrix(' +
+                             'M11=0.606060606060606060606,M12=0,M21=0,M22=1,' +
+                             "sizingMethod='auto expand')"
+            : 'translateX(-50%) ' +
+              'scaleX(0.606060606060606060606) ' +
+              'translateX(50%)'
+            : '';
+    this.console[this.currentScreen].style[transform] = style;
+    this.cursor.style[transform]                      = style;
+    this.space.style[transform]                       = style;
+    this.scale                                        = state ? 1.65 : 1.0;
+    if (transform == 'filter') {
+      this.console[this.currentScreen].style.width    = state ? '165%' : '';
+    }
+    this.resizer();
+  }
+};
+
 VT100.prototype.setMode = function(state) {
   for (var i = 0; i <= this.npar; i++) {
     if (this.isQuestionMark) {
       switch (this.par[i]) {
       case  1: this.cursorKeyMode      = state;                      break;
-      case  3: /* Toggling between 80/132 mode is not implemented */ break;
+      case  3: this.set80_132Mode(state);                            break;
       case  5: this.isInverted = state; this.refreshInvertedState(); break;
       case  6: this.offsetMode         = state;                      break;
       case  7: this.autoWrapMode       = state;                      break;

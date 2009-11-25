@@ -1,3 +1,8 @@
+2009-11-25  Markus Gutschke  <markus@shellinabox.com>
+
+	* On browsers that support CSS transforms, enable switching between
+	  80 and 132 column mode.
+
 2009-11-21  Markus Gutschke  <markus@shellinabox.com>
 
 	* Updated manual page documenting --user-css
