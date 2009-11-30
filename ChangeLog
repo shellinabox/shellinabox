@@ -1,3 +1,8 @@
+2009-11-29  Markus Gutschke  <markus@shellinabox.com>
+
+	* Preparations for packaging ShellInABox in a way that makes it
+	easy for Debian package maintainers to pick it up.
+
 2009-11-25  Markus Gutschke  <markus@shellinabox.com>
 
 	* On browsers that support CSS transforms, enable switching between

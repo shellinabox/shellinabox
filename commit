@@ -1,7 +1,11 @@
 #!/bin/bash -e
 
+# The script ensures that all commands succeed unless an error occurred. If it
+# does though, the shell terminates the script and our exit handler runs.
 trap 'tput bel || :; echo Failed! >&2' EXIT
 
+# Ask the user a yes/no question. This function does not require the user to
+# press ENTER after making a selection.
 yes_no() {
   local c
   while :; do
@@ -32,30 +36,122 @@ yes_no() {
   done
 }
 
+# Build Debian package and create all the files that are needed by the
+# distribution maintainer.
+debian_package() {
+  set -e
+  (
+    # Try to build the package. If things fail, let the exit handler remove all
+    # temporary files.
+    trap 'rm -rf "${prj}-${ver}" "${prj}_${ver}"*' EXIT
+
+    # Clean up any old temporary files
+    rm -rf "${prj}-${ver}" "${prj}_${ver}"*
+
+    # Extract the distribution source archive
+    tar zfx "${prj}-${ver}.tar.gz"
+
+    # We want to ship the "debian" directory with the source archive that
+    # users download directly from the project web site. This allows them to
+    # easily build their own Debian package by following the instructions in
+    # INSTALL.Debian.
+    # But when preparing our package for direct integration with Debian-based
+    # distributions, we have to instead remove the "debian" directory, as the
+    # distribution prefers that third-party projects are not built "natively".
+    mv "${prj}-${ver}/debian" "${prj}_${ver}_debian"
+    tar zfc "${prj}_${ver}.orig.tar.gz" "${prj}-${ver}"
+    mv "${prj}_${ver}_debian" "${prj}-${ver}/debian"
+
+    # Reset compatibility level
+    echo 7 >"${prj}-${ver}/debian/compat"
+
+    # Build Debian packages.
+    (cd "${prj}-${ver}"
+     fakeroot dpkg-buildpackage -sa -us -uc || :)
+    trap '' EXIT
+  )
+
+  # Revert any changes that might be pending in distributions/debian/*
+  local revert="$(svn st |
+                  grep distributions/debian |
+                  grep '^[^?]' |
+                  awk '{ print $2 }' |
+                  tac)"
+  if [ -n "${revert}" ]; then
+    svn revert ${revert}
+    rm -f ${revert}
+  fi
+
+  # Create distributions/debian if it does not exist yet.
+  mkdir -p distributions/debian
+  for i in distributions distributions/debian; do
+    if [ -z "$(svn st "${i}" 2>/dev/null | grep -v '^[?]')" ]; then
+      svn add --depth=empty "${i}"
+    fi
+  done
+
+  # If this version of files already exists in the distribution directory,
+  # we are not yet ready to cut a new release. Just clean up and exit.
+  for i in "${prj}_${ver}"[-.]*.*; do
+    [ -r "distributions/debian/${i}" ] && {
+      rm $(ls "${prj}_${ver}"[-.]* | egrep -v '_*.changes|_*.deb')
+      return 0
+    }
+  done
+
+  # Move new Debian files into release area.
+  mv $(ls "${prj}_${ver}"[-.]* | egrep -v '_*.changes|_*.deb')                \
+     distributions/debian/
+  svn add distributions/debian/"${prj}_${ver}"[-.]*.*
+
+  # Let the caller know that we added new packages.
+  return 1
+}
+
+# Quick sanity check that we are running from the correct directory
 test -r configure.ac
+
+# Make sure there are no stale files
 svn update
+
+# Determine Subversion revision number, project name, and public version
+# number
 {
-rev=$(($(svn info | sed -e 's/^Revision: \(.*\)/\1/;t1;d;:1;q')+1))
+  rev=$(($(svn info | sed -e 's/^Revision: \(.*\)/\1/;t1;d;:1;q')+1))
+  prj="$(sed -e 's/^AC_INIT(\([^,]*\),.*/\1/;t1;d;:1;q' configure.ac)"
+  ver="$(sed -e 's/^AC_INIT([^,]*, *\([^,]*\),.*/\1/;t1;d;:1;q' configure.ac)"
 } 2>/dev/null
-prj="$(sed -e 's/^AC_INIT(\([^,]*\),.*/\1/;t1;d;:1;q' configure.ac)"
-ver="$(sed -e 's/^AC_INIT([^,]*, *\([^,]*\),.*/\1/;t1;d;:1;q' configure.ac)"
+
+# Update "configure.ac" with the next Subversion revision number. This
+# information will trickle down into various source files where it becomes
+# part of the user-visible version information.
 sed -ie 's/^\(VCS_REVISION=\).*/\1'"${rev}"'/' configure.ac
 touch shellinabox/vt100.jspp shellinabox/shell_in_a_box.jspp
+
+# For now, Ubuntu/Hardy is still quite popular. We want to make it easy for
+# our users to build Debian packages from source. So, make sure we lock the
+# compatibility level at 6. Once we no longer care about maintaining strict
+# backwards compatibility, we can lift this restriction.
 echo 6 >debian/compat
+
+# Build all the sources, create the distribution tar archive, and run some
+# basic sanity checks.
 make all distcheck
-( trap 'rm -rf "${prj}-${ver}"' EXIT
-  rm -f "${prj}-${ver}" &&
-  tar zfx "${prj}-${ver}.tar.gz" &&
-  cd "${prj}-${ver}" &&
-  fakeroot dpkg-buildpackage -us -uc &&
-  cd .. &&
-  rm -f $(ls "${prj}_${ver}-"*.* | egrep -v '.deb$') ) || :
+
+# Build Debian package and create all the files that are needed by the
+# distribution maintainer.
+msg=
+debian_package ||
+  msg="${msg}
+NOTICE: New version released. Please do not forget to notify distributions"
+
 svn diff $(svn st |
-           egrep -v ' configure$| aclocal.m4$|^[?]' |
+           egrep -v ' configure$| aclocal.m4$|distributions|^[?]' |
            sed -e 's/^[^ ]* *//') | less
 echo -n 'Commit these changes (Y/n): '
 yes_no 0 || exit 1
 svn commit
+echo "${msg}"
 
 trap '' EXIT
 exit 0
