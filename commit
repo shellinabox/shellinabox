@@ -125,8 +125,34 @@ svn update
 # Update "configure.ac" with the next Subversion revision number. This
 # information will trickle down into various source files where it becomes
 # part of the user-visible version information.
-sed -ie 's/^\(VCS_REVISION=\).*/\1'"${rev}"'/' configure.ac
+sed -i -e 's/^\(VCS_REVISION=\).*/\1'"${rev}"'/' configure.ac
 touch shellinabox/vt100.jspp shellinabox/shell_in_a_box.jspp
+
+# If the manual page has been changed, make sure that the time stamp will be
+# changed, too.
+if [ -n "$(svn st shellinabox/shellinaboxd.man.in 2>/dev/null |
+           grep '^M')" ]; then
+  sed -i -e 's/^\([.]TH .*\)"[^"]*"/\1"'"$(date +'%b %d, %Y')"'"/
+             s/2008-2[01][0-9][0-9]/2008-'"$(date +'%Y')"'/g'                 \
+      shellinabox/shellinaboxd.man.in
+fi
+
+# Always update the year in the user visible copyright statement(s)
+for i in shellinabox/shell_in_a_box.jspp                                      \
+         shellinabox/vt100.jspp                                               \
+         COPYING                                                              \
+         debian/copyright; do
+  sed -i -e 's/\(2[01][0-9][0-9]-\)2[01][0-9][0-9]/\1'"$(date +'%Y')"'/g' "$i"
+done
+
+# If a source file has changed, make sure to update the year in the copyright
+# statement for that particular file.
+svn st | egrep '^[MA]' | awk '{ print $2 }' |
+  egrep '^(shellinabox|libhttp|demo)/' |
+  egrep '[.](html|h|c|css|jspp)$' |
+  while read -r f; do
+   sed -i -e 's/\(2[01][0-9][0-9]-\)2[01][0-9][0-9]/\1'"$(date +'%Y')"'/g' "$f"
+  done
 
 # For now, Ubuntu/Hardy is still quite popular. We want to make it easy for
 # our users to build Debian packages from source. So, make sure we lock the

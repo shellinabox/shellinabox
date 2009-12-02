@@ -1,3 +1,9 @@
+2009-12-01  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added some basic sanity checks to the commit script that now makes
+	sure we at least attempt to keep copyright dates updated whenever we
+	make changes.
+
 2009-11-29  Markus Gutschke  <markus@shellinabox.com>
 
 	* Preparations for packaging ShellInABox in a way that makes it
