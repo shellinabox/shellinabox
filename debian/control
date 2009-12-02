@@ -8,8 +8,6 @@ Build-Depends: debhelper (>= 6.0.0), binutils, libssl-dev, libpam0g-dev,
 Standards-Version: 3.8.3
 
 Package: shellinabox
-Section: web
-Priority: optional
 Architecture: any
 Depends: ${shlibs:Depends}, adduser, lsb-base
 Suggests: libssl0.9.8, libpam0g, openssl

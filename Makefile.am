@@ -111,8 +111,13 @@ shellinaboxd_LDFLAGS = -static
 objcopyflags         = case "$(host_cpu)" in                                  \
                          i[0-9]86) echo '-O elf32-i386 -B i386';;             \
                          x86_64)   echo '-O elf64-x86-64 -B i386:x86-64';;    \
-                         arm*)     echo '-O elf32-littlearm -B arm';;         \
-                         powerpc*) echo '-O elf32-powerpc -B powerpc';;       \
+                         *)        trap 'rm -f /tmp/probe$$$$.o' EXIT;        \
+                                   $(CC) $(AM_CFLAGS) $(CFLAGS) -c -xc        \
+                                         -o /tmp/probe$$$$.o /dev/null &&     \
+                                   objdump -f /tmp/probe$$$$.o |              \
+                                   sed -e 's/.*file format */-O /;t;          \
+                                        s/architecture: *\([^,]*\).*/-B \1/;t;\
+                                        d';;                                  \
                        esac
 
 renamesymbols        =                                                        \

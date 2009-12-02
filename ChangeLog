@@ -1,3 +1,9 @@
+2009-12-02  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added fallback code that dynamically computes the correct commandline
+	arguments for "objcopy" if building for an otherwise unknown target
+	platform.
+
 2009-12-01  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added some basic sanity checks to the commit script that now makes

@@ -81,7 +81,7 @@ debian_package() {
     trap '' EXIT
 
     # Run lintian
-    lintian --verbose ${prj}_${ver}*_*.changes
+    lintian --verbose -I ${prj}_${ver}*_*.changes
   ) || exit 1
 
   # Revert any changes that might be pending in distributions/debian/*
