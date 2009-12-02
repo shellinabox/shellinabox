@@ -30,13 +30,4 @@ case "$1" in
   ;;
 esac
 
-# Automatically added by dh_installinit
-if [ -x "/etc/init.d/shellinabox" ]; then
-        update-rc.d shellinabox start 30 2 3 4 5 . stop 01 0 1 6 . >/dev/null
-        if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
-                invoke-rc.d shellinabox start || exit $?
-        else
-                /etc/init.d/shellinabox start || exit $?
-        fi
-fi
-# End automatically added section
+#DEBHELPER#

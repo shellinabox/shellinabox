@@ -64,6 +64,9 @@ debian_package() {
 
     # Reset compatibility level
     echo 7 >"${prj}-${ver}/debian/compat"
+    sed -i -e 's/debhelper *([^0-9]*[^)]*)/debhelper (>= 7.0.0)/'             \
+        "${prj}-${ver}/debian/control"
+    sed -i -e 's/dh_clean *-k/dh_prep/' "${prj}-${ver}/debian/rules"
 
     # Check that the version number in the debian/changelog file matches
     if [ "$(sed -e 's/^'"${prj}"' *(\([^-]*\)-.*).*/\1/;t1;d;:1;q'            \
@@ -72,11 +75,13 @@ debian_package() {
       exit 1
     fi
 
-
     # Build Debian packages.
     (cd "${prj}-${ver}"
      fakeroot dpkg-buildpackage -sa -us -uc || :)
     trap '' EXIT
+
+    # Run lintian
+    lintian --verbose ${prj}_${ver}*_*.changes
   ) || exit 1
 
   # Revert any changes that might be pending in distributions/debian/*
@@ -167,6 +172,8 @@ svn st | egrep '^[MA]' | awk '{ print $2 }' |
 # compatibility level at 6. Once we no longer care about maintaining strict
 # backwards compatibility, we can lift this restriction.
 echo 6 >debian/compat
+sed -i -e 's/debhelper *([^0-9]*[^)]*)/debhelper (>= 6.0.0)/' debian/control
+sed -i -e 's/dh_prep/dh_clean *-k/' debian/rules
 
 # Build all the sources, create the distribution tar archive, and run some
 # basic sanity checks.

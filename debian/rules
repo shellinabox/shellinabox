@@ -55,7 +55,7 @@ clean:
 	dh_testroot
 	rm -f build-stamp 
 	@# Add here commands to clean up after the build process.
-	-$(MAKE) distclean
+	[ ! -f Makefile ] || $(MAKE) distclean
 ifneq "$(wildcard /usr/share/misc/config.sub)" ""
 	cp -f /usr/share/misc/config.sub config.sub
 endif
@@ -89,6 +89,13 @@ install: build
 	   "$(CURDIR)/debian/tmp/etc/shellinabox/options-available/README"
 	cp "$(CURDIR)/debian/README.enabled"                                  \
 	   "$(CURDIR)/debian/tmp/etc/shellinabox/options-enabled/README"
+	# Add Lintian override. ShellInABox has an explicit exemption allowing
+	# the linking its GPLv2 code with OpenSSL.
+	mkdir -p "$(CURDIR)/debian/tmp/usr/share/lintian/overrides/"
+	{ echo '# ShellInABox has an explicit exemption allowing the linking';\
+	echo '# of its GPLv2 code with OpenSSL';                              \
+	echo 'shellinabox binary: possible-gpl-code-linked-with-openssl'; }   \
+	   >"$(CURDIR)/debian/tmp/usr/share/lintian/overrides/shellinabox"
 
 # Build architecture-independent files here.
 binary-indep: build install

@@ -11,6 +11,8 @@
 	* Updated the Standards-Version in debian/control. Still need to
 	review whether we are in full compliance, though.
 
+	* Fixed lintian errors.
+
 2009-11-29  Markus Gutschke  <markus@shellinabox.com>
 
 	* Preparations for packaging ShellInABox in a way that makes it
