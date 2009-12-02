@@ -65,11 +65,19 @@ debian_package() {
     # Reset compatibility level
     echo 7 >"${prj}-${ver}/debian/compat"
 
+    # Check that the version number in the debian/changelog file matches
+    if [ "$(sed -e 's/^'"${prj}"' *(\([^-]*\)-.*).*/\1/;t1;d;:1;q'            \
+             "${prj}-${ver}/debian/changelog")" != "${ver}" ]; then
+      echo "Debian changelog file does not match current version number!" >&2
+      exit 1
+    fi
+
+
     # Build Debian packages.
     (cd "${prj}-${ver}"
      fakeroot dpkg-buildpackage -sa -us -uc || :)
     trap '' EXIT
-  )
+  ) || exit 1
 
   # Revert any changes that might be pending in distributions/debian/*
   local revert="$(svn st |
