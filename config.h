@@ -1,11 +1,14 @@
 /* config.h.  Generated from config.h.in by configure.  */
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Set if you want support for calling /bin/login */
+#define HAVE_BIN_LOGIN 1
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
 
 /* Define to 1 if you have the `dlopen' function. */
-/* #undef HAVE_DLOPEN */
+#define HAVE_DLOPEN 1
 
 /* Define to 1 if you have the `getgrgid_r' function. */
 #define HAVE_GETGRGID_R 1
@@ -138,10 +141,10 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "197"
+#define VCS_REVISION "198"
 
 /* Version number of package */
 #define VERSION "2.10"
 
 /* Define to empty if `const' does not conform to ANSI C. */
-#define const /**/
+/* #undef const */

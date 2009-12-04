@@ -1,3 +1,11 @@
+2009-12-03  Markus Gutschke  <markus@shellinabox.com>
+
+	* Allow retrieval of the user's default login shell from
+	/etc/passwd.
+
+	* Allow the code to be built without support for the LOGIN
+	service, as calling /bin/login does not work well on Fedora.
+
 2009-12-02  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added fallback code that dynamically computes the correct commandline

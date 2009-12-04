@@ -44,7 +44,7 @@
 .\" The most up-to-date version of this program is always available from
 .\" http://shellinabox.com
 .\"
-.TH SHELLINABOXD 1 "Nov 21, 2009"
+.TH SHELLINABOXD 1 "Dec 03, 2009"
 .SH NAME
 shellinaboxd \- publish command line shell through AJAX interface
 .SH SYNOPSIS
@@ -330,6 +330,7 @@ One or more services can be registered on different URL paths:
 \fISERVICE\fP := <url-path> ':' \fIAPPLICATION\fP
 .in
 
+#ifdef HAVE_BIN_LOGIN
 There is a pre-defined \fIapplication\fP, 'LOGIN', which causes the
 daemon to invoke
 .B /bin/login
@@ -343,12 +344,34 @@ was defined. Starting
 requires
 .B root
 privileges.
+#endif
 
-There is another pre-defined \fIapplication\fP, 'SSH'. Instead of invoking
+There is
+#ifdef HAVE_BIN_LOGIN
+another
+#endif
+#ifndef HAVE_BIN_LOGIN
+a
+#endif
+pre-defined \fIapplication\fP, 'SSH'.
+#ifdef HAVE_BIN_LOGIN
+Instead of invoking
 .BR /bin/login ,
-it calls
+it
+#endif
+#ifndef HAVE_BIN_LOGIN
+It
+#endif
+calls
 .BR ssh .
-This is the default option for unprivileged users, if no
+This is the default
+#ifdef HAVE_BIN_LOGIN
+option for unprivileged users,
+#endif
+#ifndef HAVE_BIN_LOGIN
+option,
+#endif
+if no
 .B --service
 was defined. This operation is available to both privileged and regular
 users. If the optional \fIhost\fP parameter is omitted,
@@ -359,7 +382,12 @@ connects to
 Alternatively, an \fIapplication\fP can be specified by providing a
 \fIuser\fP description, a working directory, and a command line:
 .in +4
-\fIAPPLICATION\fP := 'LOGIN' | 'SSH' [ ':' <host> ] |  \fIUSER\fP ':' \fICWD\fP ':' <cmdline>
+#ifdef HAVE_BIN_LOGIN
+\fIAPPLICATION\fP := 'LOGIN' | 'SSH' [ ':' <host> ] |  \fIUSER\fP ':' \fICWD\fP ':' \fICMD\fP
+#endif
+#ifndef HAVE_BIN_LOGIN
+\fIAPPLICATION\fP := 'SSH' [ ':' <host> ] |  \fIUSER\fP ':' \fICWD\fP ':' \fICMD\fP
+#endif
 
 #ifdef HAVE_PAM
 .in
@@ -381,6 +409,14 @@ The working directory can either be given as an absolute path, or it
 can be the user's home directory:
 .in +4
 \fICWD\fP := 'HOME' : <dir>
+.in
+
+The command that
+.B shellinaboxd
+executes can either be specified as the 'SHELL' keyword, denoting the user's
+default login shell, or an arbitrary command line:
+.in +4
+\fICMD\fP := 'SHELL' : <cmdline>
 .in
 
 The <cmdline> supports expansion of variables of the form ${VAR}.

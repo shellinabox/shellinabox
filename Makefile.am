@@ -196,12 +196,18 @@ ${top_srcdir}/demo/vt100.js: ${top_srcdir}/shellinabox/vt100.js
 shellinaboxd.1: shellinabox/shellinaboxd.man.in config.h
 	@src="${top_srcdir}/shellinabox/shellinaboxd.man.in";                 \
 	echo preprocess  "$$src" '>'"$@";                                     \
+	if sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d config.h |           \
+             grep 'HAVE_BIN_LOGIN' >/dev/null 2>&1; then                      \
+	  sed -e '/^#ifndef  *HAVE_BIN_LOGIN$$/,/^#endif$$/d' "$$src";        \
+	else                                                                  \
+	  sed -e '/^#ifdef  *HAVE_BIN_LOGIN$$/,/^#endif$$/d' "$$src";         \
+	fi |                                                                  \
 	if [ `sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d config.h |        \
              egrep 'HAVE_OPENSSL_BIO_H|HAVE_OPENSSL_ERR_H|HAVE_OPENSSL_SSL_H'|\
              wc -l` -eq 3 ]; then                                             \
-	  sed -e '/^#ifndef  *HAVE_OPENSSL$$/,/^#endif$$/d' "$$src";          \
+	  sed -e '/^#ifndef  *HAVE_OPENSSL$$/,/^#endif$$/d';                  \
 	else                                                                  \
-	  sed -e '/^#ifdef  *HAVE_OPENSSL$$/,/^#endif$$/d' "$$src";           \
+	  sed -e '/^#ifdef  *HAVE_OPENSSL$$/,/^#endif$$/d';                   \
 	fi |                                                                  \
 	if sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d config.h |           \
              grep 'HAVE_SECURITY_PAM_APPL_H' >/dev/null 2>&1; then            \

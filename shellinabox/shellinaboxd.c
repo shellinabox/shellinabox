@@ -765,10 +765,15 @@ static void usage(void) {
           "be made available\n"
           "through the web interface:\n"
           "  SERVICE := <url-path> ':' APP\n"
-          "  APP     := 'LOGIN' | 'SSH' [ : <host> ] | "
-                        "USER ':' CWD ':' <cmdline>\n"
+          "  APP     := "
+#ifdef HAVE_BIN_LOGIN
+                        "'LOGIN' | "
+#endif
+                                   "'SSH' [ : <host> ] | "
+                        "USER ':' CWD ':' CMD\n"
           "  USER    := %s<username> ':' <groupname>\n"
           "  CWD     := 'HOME' | <dir>\n"
+          "  CMD     := 'SHELL' | <cmdline>\n"
           "\n"
           "<cmdline> supports variable expansion:\n"
           "  ${columns} - number of columns\n"
@@ -1096,8 +1101,14 @@ static void parseArgs(int argc, char * const argv[]) {
 
   // If the user did not register any services, provide the default service
   if (!getHashmapSize(serviceTable)) {
-    addToHashMap(serviceTable, "/", (char *)newService(geteuid() ? ":SSH" :
-                                                                   ":LOGIN"));
+    addToHashMap(serviceTable, "/",
+                 (char *)newService(
+#ifdef HAVE_BIN_LOGIN
+                                    geteuid() ? ":SSH" : ":LOGIN"
+#else
+                                    ":SSH"
+#endif
+                                    ));
   }
   enumerateServices(serviceTable);
   deleteHashMap(serviceTable);

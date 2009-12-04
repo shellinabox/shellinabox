@@ -11,10 +11,15 @@ some tips on getting things working:
   you start the daemon as "root".
   To fix this problem, consider explicitly specifying a service definition.
   One of these two should work:
-    --service /:AUTH:HOME:/bin/bash
+    --service /:AUTH:HOME:SHELL
   or
     --service /:SSH
   The latter requires that you have a locally running "sshd" daemon.
+
+- Alternatively, consider running "./configure --disable-login" before building
+  the daemon. This will completely remove support for the "LOGIN" service, and
+  shellinaboxd will instead use a default "SSH" service for both unprivileged
+  and for "root" users.
 
 - On Fedora, PAM authentication does not work for shellinabox until you
   explicitly configure it. This means, using "AUTH" in the service definition

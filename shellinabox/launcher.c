@@ -727,29 +727,34 @@ static const struct passwd *getPWEnt(uid_t uid) {
   struct passwd pwbuf, *pw;
   char *buf;
   #ifdef _SC_GETPW_R_SIZE_MAX
-  int len                   = sysconf(_SC_GETPW_R_SIZE_MAX);
+  int len                           = sysconf(_SC_GETPW_R_SIZE_MAX);
   if (len <= 0) {
-    len                     = 4096;
+    len                             = 4096;
   }
   #else
-  int len                   = 4096;
+  int len                           = 4096;
   #endif
-  check(buf                 = malloc(len));
+  check(buf                         = malloc(len));
   check(!getpwuid_r(uid, &pwbuf, buf, len, &pw) && pw);
+  if (!pw->pw_name  ) pw->pw_name   = "";
+  if (!pw->pw_passwd) pw->pw_passwd = "";
+  if (!pw->pw_gecos ) pw->pw_gecos  = "";
+  if (!pw->pw_dir   ) pw->pw_dir    = "";
+  if (!pw->pw_shell ) pw->pw_shell  = "";
   struct passwd *passwd;
-  check(passwd              = calloc(sizeof(struct passwd) +
-                                     strlen(pw->pw_name) +
-                                     strlen(pw->pw_passwd) +
-                                     strlen(pw->pw_gecos) +
-                                     strlen(pw->pw_dir) +
-                                     strlen(pw->pw_shell) + 5, 1));
-  passwd->pw_uid            = pw->pw_uid;
-  passwd->pw_gid            = pw->pw_gid;
-  strncat(passwd->pw_shell  = strrchr(
-  strncat(passwd->pw_dir    = strrchr(
-  strncat(passwd->pw_gecos  = strrchr(
-  strncat(passwd->pw_passwd = strrchr(
-  strncat(passwd->pw_name   = (char *)(passwd + 1),
+  check(passwd                      = calloc(sizeof(struct passwd) +
+                                             strlen(pw->pw_name) +
+                                             strlen(pw->pw_passwd) +
+                                             strlen(pw->pw_gecos) +
+                                             strlen(pw->pw_dir) +
+                                             strlen(pw->pw_shell) + 5, 1));
+  passwd->pw_uid                    = pw->pw_uid;
+  passwd->pw_gid                    = pw->pw_gid;
+  strncat(passwd->pw_shell          = strrchr(
+  strncat(passwd->pw_dir            = strrchr(
+  strncat(passwd->pw_gecos          = strrchr(
+  strncat(passwd->pw_passwd         = strrchr(
+  strncat(passwd->pw_name           = (char *)(passwd + 1),
          pw->pw_name,   strlen(pw->pw_name)),   '\000') + 1,
          pw->pw_passwd, strlen(pw->pw_passwd)), '\000') + 1,
          pw->pw_gecos,  strlen(pw->pw_gecos)),  '\000') + 1,
@@ -945,6 +950,12 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   }
   free((void *)fqdn);
   free((void *)hostname);
+
+  if (service->useDefaultShell) {
+    check(!service->cmdline);
+    service->cmdline           = strdup(*pw->pw_shell ?
+                                        pw->pw_shell : "/bin/sh");
+  }
 
   if (restricted &&
       (service->uid != restricted || service->gid != pw->pw_gid)) {
@@ -1226,8 +1237,19 @@ static void execService(int width, int height, struct Service *service,
 
   extern char **environ;
   environ                     = environment;
-  char *cmd                   = strrchr(argv[0], '/');
-  execvp(cmd ? cmd + 1: argv[0], argv);
+  char *cmd                   = strdup(argv[0]);
+  char *slash                 = strrchr(argv[0], '/');
+  if (slash) {
+    memmove(argv[0], slash + 1, strlen(slash));
+  }
+  if (service->useDefaultShell) {
+    int len                   = strlen(argv[0]);
+    check(argv[0]             = realloc(argv[0], len + 2));
+    memmove(argv[0] + 1, argv[0], len);
+    argv[0][0]                = '-';
+    argv[0][len + 1]          = '\000';
+  }
+  execvp(cmd, argv);
 }
 
 void setWindowSize(int pty, int width, int height) {

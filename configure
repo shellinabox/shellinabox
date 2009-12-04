@@ -861,6 +861,7 @@ with_pic
 enable_fast_install
 with_gnu_ld
 enable_libtool_lock
+enable_login
 enable_ssl
 enable_pam
 enable_runtime_loading
@@ -1500,6 +1501,11 @@ Optional Features:
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --disable-login           on some systems (e.g. Fedora), calling /bin/login
+                            does not work well. If you know that your system
+                            suffers from this problem, set this option to
+                            remove support for the LOGIN keyword in the
+                            service description.
   --disable-ssl             if available at built-time, support for SSL
                             connections will be enabled. It can still be
                             disabled at run-time, either on the daemon's
@@ -2319,7 +2325,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-VCS_REVISION=197
+VCS_REVISION=198
 
 
 cat >>confdefs.h <<_ACEOF
@@ -4470,13 +4476,13 @@ if test "${lt_cv_nm_interface+set}" = set; then :
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:4473: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:4479: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4476: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:4482: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4479: output\"" >&5)
+  (eval echo "\"\$as_me:4485: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -5682,7 +5688,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5685 "configure"' > conftest.$ac_ext
+  echo '#line 5691 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7208,11 +7214,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7211: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7217: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7215: \$? = $ac_status" >&5
+   echo "$as_me:7221: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7547,11 +7553,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7550: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7556: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7554: \$? = $ac_status" >&5
+   echo "$as_me:7560: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7652,11 +7658,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7655: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7661: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:7659: \$? = $ac_status" >&5
+   echo "$as_me:7665: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -7707,11 +7713,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7710: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7716: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:7714: \$? = $ac_status" >&5
+   echo "$as_me:7720: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10090,7 +10096,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10093 "configure"
+#line 10099 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10186,7 +10192,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10189 "configure"
+#line 10195 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10679,6 +10685,17 @@ $as_echo "#define HAVE_SIGWAIT 1" >>confdefs.h
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
+
+# Check whether --enable-login was given.
+if test "${enable_login+set}" = set; then :
+  enableval=$enable_login;
+fi
+
+if test "x$enable_login" != xno; then
+
+$as_echo "#define HAVE_BIN_LOGIN 1" >>confdefs.h
+
+fi
 
 # Check whether --enable-ssl was given.
 if test "${enable_ssl+set}" = set; then :

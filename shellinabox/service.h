@@ -54,6 +54,7 @@ struct Service {
   int        useLogin;
   int        useHomeDir;
   int        authUser;
+  int        useDefaultShell;
   int        uid;
   int        gid;
   const char *user;
