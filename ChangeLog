@@ -1,3 +1,8 @@
+2009-12-10  Markus Gutschke  <markus@shellinabox.com>
+
+	* Add .note.GNU-stack to all object files so that the generated
+	binary doesn't erroneously request an executable stack.
+
 2009-12-03  Markus Gutschke  <markus@shellinabox.com>
 
 	* Allow retrieval of the user's default login shell from

@@ -226,31 +226,47 @@ shellinaboxd.1: shellinabox/shellinaboxd.man.in config.h
 
 clean-local:
 	-rm -rf shellinaboxd.1                                                \
-                shellinaboxd.ps
+	        shellinaboxd.ps
 	-rm -rf debian/shellinabox                                            \
-                debian/shellinabox*.debhelper*                                \
+	        debian/shellinabox*.debhelper*                                \
 	        debian/shellinabox.substvars                                  \
-                debian/tmp
+	        debian/tmp
+	-rm -rf GNU-stack
 
 .css.o:
 	@echo objcopy "$<" "$@"
 	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
+	@-printf '\000' >GNU-stack &&                                         \
+	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  rm -f GNU-stack
 
 .gif.o:
 	@echo objcopy "$<" "$@"
 	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
+	@-printf '\000' >GNU-stack &&                                         \
+	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  rm -f GNU-stack
+
 
 .html.o:
 	@echo objcopy "$<" "$@"
 	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
+	@-printf '\000' >GNU-stack &&                                         \
+	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  rm -f GNU-stack
+
 
 .ico.o:
 	@echo objcopy "$<" "$@"
 	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
+	@-printf '\000' >GNU-stack &&                                         \
+	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  rm -f GNU-stack
+
 
 shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
 
@@ -267,9 +283,17 @@ shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
 	@echo objcopy "$<" "$@"
 	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
+	@-printf '\000' >GNU-stack &&                                         \
+	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  rm -f GNU-stack
+
 
 .wav.o:
 	@echo objcopy "$<" "$@"
 	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
 	  "$<" "$@"
+	@-printf '\000' >GNU-stack &&                                         \
+	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  rm -f GNU-stack
+
 
