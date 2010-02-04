@@ -696,7 +696,7 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
     // Become the session/process-group leader
     setsid();
     setpgid(0, 0);
-    
+
     // Redirect standard I/O to the pty
     dup2(slave, 0);
     dup2(slave, 1);
@@ -736,11 +736,11 @@ static const struct passwd *getPWEnt(uid_t uid) {
   #endif
   check(buf                         = malloc(len));
   check(!getpwuid_r(uid, &pwbuf, buf, len, &pw) && pw);
-  if (!pw->pw_name  ) pw->pw_name   = "";
-  if (!pw->pw_passwd) pw->pw_passwd = "";
-  if (!pw->pw_gecos ) pw->pw_gecos  = "";
-  if (!pw->pw_dir   ) pw->pw_dir    = "";
-  if (!pw->pw_shell ) pw->pw_shell  = "";
+  if (!pw->pw_name  ) pw->pw_name   = (char *)"";
+  if (!pw->pw_passwd) pw->pw_passwd = (char *)"";
+  if (!pw->pw_gecos ) pw->pw_gecos  = (char *)"";
+  if (!pw->pw_dir   ) pw->pw_dir    = (char *)"";
+  if (!pw->pw_shell ) pw->pw_shell  = (char *)"";
   struct passwd *passwd;
   check(passwd                      = calloc(sizeof(struct passwd) +
                                              strlen(pw->pw_name) +
