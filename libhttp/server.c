@@ -1,5 +1,5 @@
 // server.c -- Generic server that can deal with HTTP connections
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -129,6 +129,7 @@ static int serverCollectHandler(struct HttpConnection *http, void *handler_) {
 }
 
 static void serverDestroyHandlers(void *arg, char *value) {
+  (void)arg;
   free(value);
 }
 
@@ -143,6 +144,7 @@ void serverRegisterHttpHandler(struct Server *server, const char *url,
     h->handler          = serverCollectHandler;
     h->arg              = h;
     h->streamingHandler = handler;
+    h->websocketHandler = NULL;
     h->streamingArg     = arg;
     addToTrie(&server->handlers, url, (char *)h);
   }
@@ -158,13 +160,31 @@ void serverRegisterStreamingHttpHandler(struct Server *server, const char *url,
     check(h             = malloc(sizeof(struct HttpHandler)));
     h->handler          = handler;
     h->streamingHandler = NULL;
+    h->websocketHandler = NULL;
     h->streamingArg     = NULL;
     h->arg              = arg;
     addToTrie(&server->handlers, url, (char *)h);
   }
 }
 
+void serverRegisterWebSocketHandler(struct Server *server, const char *url,
+       int (*handler)(struct HttpConnection *, void *, int, const char *, int),
+       void *arg) {
+  if (!handler) {
+    addToTrie(&server->handlers, url, NULL);
+  } else {
+    struct HttpHandler *h;
+    check(h             = malloc(sizeof(struct HttpHandler)));
+    h->handler          = NULL;
+    h->streamingHandler = NULL;
+    h->websocketHandler = handler;
+    h->arg              = arg;
+    addToTrie(&server->handlers, url, (char *)h);
+  }
+}
+
 static int serverQuitHandler(struct HttpConnection *http, void *arg) {
+  (void)arg;
   httpSendReply(http, 200, "Good Bye", NO_MSG);
   httpExitLoop(http, 1);
   return HTTP_DONE;

@@ -1,5 +1,5 @@
 // privileges.c -- Manage process privileges
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -76,7 +76,7 @@ static void removeGroupPrivileges(int showError) {
     getresuid(&ru, &eu, &su);
 
     // Try to switch the user-provided group.
-    if ((ru && runAsGroup != rg) ||
+    if ((ru && runAsGroup != (int)rg) ||
         setresgid(runAsGroup, runAsGroup, runAsGroup)) {
       if (showError) {
         fatal("Only privileged users can change their group memberships");
@@ -110,7 +110,7 @@ void lowerPrivileges(void) {
 
   if (runAsUser >= 0) {
     // Try to switch to the user-provided user id.
-    if (r && runAsUser != r) {
+    if (r && runAsUser != (int)r) {
       fatal("Only privileged users can change their user id");
     }
     check(!setresuid(runAsUser, runAsUser, -1));
@@ -136,7 +136,7 @@ void dropPrivileges(void) {
 
   if (runAsUser >= 0) {
     // Try to switch to the user-provided user id.
-    if ((r && runAsUser != r) ||
+    if ((r && runAsUser != (int)r) ||
         setresuid(runAsUser, runAsUser, runAsUser)) {
       fatal("Only privileged users can change their user id.");
     }

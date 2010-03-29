@@ -1,5 +1,5 @@
 // VT100.js -- JavaScript based terminal emulator
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -1955,8 +1955,8 @@ VT100.prototype.toggleBell = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.10 (revision 200)" +
-        "\nCopyright 2008-2009 by Markus Gutschke\n" +
+  alert("VT100 Terminal Emulator " + "2.10 (revision 202)" +
+        "\nCopyright 2008-2010 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
 

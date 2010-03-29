@@ -1,3 +1,12 @@
+2010-03-29  Markus Gutschke  <markus@shellinabox.com>
+
+	* Started working on support for WebSockets.
+
+	* Fixed some compiler warnings when compiling with -Wextra
+
+	* Thanks to Jan Jaeger's excellent bug report, made some changes
+	that should make it easier to build ShellInABox for OpenWRT.
+
 2009-12-10  Markus Gutschke  <markus@shellinabox.com>
 
 	* Add .note.GNU-stack to all object files so that the generated

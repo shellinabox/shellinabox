@@ -1,5 +1,5 @@
 // session.c -- Session management for HTTP/HTTPS connections
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -153,6 +153,9 @@ void finishAllSessions(void) {
 }
 
 static void destroySessionHashEntry(void *arg, char *key, char *value) {
+  (void)arg;
+  (void)key;
+
   deleteSession((struct Session *)value);
 }
 
@@ -167,7 +170,7 @@ char *newSessionKey(void) {
   char *ptr          = sessionKey;
   int count          = 0;
   int bits           = 0;
-  for (int i = 0;;) {
+  for (unsigned i = 0;;) {
     bits             = (bits << 8) | buf[i];
     count           += 8;
   drain:

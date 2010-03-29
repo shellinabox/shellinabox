@@ -1,5 +1,5 @@
 // url.c -- Object representing uniform resource locators
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -87,6 +87,7 @@ static char *urlUnescape(char *s) {
 }
 
 static void urlDestroyHashMapEntry(void *arg, char *key, char *value) {
+  (void)arg;
   free(key);
   free(value);
 }

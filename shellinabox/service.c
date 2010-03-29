@@ -1,5 +1,5 @@
 // service.c -- Service descriptions
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -243,9 +243,15 @@ void deleteService(struct Service *service) {
 }
 
 void destroyServiceHashEntry(void *arg, char *key, char *value) {
+  (void)arg;
+  (void)key;
+  (void)value;
 }
 
 static int enumerateServicesHelper(void *arg, const char *key, char **value) {
+  (void)arg;
+  (void)key;
+
   check(services              = realloc(services,
                                     ++numServices * sizeof(struct Service *)));
   services[numServices-1]     = *(struct Service **)value;

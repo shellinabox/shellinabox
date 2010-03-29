@@ -1,5 +1,5 @@
 // usercss.c -- Defines user-selectable CSS options
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -60,6 +60,9 @@
 static struct HashMap *defines;
 
 static void definesDestructor(void *arg, char *key, char *value) {
+  (void)arg;
+  (void)value;
+
   free(key);
 }
 
@@ -73,7 +76,7 @@ static void readStylesheet(struct UserCSS *userCSS, const char *filename,
   FILE *fp;
   check(fp                = fdopen(fd, "r"));
   check(*style            = malloc(st.st_size + 1));
-  check(fread(*style, 1, st.st_size, fp) == st.st_size);
+  check(fread(*style, st.st_size, 1, fp) == 1);
   (*style)[st.st_size]    = '\000';
   *len                    = st.st_size;
   fclose(fp);

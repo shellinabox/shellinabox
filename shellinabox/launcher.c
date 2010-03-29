@@ -1,5 +1,5 @@
 // launcher.c -- Launch services from a privileged process
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -321,7 +321,7 @@ static void loadPAM(void) {
     { { &pam_start },             "libpam.so",      "pam_start"         },
     { { &misc_conv },             "libpam_misc.so", "misc_conv"         }
   };
-  for (int i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
+  for (unsigned i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
     if (!(*symbols[i].var = loadSymbol(symbols[i].lib, symbols[i].fn))) {
 #if defined(HAVE_SECURITY_PAM_CLIENT_H)
       if (!strcmp(symbols[i].fn, "pam_binary_handler_fn")) {
@@ -336,7 +336,7 @@ static void loadPAM(void) {
       }
       debug("Failed to load PAM support. Could not find \"%s\"",
             symbols[i].fn);
-      for (int j = 0; j < sizeof(symbols)/sizeof(symbols[0]); j++) {
+      for (unsigned j = 0; j < sizeof(symbols)/sizeof(symbols[0]); j++) {
         *symbols[j].var = NULL;
       }
       break;
@@ -419,7 +419,7 @@ int launchChild(int service, struct Session *session, const char *url) {
   }
 
   struct LaunchRequest *request;
-  size_t len           = sizeof(struct LaunchRequest) + strlen(u) + 1;
+  ssize_t len          = sizeof(struct LaunchRequest) + strlen(u) + 1;
   check(request        = calloc(len, 1));
   request->service     = service;
   request->width       = session->width;
@@ -538,6 +538,8 @@ void deleteUtmp(struct Utmp *utmp) {
 }
 
 static void destroyUtmpHashEntry(void *arg, char *key, char *value) {
+  (void)arg;
+  (void)key;
   deleteUtmp((struct Utmp *)value);
 }
 
@@ -765,6 +767,9 @@ static const struct passwd *getPWEnt(uid_t uid) {
 }
 
 static void sigAlrmHandler(int sig, siginfo_t *info, void *unused) {
+  (void)sig;
+  (void)info;
+  (void)unused;
   puts("\nLogin timed out after 60 seconds.");
   _exit(1);
 }
@@ -958,7 +963,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   }
 
   if (restricted &&
-      (service->uid != restricted || service->gid != pw->pw_gid)) {
+      (service->uid != (int)restricted || service->gid != (int)pw->pw_gid)) {
     puts("\nAccess denied!");
 #if defined(HAVE_SECURITY_PAM_APPL_H)
     if (service->authUser != 2 /* SSH */) {
@@ -1004,7 +1009,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
       if (i == ngroups) {
         groups[ngroups++]      = service->gid;
         break;
-      } else if (groups[i] == service->gid) {
+      } else if ((int)groups[i] == service->gid) {
         break;
       }
     }
@@ -1047,6 +1052,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
 }
 
 static void destroyVariableHashEntry(void *arg, char *key, char *value) {
+  (void)arg;
   free(key);
   free(value);
 }
@@ -1054,6 +1060,9 @@ static void destroyVariableHashEntry(void *arg, char *key, char *value) {
 static void execService(int width, int height, struct Service *service,
                         const char *peerName, char **environment,
                         const char *url) {
+  (void)width;
+  (void)height;
+
   // Create a hash table with all the variables that we can expand. This
   // includes all environment variables being passed to the child.
   HashMap *vars;
@@ -1346,7 +1355,10 @@ static void childProcess(struct Service *service, int width, int height,
     pam_handle_t *pam           = internalLogin(service, utmp, &environment);
 #if defined(HAVE_SECURITY_PAM_APPL_H)
     if (pam && !geteuid()) {
-      check(pam_open_session(pam, PAM_SILENT) == PAM_SUCCESS);
+      if (pam_open_session(pam, PAM_SILENT) != PAM_SUCCESS) {
+        fprintf(stderr, "Access denied.\n");
+        _exit(1);
+      }
       pid_t pid                 = fork();
       switch (pid) {
       case -1:
@@ -1409,6 +1421,9 @@ static void childProcess(struct Service *service, int width, int height,
 }
 
 static void sigChildHandler(int sig, siginfo_t *info, void *unused) {
+  (void)sig;
+  (void)info;
+  (void)unused;
 }
 
 static void launcherDaemon(int fd) {

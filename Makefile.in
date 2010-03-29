@@ -1152,6 +1152,8 @@ uninstall-man: uninstall-man1
 	uninstall-man uninstall-man1
 
 
+OBJCOPY             ?= objcopy
+
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status --recheck
 
@@ -1247,35 +1249,35 @@ clean-local:
 	-rm -rf GNU-stack
 
 .css.o:
-	@echo objcopy "$<" "$@"
-	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
+	@echo $(OBJCOPY) "$<" "$@"
+	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
 	  "$<" "$@"
 	@-printf '\000' >GNU-stack &&                                         \
-	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
 	  rm -f GNU-stack
 
 .gif.o:
-	@echo objcopy "$<" "$@"
-	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
+	@echo $(OBJCOPY) "$<" "$@"
+	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
 	  "$<" "$@"
 	@-printf '\000' >GNU-stack &&                                         \
-	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
 	  rm -f GNU-stack
 
 .html.o:
-	@echo objcopy "$<" "$@"
-	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
+	@echo $(OBJCOPY) "$<" "$@"
+	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
 	  "$<" "$@"
 	@-printf '\000' >GNU-stack &&                                         \
-	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
 	  rm -f GNU-stack
 
 .ico.o:
-	@echo objcopy "$<" "$@"
-	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
+	@echo $(OBJCOPY) "$<" "$@"
+	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
 	  "$<" "$@"
 	@-printf '\000' >GNU-stack &&                                         \
-	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
 	  rm -f GNU-stack
 
 shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
@@ -1290,19 +1292,19 @@ shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
 	     "$<" >"$@"
 
 .js.o:
-	@echo objcopy "$<" "$@"
-	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
+	@echo $(OBJCOPY) "$<" "$@"
+	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
 	  "$<" "$@"
 	@-printf '\000' >GNU-stack &&                                         \
-	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
 	  rm -f GNU-stack
 
 .wav.o:
-	@echo objcopy "$<" "$@"
-	@objcopy -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`   \
+	@echo $(OBJCOPY) "$<" "$@"
+	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
 	  "$<" "$@"
 	@-printf '\000' >GNU-stack &&                                         \
-	  objcopy --add-section .note.GNU-stack=GNU-stack "$@";               \
+	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
 	  rm -f GNU-stack
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

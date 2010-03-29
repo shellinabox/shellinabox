@@ -1,5 +1,5 @@
 // httpconnection.h -- Manage state machine for HTTP connections
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -60,6 +60,10 @@
 #define HTTP_SUSPEND       3
 #define HTTP_PARTIAL_REPLY 4
 
+#define WS_UNDEFINED       0x1000
+#define WS_START_OF_FRAME  0x0100
+#define WS_END_OF_FRAME    0x0200
+
 #define NO_MSG             "\001"
 
 struct HttpConnection {
@@ -71,7 +75,8 @@ struct HttpConnection {
   int                     isSuspended;
   int                     isPartialReply;
   int                     done;
-  enum { SNIFFING_SSL, COMMAND, HEADERS, PAYLOAD, DISCARD_PAYLOAD } state;
+  enum { SNIFFING_SSL, COMMAND, HEADERS, PAYLOAD, DISCARD_PAYLOAD,
+         WEBSOCKET } state;
   char                    *peerName;
   int                     peerPort;
   char                    *url;
@@ -91,8 +96,11 @@ struct HttpConnection {
   int                     msgOffset;
   int                     totalWritten;
   int                     expecting;
+  int                     websocketType;
   int                     (*callback)(struct HttpConnection *, void *,
                                       const char *,int);
+  int                     (*websocketHandler)(struct HttpConnection *, void *,
+                                              int, const char *, int);
   void                    *arg;
   void                    *private;
   int                     code;
@@ -104,6 +112,8 @@ struct HttpConnection {
 struct HttpHandler {
   int (*handler)(struct HttpConnection *, void *);
   int (*streamingHandler)(struct HttpConnection *, void *, const char *, int);
+  int (*websocketHandler)(struct HttpConnection *, void *, int,
+                          const char *, int);
   void *arg, *streamingArg;
   
 };
@@ -128,6 +138,11 @@ void *httpSetPrivate(struct HttpConnection *http, void *private);
 void httpSendReply(struct HttpConnection *http, int code,
                    const char *msg, const char *fmt, ...)
   __attribute__((format(printf, 4, 5)));
+void httpSendWebSocketTextMsg(struct HttpConnection *http, int type,
+                              const char *fmt, ...)
+  __attribute__((format(printf, 3, 4)));
+void httpSendWebSocketBinaryMsg(struct HttpConnection *http, int type,
+                                const void *buf, int len);
 void httpExitLoop(struct HttpConnection *http, int exitAll);
 struct Server *httpGetServer(const struct HttpConnection *http);
 struct ServerConnection *httpGetServerConnection(const struct HttpConnection*);

@@ -5,6 +5,7 @@ serverGetListeningPort
 serverGetFd
 serverRegisterHttpHandler
 serverRegisterStreamingHttpHandler
+serverRegisterWebSocketHandler
 serverAddConnection
 serverDeleteConnection
 serverSetTimeout
@@ -24,6 +25,8 @@ httpSetCallback
 httpGetPrivate
 httpSetPrivate
 httpSendReply
+httpSendWebSocketTextMsg
+httpSendWebSocketBinaryMsg
 httpExitLoop
 httpGetServer
 httpGetServerConnection

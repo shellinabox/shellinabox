@@ -25,6 +25,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
+/* Define to 1 if you have support for isnan */
+#define HAVE_ISNAN 1
+
 /* Define to 1 if you have the <libutil.h> header file. */
 /* #undef HAVE_LIBUTIL_H */
 
@@ -141,7 +144,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "200"
+#define VCS_REVISION "202"
 
 /* Version number of package */
 #define VERSION "2.10"

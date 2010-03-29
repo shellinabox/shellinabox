@@ -1,5 +1,5 @@
 // service.h -- Service descriptions
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -55,8 +55,8 @@ struct Service {
   int        useHomeDir;
   int        authUser;
   int        useDefaultShell;
-  int        uid;
-  int        gid;
+  int        uid; /* Can be -1 */
+  int        gid; /* Can be -1 */
   const char *user;
   const char *group;
   const char *cwd;

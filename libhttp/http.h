@@ -1,5 +1,5 @@
 // http.h -- Library for implementing embedded custom HTTP servers
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -56,7 +56,13 @@
 #define HTTP_SUSPEND       3
 #define HTTP_PARTIAL_REPLY 4
 
+#define WS_START_OF_FRAME    0x0100
+#define WS_END_OF_FRAME      0x0200
+#define WS_CONNECTION_OPENED 0xFF00
+#define WS_CONNECTION_CLOSED 0x7F00
+
 #define NO_MSG             "\001"
+#define BINARY_MSG         "\001%d%p"
 
 #define NOINTR(x) ({ int i__; while ((i__ = (x)) < 0 && errno == EINTR); i__;})
 
@@ -77,6 +83,9 @@ void serverRegisterHttpHandler(Server *server, const char *url,
 void serverRegisterStreamingHttpHandler(Server *server, const char *url,
                                int (*handler)(HttpConnection *, void *),
                                void *arg);
+void serverRegisterWebSocketHandler(Server *server, const char *url,
+              int (*handler)(HttpConnection *, void *, int, const char *, int),
+              void *arg);
 ServerConnection *serverAddConnection(Server *server, int fd,
                               int (*handleConnection)(ServerConnection *,
                                                       void *arg, short *events,
@@ -109,6 +118,10 @@ void *httpSetPrivate(HttpConnection *http, void *private);
 void httpSendReply(HttpConnection *http, int code,
                    const char *msg, const char *fmt, ...)
   __attribute__((format(printf, 4, 5)));
+void httpSendWebSocketTextMsg(HttpConnection *http, int type, const char *fmt,
+                              ...) __attribute__((format(printf, 3, 4)));
+void httpSendWebSocketBinaryMsg(HttpConnection *http, int type,
+                                const void *buf, int len);
 void httpExitLoop(HttpConnection *http, int exitAll);
 Server *httpGetServer(const HttpConnection *http);
 ServerConnection *httpGetServerConnection(const HttpConnection *);

@@ -1,6 +1,6 @@
 // shellinaboxd.c -- A custom web server that makes command line applications
 //                   available as AJAX web applications.
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -257,6 +257,7 @@ static void sessionDone(void *arg) {
 
 static int handleSession(struct ServerConnection *connection, void *arg,
                          short *events, short revents) {
+  (void)events;
   struct Session *session       = (struct Session *)arg;
   session->connection           = connection;
   int len                       = MAX_RESPONSE - session->len;
@@ -311,6 +312,7 @@ static int invalidatePendingHttpSession(void *arg, const char *key,
 
 static int dataHandler(HttpConnection *http, struct Service *service,
                        const char *buf, int len, URL *url) {
+  (void)len;
   if (!buf) {
     // Somebody unexpectedly closed our http connection (e.g. because of a
     // timeout). This is the last notification that we will get.
@@ -514,13 +516,13 @@ static void serveStaticFile(HttpConnection *http, const char *contentType,
           // Remember the beginning of the "[if ...]" statement
           ifPtr                  = ptr;
         }
-      } else if (ifPtr && !elsePtr && eol - ptr >= strlen(tag) + 7 &&
+      } else if (ifPtr && !elsePtr && eol - ptr >= (ssize_t)strlen(tag) + 7 &&
                  !memcmp(ptr, "[else ", 6) &&
                  !memcmp(ptr + 6, tag, strlen(tag)) &&
                  ptr[6 + strlen(tag)] == ']') {
         // Found an "[else ...]" statement. Remember where it started.
         elsePtr                  = ptr;
-      } else if (ifPtr && eol - ptr >= strlen(tag) + 8 &&
+      } else if (ifPtr && eol - ptr >= (ssize_t)strlen(tag) + 8 &&
                  !memcmp(ptr, "[endif ", 7) &&
                  !memcmp(ptr + 7, tag, strlen(tag)) &&
                  ptr[7 + strlen(tag)] == ']') {
@@ -810,6 +812,7 @@ static void usage(void) {
 }
 
 static void destroyExternalFileHashEntry(void *arg, char *key, char *value) {
+  (void)arg;
   free(key);
   free(value);
 }
@@ -938,7 +941,7 @@ static void parseArgs(int argc, char * const argv[]) {
                                      st.st_size + 2));
         char *newData      = strrchr(cssStyleSheet, '\000');
         *newData++         = '\n';
-        if (fread(newData, 1, st.st_size, css) != st.st_size) {
+        if (fread(newData, st.st_size, 1, css) != 1) {
           fatal("Failed to read style sheet \"%s\"", optarg);
         }
         newData[st.st_size]= '\000';
@@ -1149,7 +1152,7 @@ static void parseArgs(int argc, char * const argv[]) {
 
 static void removeLimits() {
   static int res[] = { RLIMIT_CPU, RLIMIT_DATA, RLIMIT_FSIZE, RLIMIT_NPROC };
-  for (int i = 0; i < sizeof(res)/sizeof(int); i++) {
+  for (unsigned i = 0; i < sizeof(res)/sizeof(int); i++) {
     struct rlimit rl;
     getrlimit(res[i], &rl);
     if (rl.rlim_max < RLIM_INFINITY) {

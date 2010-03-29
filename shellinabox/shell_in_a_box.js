@@ -1,5 +1,5 @@
 // ShellInABox.js -- Use XMLHttpRequest to provide an AJAX terminal emulator.
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -358,8 +358,8 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
 };
 
 ShellInABox.prototype.about = function() {
-  alert("Shell In A Box version " + "2.10 (revision 200)" +
-        "\nCopyright 2008-2009 by Markus Gutschke\n" +
+  alert("Shell In A Box version " + "2.10 (revision 202)" +
+        "\nCopyright 2008-2010 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com" +
         (typeof serverSupportsSSL != 'undefined' && serverSupportsSSL ?
          "\n\n" +

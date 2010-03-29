@@ -1,5 +1,5 @@
 // ssl.c -- Support functions that find and load SSL support, if available
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -288,11 +288,11 @@ static void loadSSL(void) {
     { { &d2i_X509 },                    "d2i_X509" },
     { { &X509_free },                   "X509_free" }
   };
-  for (int i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
+  for (unsigned i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
     if (!(*symbols[i].var = loadSymbol("libssl.so", symbols[i].fn))) {
       debug("Failed to load SSL support. Could not find \"%s\"",
             symbols[i].fn);
-      for (int j = 0; j < sizeof(symbols)/sizeof(symbols[0]); j++) {
+      for (unsigned j = 0; j < sizeof(symbols)/sizeof(symbols[0]); j++) {
         *symbols[j].var = NULL;
       }
       return;
@@ -361,7 +361,7 @@ static const unsigned char *sslSecureReadASCIIFileToMem(int fd) {
   check((buf          = malloc(bufSize)) != NULL);
   for (;;) {
     check(len < bufSize - 1);
-    size_t  readLen   = bufSize - len - 1;
+    ssize_t readLen   = bufSize - len - 1;
     ssize_t bytesRead = NOINTR(read(fd, buf + len, readLen));
     if (bytesRead > 0) {
       len            += bytesRead;
@@ -414,7 +414,7 @@ static const unsigned char *sslPEMtoASN1(const unsigned char *pem,
     return NULL;
   }
   unsigned char *ret;
-  size_t maxSize     = (((end - ptr)*6)+7)/8;
+  ssize_t maxSize    = (((end - ptr)*6)+7)/8;
   check((ret         = malloc(maxSize)) != NULL);
   unsigned char *out = ret;
   unsigned bits      = 0;
@@ -542,6 +542,7 @@ static int sslSetCertificateFromFile(SSL_CTX *context,
 
 #ifdef HAVE_TLSEXT
 static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
+  (void)al;
   check(!ERR_peek_error());
   const char *name        = SSL_get_servername(sslHndl,
                                                TLSEXT_NAMETYPE_host_name);
@@ -603,7 +604,7 @@ static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
   }
   free(serverName);
   if (context != ssl->sslContext) {
-    check(SSL_set_SSL_CTX(sslHndl, context) > 0);
+    check(SSL_set_SSL_CTX(sslHndl, context));
   }
   check(!ERR_peek_error());
   return SSL_TLSEXT_ERR_OK;
@@ -616,6 +617,8 @@ static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
 static int gethostbyname_r(const char *name, struct hostent *ret,
                            char *buf, size_t buflen,
                            struct hostent **result, int *h_errnop) {
+  (void)buf;
+  (void)buflen;
   if (result) {
     *result          = NULL;
   }

@@ -1,5 +1,5 @@
 // httpconnection.c -- Manage state machine for HTTP connections
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -65,6 +65,9 @@
 
 #ifdef HAVE_STRLCAT
 #define strncat(a,b,c) ({ char *_a = (a); strlcat(_a, (b), (c)+1); _a; })
+#endif
+#ifndef HAVE_ISNAN
+#define isnan(x) ({ typeof(x) _x = (x); _x != _x; })
 #endif
 #define max(a, b) ({ typeof(a) _a = (a); typeof(b) _b = (b);                  \
                      _a > _b ? _a : _b; })
@@ -223,8 +226,9 @@ static char *strcasestr(const char *haystack, const char *needle) {
 
 static int httpFinishCommand(struct HttpConnection *http) {
   int rc            = HTTP_DONE;
-  if (http->callback && !http->done) {
-    rc              = http->callback(http, http->arg, NULL, 0);
+  if ((http->callback || http->websocketHandler) && !http->done) {
+    rc              = http->callback ? http->callback(http, http->arg, NULL, 0)
+       : http->websocketHandler(http, http->arg, WS_CONNECTION_CLOSED, NULL,0);
     check(rc != HTTP_SUSPEND);
     check(rc != HTTP_PARTIAL_REPLY);
     http->callback  = NULL;
@@ -267,6 +271,7 @@ static int httpFinishCommand(struct HttpConnection *http) {
 }
 
 static void httpDestroyHeaders(void *arg, char *key, char *value) {
+  (void)arg;
   free(key);
   free(value);
 }
@@ -296,7 +301,7 @@ static char *getPeerName(int fd, int *port, int numericHosts) {
 }
 
 static void httpSetState(struct HttpConnection *http, int state) {
-  if (state == http->state) {
+  if (state == (int)http->state) {
     return;
   }
 
@@ -372,7 +377,9 @@ void initHttpConnection(struct HttpConnection *http, struct Server *server,
   http->msgOffset          = 0;
   http->totalWritten       = 0;
   http->expecting          = 0;
+  http->websocketType      = WS_UNDEFINED;
   http->callback           = NULL;
+  http->websocketHandler   = NULL;
   http->arg                = NULL;
   http->private            = NULL;
   http->code               = 200;
@@ -388,8 +395,12 @@ void initHttpConnection(struct HttpConnection *http, struct Server *server,
 void destroyHttpConnection(struct HttpConnection *http) {
   if (http) {
     if (http->isSuspended || http->isPartialReply) {
-      if (http->callback && !http->done) {
-        http->callback(http, http->arg, NULL, 0);
+      if (!http->done) {
+        if (http->callback) {
+          http->callback(http, http->arg, NULL, 0);
+        } else if (http->websocketHandler) {
+          http->websocketHandler(http, http->arg, WS_CONNECTION_CLOSED,NULL,0);
+        }
       }
       http->callback       = NULL;
       http->isSuspended    = 0;
@@ -774,41 +785,41 @@ void httpTransferPartialReply(struct HttpConnection *http, char *msg, int len){
 static int httpHandleCommand(struct HttpConnection *http,
                              const struct Trie *handlers) {
   debug("Handling \"%s\" \"%s\"", http->method, http->path);
-  const char *contentLength                = getFromHashMap(&http->header,
-                                                            "content-length");
+  const char *contentLength                  = getFromHashMap(&http->header,
+                                                             "content-length");
   if (contentLength != NULL && *contentLength) {
     char *endptr;
-    http->expecting                        = strtol(contentLength,
-                                                    &endptr, 10);
+    http->expecting                          = strtol(contentLength,
+                                                      &endptr, 10);
     if (*endptr) {
       // Invalid length. Read until end of stream and then close
       // connection.
-      http->expecting                      = -1;
+      http->expecting                        = -1;
     }
   } else {
       // Unknown length. Read until end of stream and then close
       // connection.
-    http->expecting                        = -1;
+    http->expecting                          = -1;
   }
   if (!strcmp(http->method, "OPTIONS")) {
-    char *response                         = stringPrintf(NULL,
+    char *response                           = stringPrintf(NULL,
                                                 "HTTP/1.1 200 OK\r\n"
                                                 "Content-Length: 0\r\n"
                                                 "Allow: GET, POST, OPTIONS\r\n"
                                                 "\r\n");
     httpTransfer(http, response, strlen(response));
     if (http->expecting < 0) {
-      http->expecting                      = 0;
+      http->expecting                        = 0;
     }
     return HTTP_READ_MORE;
   } else if (!strcmp(http->method, "GET")) {
     if (http->expecting < 0) {
-      http->expecting                      = 0;
+      http->expecting                        = 0;
     }
   } else if (!strcmp(http->method, "POST")) {
   } else if (!strcmp(http->method, "HEAD")) {
     if (http->expecting < 0) {
-      http->expecting                      = 0;
+      http->expecting                        = 0;
     }
   } else if (!strcmp(http->method, "PUT")    ||
              !strcmp(http->method, "DELETE") ||
@@ -820,52 +831,116 @@ static int httpHandleCommand(struct HttpConnection *http,
     httpSendReply(http, 501, "Method Not Implemented", NO_MSG);
     return HTTP_DONE;
   }
-  const char *host                         = getFromHashMap(&http->header,
-                                                            "host");
+  const char *host                           = getFromHashMap(&http->header,
+                                                              "host");
   if (host) {
-    for (char ch; (ch = *host) != '\000'; host++) {
+    for (char ch, *ptr = (char *)host; (ch = *ptr) != '\000'; ptr++) {
       if (ch == ':') {
-        *(char *)host                      = '\000';
+        *ptr                                 = '\000';
         break;
       }
       if (ch != '-' && ch != '.' &&
           (ch < '0' ||(ch > '9' && ch < 'A') ||
-          (ch > 'Z' && ch < 'a')|| ch > 'z')) {
+          (ch > 'Z' && ch < 'a')||(ch > 'z' && ch <= 0x7E))) {
         httpSendReply(http, 400, "Bad Request", NO_MSG);
         return HTTP_DONE;
       }
     }
   }
+
   char *diff;
   struct HttpHandler *h = (struct HttpHandler *)getFromTrie(handlers,
                                                             http->path, &diff);
+
   if (h) {
-    check(diff);
-    while (diff > http->path && diff[-1] == '/') {
-      diff--;
+    if (h->websocketHandler) {
+      // Check for WebSocket handshake
+      const char *upgrade                    = getFromHashMap(&http->header,
+                                                              "upgrade");
+      if (upgrade && !strcmp(upgrade, "WebSocket")) {
+        const char *connection               = getFromHashMap(&http->header,
+                                                              "connection");
+        if (connection && !strcmp(connection, "Upgrade")) {
+          const char *origin                 = getFromHashMap(&http->header,
+                                                              "origin");
+          if (origin) {
+            for (const char *ptr = origin; *ptr; ptr++) {
+              if ((unsigned char)*ptr < ' ') {
+                goto bad_ws_upgrade;
+              }
+            }
+
+            const char *protocol             = getFromHashMap(&http->header,
+                                                         "websocket-protocol");
+            if (protocol) {
+              for (const char *ptr = protocol; *ptr; ptr++) {
+                if ((unsigned char)*ptr < ' ') {
+                  goto bad_ws_upgrade;
+                }
+              }
+            }
+            char *port                       = NULL;
+            if (http->port != (http->sslHndl ? 443 : 80)) {
+              port                           = stringPrintf(NULL,
+                                                            ":%d", http->port);
+            }
+            char *response                   = stringPrintf(NULL,
+              "HTTP/1.1 101 Web Socket Protocol Handshake\r\n"
+              "Upgrade: WebSocket\r\n"
+              "Connection: Upgrade\r\n"
+              "WebSocket-Origin: %s\r\n"
+              "WebSocket-Location: %s://%s%s%s\r\n"
+              "%s%s%s"
+              "\r\n",
+              origin,
+              http->sslHndl ? "wss" : "ws", host && *host ? host : "localhost",
+              port ? port : "", http->path,
+              protocol ? "WebSocket-Protocol: " : "",
+              protocol ? protocol : "",
+              protocol ? "\r\n" : "");
+            free(port);
+            debug("Switching to WebSockets");
+            httpTransfer(http, response, strlen(response));
+            if (http->expecting < 0) {
+              http->expecting                = 0;
+            }
+            http->websocketHandler           = h->websocketHandler;
+            httpSetState(http, WEBSOCKET);
+            return HTTP_READ_MORE;
+          }
+        }
+      }
     }
-    if (!*diff || *diff == '/' || *diff == '?' || *diff == '#') {
-      check(!http->matchedPath);
-      check(!http->pathInfo);
-      check(!http->query);
+  bad_ws_upgrade:;
 
-      check(http->matchedPath              = malloc(diff - http->path + 1));
-      memcpy(http->matchedPath, http->path, diff - http->path);
-      http->matchedPath[diff - http->path] = '\000';
-
-      const char *query = strchr(diff, '?');
-      if (*diff && *diff != '?') {
-        const char *endOfInfo              = query
-                                             ? query : strrchr(diff, '\000');
-        check(http->pathInfo               = malloc(endOfInfo - diff + 1));
-        memcpy(http->pathInfo, diff, endOfInfo - diff);
-        http->pathInfo[endOfInfo - diff]   = '\000';
+    if (h->handler) {
+      check(diff);
+      while (diff > http->path && diff[-1] == '/') {
+        diff--;
       }
+      if (!*diff || *diff == '/' || *diff == '?' || *diff == '#') {
+        check(!http->matchedPath);
+        check(!http->pathInfo);
+        check(!http->query);
 
-      if (query) {
-        check(http->query                  = strdup(query + 1));
+        check(http->matchedPath              = malloc(diff - http->path + 1));
+        memcpy(http->matchedPath, http->path, diff - http->path);
+        http->matchedPath[diff - http->path] = '\000';
+
+        const char *query = strchr(diff, '?');
+        if (*diff && *diff != '?') {
+          const char *endOfInfo              = query
+                                               ? query : strrchr(diff, '\000');
+          check(http->pathInfo               = malloc(endOfInfo - diff + 1));
+          memcpy(http->pathInfo, diff, endOfInfo - diff);
+          http->pathInfo[endOfInfo - diff]   = '\000';
+        }
+
+        if (query) {
+          check(http->query                  = strdup(query + 1));
+        }
+        return h->handler(http, h->arg);
       }
-      return h->handler(http, h->arg);
     }
   }
   httpSendReply(http, 404, "File Not Found", NO_MSG);
@@ -1011,13 +1086,20 @@ static int httpParseHeaders(struct HttpConnection *http,
         serverSetTimeout(connection, CONNECTION_TIMEOUT);
       }
       check(!http->done);
-      if (!http->expecting && http->callback) {
-        rc             = http->callback(http, http->arg, "", 0);
-        if (rc != HTTP_READ_MORE) {
-          goto retry;
+      if (!http->expecting) {
+        if (http->callback) {
+          rc                 = http->callback(http, http->arg, "", 0);
+          if (rc != HTTP_READ_MORE) {
+            goto retry;
+          }
+        } else if (http->websocketHandler) {
+          http->websocketHandler(http, http->arg, WS_CONNECTION_OPENED,
+                                 NULL, 0);
         }
       }
-      httpSetState(http, http->expecting ? PAYLOAD : COMMAND);
+      if (http->state != WEBSOCKET) {
+        httpSetState(http, http->expecting ? PAYLOAD : COMMAND);
+      }
       break;
     case HTTP_SUSPEND:
       http->isSuspended    = 1;
@@ -1187,6 +1269,140 @@ static int httpParsePayload(struct HttpConnection *http, int offset,
   return consumed;
 }
 
+static int httpHandleWebSocket(struct HttpConnection *http, int offset,
+                               const char *buf, int bytes) {
+  check(http->websocketHandler);
+  int ch                          = 0x00;
+  while (bytes > offset) {
+    if (http->websocketType & WS_UNDEFINED) {
+      ch                          = httpGetChar(http, buf, bytes, &offset);
+      check(ch >= 0);
+      if (http->websocketType & 0xFF) {
+        // Reading another byte of length information.
+        if (http->expecting > 0xFFFFFF) {
+          return 0;
+        }
+        http->expecting           = (128 * http->expecting) + (ch & 0x7F);
+        if ((ch & 0x80) == 0) {
+          // Done reading length information.
+          http->websocketType    &= ~WS_UNDEFINED;
+
+          // ch is used to detect when we read the terminating byte in text
+          // mode. In binary mode, it must be set to something other than 0xFF.
+          ch                      = 0x00;
+        }
+      } else {
+        // Reading first byte of frame.
+        http->websocketType       = (ch & 0xFF) | WS_START_OF_FRAME;
+        if (ch & 0x80) {
+          // For binary data, we have to read the length before we can start
+          // processing payload.
+          http->websocketType    |= WS_UNDEFINED;
+          http->expecting         = 0;
+        }
+      }
+    } else if (http->websocketType & 0x80) {
+      // Binary data
+      if (http->expecting) {
+        if (offset < 0) {
+        handle_partial:
+          check(-offset <= http->partialLength);
+          int len                 = -offset;
+          if (len >= http->expecting) {
+            len                   = http->expecting;
+            http->websocketType  |= WS_END_OF_FRAME;
+          }
+          if (len &&
+              http->websocketHandler(http, http->arg, http->websocketType,
+                                  http->partial + http->partialLength + offset,
+                                  len) != HTTP_DONE) {
+            return 0;
+          }
+
+          if (ch == 0xFF) {
+            // In text mode, we jump to handle_partial, when we find the
+            // terminating 0xFF byte. If so, we should try to consume it now.
+            if (len < http->partialLength) {
+              len++;
+              http->websocketType = WS_UNDEFINED;
+            }
+          }
+
+          if (len == http->partialLength) {
+            free(http->partial);
+            http->partial         = NULL;
+            http->partialLength   = 0;
+          } else {
+            memmove(http->partial, http->partial + len,
+                    http->partialLength - len);
+            http->partialLength  -= len;
+          }
+          offset                 += len;
+          http->expecting        -= len;
+        } else {
+        handle_buffered:;
+          int len                 = bytes - offset;
+          if (len >= http->expecting) {
+            len                   = http->expecting;
+            http->websocketType  |= WS_END_OF_FRAME;
+          }
+          if (len &&
+              http->websocketHandler(http, http->arg, http->websocketType,
+                                     buf + offset, len) != HTTP_DONE) {
+            return 0;
+          }
+
+          if (ch == 0xFF) {
+            // In text mode, we jump to handle_buffered, when we find the
+            // terminating 0xFF byte. If so, we should consume it now.
+            check(offset + len < bytes);
+            len++;
+            http->websocketType   = WS_UNDEFINED;
+          }
+          offset                 += len;
+          http->expecting        -= len;
+        }
+        http->websocketType      &= ~(WS_START_OF_FRAME | WS_END_OF_FRAME);
+      } else {
+        // Read all data. Go back to looking for a new frame header.
+        http->websocketType       = WS_UNDEFINED;
+      }
+    } else {
+      // Process text data until we find a 0xFF bytes.
+      int i                       = offset;
+
+      // If we have partial data, process that first.
+      while (i < 0) {
+        ch                        = httpGetChar(http, buf, bytes, &i);
+        check(ch != -1);
+
+        // Terminate when we either find the 0xFF, or we have reached the end
+        // of partial data.
+        if (ch == 0xFF || !i) {
+          // Set WS_END_OF_FRAME, iff we have found the 0xFF marker.
+          http->expecting         = i - offset - (ch == 0xFF);
+          goto handle_partial;
+        }
+      }
+
+      // Read all remaining buffered bytes (i.e. positive offset).
+      while (bytes > i) {
+        ch                        = httpGetChar(http, buf, bytes, &i);
+        check(ch != -1);
+
+        // Terminate when we either find the 0xFF, or we have reached the end
+        // of buffered data.
+        if (ch == 0xFF || bytes == i) {
+          // Set WS_END_OF_FRAME, iff we have found the 0xFF marker.
+          http->expecting         = i - offset - (ch == 0xFF);
+          goto handle_buffered;
+        }
+      }
+    }
+  }
+  return 1;
+}
+
 int httpHandleConnection(struct ServerConnection *connection, void *http_,
                          short *events, short revents) {
   struct HttpConnection *http        = (struct HttpConnection *)http_;
@@ -1219,6 +1435,7 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
         bytes                        = 0;
       }
     }
+
     if (bytes > 0 && http->state == SNIFFING_SSL) {
       // Assume that all legitimate HTTP commands start with a sequence of
       // letters followed by a space character. If we don't see this pattern,
@@ -1241,7 +1458,7 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
                                        strcmp(method, "CONNECT");
           http->state                = COMMAND;
           break;
-        } else if (j >= sizeof(method)-1 ||
+        } else if (j >= (int)sizeof(method)-1 ||
                    ch < 'A' || (ch > 'Z' && ch < 'a') || ch > 'z') {
           isSSL                      = 1;
           http->state                = COMMAND;
@@ -1262,6 +1479,7 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
         }
       }
     }
+
     if (bytes > 0 || (eof && http->partial)) {
       check(!!http->partial == !!http->partialLength);
       int  offset                    = -http->partialLength;
@@ -1331,7 +1549,16 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
             consumed                 = len;
             pushBack                 = bytes - offset - len;
           }
+        } else if (http->state == WEBSOCKET) {
+          if (!httpHandleWebSocket(http, offset, buf, bytes)) {
+            httpCloseRead(http);
+            break;
+          }
+          consumed                  += bytes - offset;
+        } else {
+          check(0);
         }
+
         if (pushBack) {
           check(offset + pushBack == bytes);
           if (offset >= 0) {
@@ -1383,6 +1610,7 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
         break;
       case PAYLOAD:
       case DISCARD_PAYLOAD:
+      case WEBSOCKET:
         http->expecting              = 0;
         httpCloseRead(http);
         httpSetState(http, COMMAND);
@@ -1561,6 +1789,89 @@ void httpSendReply(struct HttpConnection *http, int code,
   if (code != 200 || isHead) {
     httpCloseRead(http);
   }
+}
+
+void httpSendWebSocketTextMsg(struct HttpConnection *http, int type,
+                              const char *fmt, ...) {
+  check(type >= 0 && type <= 0x7F);
+  va_list ap;
+  va_start(ap, fmt);
+  char *buf;
+  int len;
+  if (strcmp(fmt, BINARY_MSG)) {
+    // Send a printf() style text message
+    buf              = vStringPrintf(NULL, fmt, ap);
+    len              = strlen(buf);
+  } else {
+    // Send a binary message
+    len              = va_arg(ap, int);
+    buf              = va_arg(ap, char *);
+  }
+  va_end(ap);
+  check(len >= 0 && len < 0x60000000);
+
+  // We assume that all input data is directly mapped in the range 0..255
+  // (e.g. ISO-8859-1). In order to transparently send it over a web socket,
+  // we have to encode it in UTF-8.
+  int utf8Len        = len + 2;
+  for (int i = 0; i < len; ++i) {
+    if (buf[i] & 0x80) {
+      ++utf8Len;
+    }
+  }
+  char *utf8;
+  check(utf8         = malloc(utf8Len));
+  utf8[0]            = type;
+  for (int i = 0, j = 1; i < len; ++i) {
+    unsigned char ch = buf[i];
+    if (ch & 0x80) {
+      utf8[j++]      = 0xC0 + (ch >> 6);
+      utf8[j++]      = 0x80 + (ch & 0x3F);
+    } else {
+      utf8[j++]      = ch;
+    }
+    check(j < utf8Len);
+  }
+  utf8[utf8Len-1]    = '\xFF';
+
+  // Free our temporary buffer, if we actually did allocate one.
+  if (strcmp(fmt, BINARY_MSG)) {
+    free(buf);
+  }
+
+  // Send to browser.
+  httpTransfer(http, utf8, utf8Len);
+}
+
+void httpSendWebSocketBinaryMsg(struct HttpConnection *http, int type,
+                                const void *buf, int len) {
+  check(type >= 0x80 && type <= 0xFF);
+  check(len > 0 && len < 0x7FFFFFF0);
+
+  // Allocate buffer for header and payload.
+  char *data;
+  check(data  = malloc(len + 6));
+  data[0]     = type;
+
+  // Convert length to base-128.
+  int i       = 0;
+  int l       = len;
+  do {
+    data[++i] = 0x80 + (l & 0x7F);
+    l        /= 128;
+  } while (l);
+  data[i]    &= 0x7F;
+
+  // Reverse digits, so that they are big-endian.
+  for (int j = 0; j < i/2; ++j) {
+    char ch   = data[1+j];
+    data[1+j] = data[i-j];
+    data[i-j] = ch;
+  }
+
+  // Transmit header and payload.
+  memmove(data + i + 1, buf, len);
+  httpTransfer(http, data, len + i + 1);
 }
 
 void httpExitLoop(struct HttpConnection *http, int exitAll) {
