@@ -1,3 +1,8 @@
+2010-03-31  Markus Gutschke  <markus@shellinabox.com>
+
+	* Tweaked the build system to work better on OpenWRT. This is largely
+	thanks to very helpful bug reports, and lots of testing by Jan Jaeger.
+
 2010-03-29  Markus Gutschke  <markus@shellinabox.com>
 
 	* Started working on support for WebSockets.

@@ -3,6 +3,7 @@ AM_CFLAGS            = -g -std=gnu99 -Wall
 AM_LDFLAGS           = -g
 
 OBJCOPY             ?= objcopy
+OBJDUMP             ?= objdump
 
 noinst_LTLIBRARIES   = libhttp.la                                             \
                        liblogging.la
@@ -113,11 +114,10 @@ shellinaboxd_LDFLAGS = -static
 objcopyflags         = case "$(host_cpu)" in                                  \
                          i[0-9]86)echo '-O elf32-i386 -B i386';;              \
                          x86_64)  echo '-O elf64-x86-64 -B i386:x86-64';;     \
-                         mips*)   echo '-O elf32-tradlittlemips -B mips:isa32'\
                          *)       trap 'rm -f /tmp/probe$$$$.o' EXIT;         \
                                   $(CC) $(AM_CFLAGS) $(CFLAGS) -c -xc         \
                                         -o /tmp/probe$$$$.o /dev/null &&      \
-                                  objdump -f /tmp/probe$$$$.o |               \
+                                  $(OBJDUMP) -f /tmp/probe$$$$.o |            \
                                   sed -e 's/.*file format */-O /;t;           \
                                        s/architecture: *\([^,]*\).*/-B \1/;t; \
                                        d';;                                   \
