@@ -259,7 +259,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = 
 AM_CFLAGS = -g -std=gnu99 -Wall
-AM_LDFLAGS = -g
+AM_LDFLAGS = -g -lm
 noinst_LTLIBRARIES = libhttp.la                                             \
                        liblogging.la
 

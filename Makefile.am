@@ -1,6 +1,6 @@
 AM_CPPFLAGS          =
 AM_CFLAGS            = -g -std=gnu99 -Wall
-AM_LDFLAGS           = -g
+AM_LDFLAGS           = -g -lm
 
 OBJCOPY             ?= objcopy
 OBJDUMP             ?= objdump
