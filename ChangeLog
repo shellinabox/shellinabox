@@ -1,3 +1,8 @@
+2010-07-02  Markus Gutschke  <markus@shellinabox.com>
+
+	* Fixed a NULL pointer dereference that can occur when hostnames
+	do not resolve. Thanks to <vmagerya> for pointing out this problem.
+
 2010-03-31  Markus Gutschke  <markus@shellinabox.com>
 
 	* Tweaked the build system to work better on OpenWRT. This is largely

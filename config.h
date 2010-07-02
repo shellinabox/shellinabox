@@ -16,6 +16,9 @@
 /* Define to 1 if you have the `getgrnam_r' function. */
 #define HAVE_GETGRNAM_R 1
 
+/* Define to 1 if you have the `gethostbyname_r' function. */
+#define HAVE_GETHOSTBYNAME_R 1
+
 /* Define to 1 if you have the `getpwnam_r' function. */
 #define HAVE_GETPWNAM_R 1
 
@@ -144,7 +147,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "204"
+#define VCS_REVISION "206"
 
 /* Version number of package */
 #define VERSION "2.10"

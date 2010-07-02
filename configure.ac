@@ -2,7 +2,7 @@ AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
 AC_INIT(shellinabox, 2.10, markus@shellinabox.com)
-VCS_REVISION=204
+VCS_REVISION=206
 AC_SUBST(VCS_REVISION)
 AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
                    [Most recent revision number in the version control system])
@@ -33,8 +33,8 @@ dnl Use strlcat() instead of strncat() to avoid spurious warnings
 AC_CHECK_FUNCS([strlcat])
 
 dnl Prefer thread-safe functions, if available
-AC_CHECK_FUNCS([getgrgid_r getgrnam_r getpwnam_r getpwuid_r openpty          \
-                strcasestr ])
+AC_CHECK_FUNCS([getgrgid_r getgrnam_r gethostbyname_r getpwnam_r getpwuid_r  \
+                openpty strcasestr ])
 
 dnl We prefer ptsname_r(), but will settle for ptsname() if necessary
 AC_TRY_LINK([#ifndef _XOPEN_SOURCE
