@@ -105,6 +105,12 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* Define to 1 if you have support for updwtmp */
+#undef HAVE_UPDWTMP
+
+/* Define to 1 if you have support for updwtmpx */
+#undef HAVE_UPDWTMPX
+
 /* Define to 1 if you have the <util.h> header file. */
 #undef HAVE_UTIL_H
 

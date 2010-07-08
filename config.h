@@ -106,6 +106,12 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
+/* Define to 1 if you have support for updwtmp */
+#define HAVE_UPDWTMP 1
+
+/* Define to 1 if you have support for updwtmpx */
+#define HAVE_UPDWTMPX 1
+
 /* Define to 1 if you have the <util.h> header file. */
 /* #undef HAVE_UTIL_H */
 
@@ -147,7 +153,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "206"
+#define VCS_REVISION "207"
 
 /* Version number of package */
 #define VERSION "2.10"
