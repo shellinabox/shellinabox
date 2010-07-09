@@ -2,7 +2,7 @@ AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
 AC_INIT(shellinabox, 2.10, markus@shellinabox.com)
-VCS_REVISION=208
+VCS_REVISION=209
 AC_SUBST(VCS_REVISION)
 AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
                    [Most recent revision number in the version control system])
@@ -57,7 +57,7 @@ AC_TRY_LINK([#include <pthread.h>
 
 dnl Not every system has support for isnan()
 AC_TRY_LINK([#include <math.h>],
-            [isnan(0.0);],
+            [if (isnan(0.0)) return 1;],
             [AC_DEFINE(HAVE_ISNAN, 1,
                        Define to 1 if you have support for isnan)])
 

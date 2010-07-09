@@ -76,7 +76,9 @@ static void readStylesheet(struct UserCSS *userCSS, const char *filename,
   FILE *fp;
   check(fp                = fdopen(fd, "r"));
   check(*style            = malloc(st.st_size + 1));
-  check(fread(*style, st.st_size, 1, fp) == 1);
+  if (st.st_size > 0) {
+    check(fread(*style, st.st_size, 1, fp) == 1);
+  }
   (*style)[st.st_size]    = '\000';
   *len                    = st.st_size;
   fclose(fp);

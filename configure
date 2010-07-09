@@ -2328,7 +2328,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-VCS_REVISION=208
+VCS_REVISION=209
 
 
 cat >>confdefs.h <<_ACEOF
@@ -10720,7 +10720,7 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 int
 main ()
 {
-isnan(0.0);
+if (isnan(0.0)) return 1;
   ;
   return 0;
 }
