@@ -158,43 +158,43 @@ ${top_srcdir}/demo/demo.js: ${top_srcdir}/demo/beep.wav                       \
 
 ${top_srcdir}/demo/beep.wav: ${top_srcdir}/shellinabox/beep.wav
 	@rm -f "$@"
-	ln "$^" "$@"
+	ln "$?" "$@"
 
 ${top_srcdir}/demo/enabled.gif: ${top_srcdir}/shellinabox/enabled.gif
 	@rm -f "$@"
-	ln "$^" "$@"
+	ln "$?" "$@"
 
 ${top_srcdir}/demo/favicon.ico: ${top_srcdir}/shellinabox/favicon.ico
 	@rm -f "$@"
-	ln "$^" "$@"
+	ln "$?" "$@"
 
 ${top_srcdir}/demo/styles.css: ${top_srcdir}/shellinabox/styles.css
 	@rm -f "$@"
-	sed -e '/\[if DEFINES_COLORS\]/,/\[endif DEFINES_COLORS\]/d' "$^" >"$@"
+	sed -e '/\[if DEFINES_COLORS\]/,/\[endif DEFINES_COLORS\]/d' "$?" >"$@"
 
 ${top_srcdir}/demo/print-styles.css: ${top_srcdir}/shellinabox/print-styles.css
 	@rm -f "$@"
-	ln "$^" "$@"
+	ln "$?" "$@"
 
 ${top_srcdir}/demo/usercss-0.css: ${top_srcdir}/shellinabox/white-on-black.css
 	@rm -f "$@"
-	ln "$^" "$@"
+	ln "$?" "$@"
 
 ${top_srcdir}/demo/usercss-1.css: ${top_srcdir}/shellinabox/black-on-white.css
 	@rm -f "$@"
-	ln "$^" "$@"
+	ln "$?" "$@"
 
 ${top_srcdir}/demo/usercss-2.css: ${top_srcdir}/shellinabox/monochrome.css
 	@rm -f "$@"
-	ln "$^" "$@"
+	ln "$?" "$@"
 
 ${top_srcdir}/demo/usercss-3.css: ${top_srcdir}/shellinabox/color.css
 	@rm -f "$@"
-	ln "$^" "$@"
+	ln "$?" "$@"
 
 ${top_srcdir}/demo/vt100.js: ${top_srcdir}/shellinabox/vt100.js
 	@rm -f "$@"
-	ln "$^" "$@"
+	ln "$?" "$@"
 
 shellinaboxd.1: shellinabox/shellinaboxd.man.in config.h
 	@src="${top_srcdir}/shellinabox/shellinaboxd.man.in";                 \
