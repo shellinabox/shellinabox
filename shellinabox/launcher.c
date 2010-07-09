@@ -503,7 +503,6 @@ static void updwtmpx(const char *wtmpx_file, const struct utmpx *utx) {
   struct utmp ut   = { 0 };
   ut.ut_type       = utx->ut_type;
   ut.ut_pid        = utx->ut_pid;
-  ut.ut_session    = utx->ut_session;
   ut.ut_tv.tv_sec  = utx->ut_tv.tv_sec;
   ut.ut_tv.tv_usec = utx->ut_tv.tv_usec;
   memcpy(&ut.ut_line, &utx->ut_line,
@@ -514,10 +513,6 @@ static void updwtmpx(const char *wtmpx_file, const struct utmpx *utx) {
          min(sizeof(ut.ut_user), sizeof(utx->ut_user)));
   memcpy(&ut.ut_host, &utx->ut_host,
          min(sizeof(ut.ut_host), sizeof(utx->ut_host)));
-  memcpy(&ut.ut_exit, &utx->ut_exit,
-         min(sizeof(ut.ut_exit), sizeof(utx->ut_exit)));
-  memcpy(&ut.ut_addr_v6, &utx->ut_addr_v6,
-         min(sizeof(ut.ut_addr_v6), sizeof(utx->ut_addr_v6)));
   updwtmp(wtmpx_file, &ut);
 }
 #endif
