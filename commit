@@ -182,9 +182,24 @@ make all distcheck
 # Build Debian package and create all the files that are needed by the
 # distribution maintainer.
 msg=
-debian_package ||
+debian_package || {
   msg="${msg}
 NOTICE: New version released. Please do not forget to notify distributions"
+  if [ -r ~/.shellinabox-notifier ]; then
+    while read e; do
+      {
+        echo "This is an automatically generated e-mail notification that"
+        echo "a new release of ShellInABox has just been made available"
+        echo "on the project's website at http://shellinabox.com"
+        echo
+        echo "You had previously requested to be notified when this happens."
+      } | mail -s "New ShellInABox release" "$e"
+    done
+  else
+    msg="${msg}
+NOTICE: Could not find ~/.shellinabox-notifier. Not sending e-mail..."
+  fi
+}
 
 svn diff $(svn st |
            egrep -v ' configure$| aclocal.m4$|distributions|^[?]' |
