@@ -281,11 +281,12 @@ VT100.prototype.getUserSettings = function() {
   // Compute hash signature to identify the entries in the userCSS menu.
   // If the menu is unchanged from last time, default values can be
   // looked up in a cookie associated with this page.
-  this.signature            = 1;
+  this.signature            = 2;
   this.utfPreferred         = true;
   this.visualBell           = typeof suppressAllAudio != 'undefined' &&
                               suppressAllAudio;
   this.autoprint            = true;
+  this.blinkingCursor       = true;
   if (this.visualBell) {
     this.signature          = Math.floor(16807*this.signature + 1) %
                                          ((1 << 31) - 1);
@@ -315,6 +316,7 @@ VT100.prototype.getUserSettings = function() {
       this.utfPreferred     = settings.charAt(0) != '0';
       this.visualBell       = settings.charAt(1) != '0';
       this.autoprint        = settings.charAt(2) != '0';
+      this.blinkingCursor   = settings.charAt(3) != '0';
       if (typeof userCSSList != 'undefined') {
         for (var i = 0; i < userCSSList.length; ++i) {
           userCSSList[i][2] = settings.charAt(i + 3) != '0';
@@ -327,9 +329,10 @@ VT100.prototype.getUserSettings = function() {
 
 VT100.prototype.storeUserSettings = function() {
   var settings  = 'shellInABox=' + this.signature + ':' +
-                  (this.utfEnabled ? '1' : '0') +
-                  (this.visualBell ? '1' : '0') +
-                  (this.autoprint  ? '1' : '0');
+                  (this.utfEnabled     ? '1' : '0') +
+                  (this.visualBell     ? '1' : '0') +
+                  (this.autoprint      ? '1' : '0') +
+                  (this.blinkingCursor ? '1' : '0');
   if (typeof userCSSList != 'undefined') {
     for (var i = 0; i < userCSSList.length; ++i) {
       settings += userCSSList[i][2] ? '1' : '0';
@@ -1954,8 +1957,12 @@ VT100.prototype.toggleBell = function() {
   this.visualBell = !this.visualBell;
 };
 
+VT100.prototype.toggleCursorBlinking = function() {
+  this.blinkingCursor = !this.blinkingCursor;
+};
+
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.10 (revision 210)" +
+  alert("VT100 Terminal Emulator " + "2.10 (revision 212)" +
         "\nCopyright 2008-2010 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -1985,9 +1992,12 @@ VT100.prototype.showContextMenu = function(x, y) {
           '<li id="beginconfig">' +
              (this.utfEnabled ? '<img src="enabled.gif" />' : '') +
              'Unicode</li>' +
-          '<li id="endconfig">' +
+          '<li>' +
              (this.visualBell ? '<img src="enabled.gif" />' : '') +
              'Visual Bell</li>'+
+          '<li id="endconfig">' +
+             (this.blinkingCursor ? '<img src="enabled.gif" />' : '') +
+             'Blinking Cursor</li>'+
           (this.usercss.firstChild ?
            '<hr id="beginusercss" />' +
            this.usercss.innerHTML +
@@ -2015,7 +2025,8 @@ VT100.prototype.showContextMenu = function(x, y) {
 
   // Actions for default items
   var actions                 = [ this.copyLast, p, this.reset,
-                                  this.toggleUTF, this.toggleBell ];
+                                  this.toggleUTF, this.toggleBell,
+                                  this.toggleCursorBlinking ];
 
   // Actions for user CSS styles (if any)
   for (var i = 0; i < this.usercssActions.length; ++i) {
@@ -2615,7 +2626,7 @@ VT100.prototype.keyUp = function(event) {
 
 VT100.prototype.animateCursor = function(inactive) {
   if (!this.cursorInterval) {
-    this.cursorInterval     = setInterval(
+    this.cursorInterval       = setInterval(
       function(vt100) {
         return function() {
           vt100.animateCursor();
@@ -2628,10 +2639,14 @@ VT100.prototype.animateCursor = function(inactive) {
   }
   if (inactive != undefined || this.cursor.className != 'inactive') {
     if (inactive) {
-      this.cursor.className = 'inactive';
+      this.cursor.className   = 'inactive';
     } else {
-      this.cursor.className = this.cursor.className == 'bright'
-                              ? 'dim' : 'bright';
+      if (this.blinkingCursor) {
+        this.cursor.className = this.cursor.className == 'bright'
+                                ? 'dim' : 'bright';
+      } else {
+        this.cursor.className = 'bright';
+      }
     }
   }
 };
