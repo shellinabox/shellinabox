@@ -1962,7 +1962,7 @@ VT100.prototype.toggleCursorBlinking = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.10 (revision 212)" +
+  alert("VT100 Terminal Emulator " + "2.10 (revision 213)" +
         "\nCopyright 2008-2010 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -2450,7 +2450,7 @@ VT100.prototype.keyDown = function(event) {
     event.keyCode == 106 || event.keyCode == 107 ||
     event.keyCode >= 109 && event.keyCode <= 111 ||
     event.keyCode >= 186 && event.keyCode <= 192 ||
-    event.keyCode >= 219 && event.keyCode <= 222 ||
+    event.keyCode >= 219 && event.keyCode <= 223 ||
     event.keyCode == 252;
   try {
     if (navigator.appName == 'Konqueror') {
@@ -2589,7 +2589,7 @@ VT100.prototype.keyUp = function(event) {
         event.keyCode == 106 || event.keyCode == 107 ||
         event.keyCode >= 109 && event.keyCode <= 111 ||
         event.keyCode >= 186 && event.keyCode <= 192 ||
-        event.keyCode >= 219 && event.keyCode <= 222 ||
+        event.keyCode >= 219 && event.keyCode <= 223 ||
         event.keyCode == 252;
       var fake                    = [ ];
       fake.ctrlKey                = event.ctrlKey;

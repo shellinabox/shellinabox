@@ -2450,7 +2450,7 @@ VT100.prototype.keyDown = function(event) {
     event.keyCode == 106 || event.keyCode == 107 ||
     event.keyCode >= 109 && event.keyCode <= 111 ||
     event.keyCode >= 186 && event.keyCode <= 192 ||
-    event.keyCode >= 219 && event.keyCode <= 222 ||
+    event.keyCode >= 219 && event.keyCode <= 223 ||
     event.keyCode == 252;
   try {
     if (navigator.appName == 'Konqueror') {
@@ -2589,7 +2589,7 @@ VT100.prototype.keyUp = function(event) {
         event.keyCode == 106 || event.keyCode == 107 ||
         event.keyCode >= 109 && event.keyCode <= 111 ||
         event.keyCode >= 186 && event.keyCode <= 192 ||
-        event.keyCode >= 219 && event.keyCode <= 222 ||
+        event.keyCode >= 219 && event.keyCode <= 223 ||
         event.keyCode == 252;
       var fake                    = [ ];
       fake.ctrlKey                = event.ctrlKey;
