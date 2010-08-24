@@ -59,6 +59,7 @@ EXTRA_DIST           = INSTALL.Debian                                         \
                        debian/shellinabox.install                             \
                        debian/shellinabox.postinst                            \
                        debian/shellinabox.postrm                              \
+                       debian/source/format                                   \
                        debian/watch
 LIBLOGGING_INCLUDES  = logging/logging.h                                      \
                        config.h

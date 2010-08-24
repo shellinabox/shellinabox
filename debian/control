@@ -9,7 +9,7 @@ Standards-Version: 3.8.3
 
 Package: shellinabox
 Architecture: any
-Depends: ${shlibs:Depends}, adduser, lsb-base
+Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, lsb-base
 Suggests: libssl0.9.8, libpam0g, openssl
 Description: publish command line shell through AJAX interface
  Shellinabox can export arbitrary command line programs to any JavaScript
