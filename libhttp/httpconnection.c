@@ -1539,7 +1539,7 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
           if (http->expecting) {
             int len                  = bytes - offset;
             if (http->expecting > 0 &&
-                bytes > http->expecting) {
+                len > http->expecting) {
               len                    = http->expecting;
             }
             if (http->state == PAYLOAD) {
@@ -1559,6 +1559,7 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
           check(0);
         }
 
+        offset                      += consumed;
         if (pushBack) {
           check(offset + pushBack == bytes);
           if (offset >= 0) {
@@ -1577,7 +1578,6 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
           offset                     = -pushBack;
           break;
         } else {
-          offset                    += consumed;
           eob                       |= offset >= bytes;
         }
       } while (!eob && !http->closed);
