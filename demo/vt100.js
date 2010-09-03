@@ -434,6 +434,18 @@ VT100.prototype.initializeUserCSSStyles = function() {
                   }
                   entry                  = entry.nextSibling;
                 }
+
+                // If the font size changed, adjust cursor and line dimensions
+                this.cursor.style.cssText= '';
+                this.cursorWidth         = this.cursor.clientWidth;
+                this.cursorHeight        = this.lineheight.clientHeight;
+                for (i = 0; i < this.console.length; ++i) {
+                  for (var line = this.console[i].firstChild; line;
+                       line = line.nextSibling) {
+                    line.style.height    = this.cursorHeight + 'px';
+                  }
+                }
+                vt100.resizer();
               };
             }(this, j, beginOfGroup, i - beginOfGroup);
         }
@@ -1962,7 +1974,7 @@ VT100.prototype.toggleCursorBlinking = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.10 (revision 218)" +
+  alert("VT100 Terminal Emulator " + "2.10 (revision 219)" +
         "\nCopyright 2008-2010 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };

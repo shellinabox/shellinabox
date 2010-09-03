@@ -3,6 +3,8 @@
 	* Fix some scaling related issues. This fix is thanks to some
 	excellent detective work by Jan <siev...@zedat.fu-berlin.de>.
 
+	* Allow changing of font sizes in the user CSS.
+
 2010-08-19  Markus Gutschke  <markus@shellinabox.com>
 
 	* Thanks to lotr44's excellent analysis of the problem, we now have
