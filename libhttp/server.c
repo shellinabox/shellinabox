@@ -354,11 +354,25 @@ struct ServerConnection *serverGetConnection(struct Server *server,
                                              int fd) {
   if (hint &&
       server->connections <= hint &&
-      server->connections + server->numConnections > hint &&
-      &server->connections[hint - server->connections] == hint &&
-      !hint->deleted &&
-      server->pollFds[hint - server->connections + 1].fd == fd) {
-    return hint;
+      server->connections + server->numConnections > hint) {
+    // The compiler would like to optimize the expression:
+    //   &server->connections[hint - server->connections]     <=>
+    //   server->connections + hint - server->connections     <=>
+    //   hint
+    // This transformation is correct as far as the language specification is
+    // concerned, but it is unintended as we actually want to check whether
+    // the alignment is correct. So, instead of comparing
+    //   &server->connections[hint - server->connections] == hint
+    // we first use memcpy() to break aliasing.
+    uintptr_t ptr1, ptr2;
+    memcpy(&ptr1, &hint, sizeof(ptr1));
+    memcpy(&ptr2, &server->connections, sizeof(ptr2));
+    int idx = (ptr1 - ptr2)/sizeof(*server->connections);
+    if (&server->connections[idx] == hint &&
+        !hint->deleted &&
+        server->pollFds[hint - server->connections + 1].fd == fd) {
+      return hint;
+    }
   }
   for (int i = 0; i < server->numConnections; i++) {
     if (server->pollFds[i + 1].fd == fd && !server->connections[i].deleted) {
