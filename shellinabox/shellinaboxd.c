@@ -641,6 +641,11 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     extern char faviconStart[];
     extern char faviconEnd[];
     serveStaticFile(http, "image/x-icon", faviconStart, faviconEnd);
+  } else if (pathInfoLength == 12 && !memcmp(pathInfo, "keyboard.png", 11)) {
+    // Serve the keyboard icon
+    extern char keyboardStart[];
+    extern char keyboardEnd[];
+    serveStaticFile(http, "image/png", keyboardStart, keyboardEnd);
   } else if (pathInfoLength == 14 && !memcmp(pathInfo, "ShellInABox.js", 14)) {
     // Serve both vt100.js and shell_in_a_box.js in the same transaction.
     // Also, indicate to the client whether the server is SSL enabled.

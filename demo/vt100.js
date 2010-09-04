@@ -238,22 +238,16 @@ VT100.prototype.reset = function(clearHistory) {
   this.enableAlternateScreen(false);
 
   var wasCompressed                                  = false;
-  var styles                                         = [ 'transform',
-                                                         'WebkitTransform',
-                                                         'MozTransform',
-                                                         'filter' ];
-  for (var i = 0; i < styles.length; ++i) {
-    if (typeof this.console[0].style[styles[i]] != 'undefined') {
-      for (var j = 0; j < 1; ++j) {
-        wasCompressed                |= this.console[j].style[styles[i]] != '';
-        this.console[j].style[styles[i]]             = '';
-      }
-      this.cursor.style[styles[i]]                   = '';
-      this.space.style[styles[i]]                    = '';
-      if (styles[i] == 'filter') {
-        this.console[this.currentScreen].style.width = '';
-      }
-      break;
+  var transform                                      = this.getTransformName();
+  if (transform) {
+    for (var i = 0; i < 2; ++i) {
+      wasCompressed                  |= this.console[i].style[transform] != '';
+      this.console[i].style[transform]               = '';
+    }
+    this.cursor.style[transform]                     = '';
+    this.space.style[transform]                      = '';
+    if (transform == 'filter') {
+      this.console[this.currentScreen].style.width   = '';
     }
   }
   this.scale                                         = 1.0;
@@ -270,10 +264,13 @@ VT100.prototype.reset = function(clearHistory) {
 };
 
 VT100.prototype.addListener = function(elem, event, listener) {
-  if (elem.addEventListener) {
-    elem.addEventListener(event, listener, false);
-  } else {
-    elem.attachEvent('on' + event, listener);
+  try {
+    if (elem.addEventListener) {
+      elem.addEventListener(event, listener, false);
+    } else {
+      elem.attachEvent('on' + event, listener);
+    }
+  } catch (e) {
   }
 };
 
@@ -281,11 +278,12 @@ VT100.prototype.getUserSettings = function() {
   // Compute hash signature to identify the entries in the userCSS menu.
   // If the menu is unchanged from last time, default values can be
   // looked up in a cookie associated with this page.
-  this.signature            = 2;
+  this.signature            = 3;
   this.utfPreferred         = true;
   this.visualBell           = typeof suppressAllAudio != 'undefined' &&
                               suppressAllAudio;
   this.autoprint            = true;
+  this.softKeyboard         = false;
   this.blinkingCursor       = true;
   if (this.visualBell) {
     this.signature          = Math.floor(16807*this.signature + 1) %
@@ -311,15 +309,16 @@ VT100.prototype.getUserSettings = function() {
   if (settings >= 0) {
     settings                = document.cookie.substr(settings + key.length).
                                                    replace(/([0-1]*).*/, "$1");
-    if (settings.length == 3 + (typeof userCSSList == 'undefined' ?
+    if (settings.length == 5 + (typeof userCSSList == 'undefined' ?
                                 0 : userCSSList.length)) {
       this.utfPreferred     = settings.charAt(0) != '0';
       this.visualBell       = settings.charAt(1) != '0';
       this.autoprint        = settings.charAt(2) != '0';
-      this.blinkingCursor   = settings.charAt(3) != '0';
+      this.softKeyboard     = settings.charAt(3) != '0';
+      this.blinkingCursor   = settings.charAt(4) != '0';
       if (typeof userCSSList != 'undefined') {
         for (var i = 0; i < userCSSList.length; ++i) {
-          userCSSList[i][2] = settings.charAt(i + 3) != '0';
+          userCSSList[i][2] = settings.charAt(i + 5) != '0';
         }
       }
     }
@@ -332,6 +331,7 @@ VT100.prototype.storeUserSettings = function() {
                   (this.utfEnabled     ? '1' : '0') +
                   (this.visualBell     ? '1' : '0') +
                   (this.autoprint      ? '1' : '0') +
+                  (this.softKeyboard   ? '1' : '0') +
                   (this.blinkingCursor ? '1' : '0');
   if (typeof userCSSList != 'undefined') {
     for (var i = 0; i < userCSSList.length; ++i) {
@@ -413,7 +413,7 @@ VT100.prototype.initializeUserCSSStyles = function() {
                         label.textContent= label.textContent;
                       }
 
-                      // User style sheets are number sequentially
+                      // User style sheets are numbered sequentially
                       var sheet          = document.getElementById(
                                                                'usercss-' + i);
                       if (i == current) {
@@ -470,6 +470,328 @@ VT100.prototype.initializeUserCSSStyles = function() {
   }
 };
 
+VT100.prototype.resetLastSelectedKey = function(e) {
+  var key                          = this.lastSelectedKey;
+  if (!key) {
+    return false;
+  }
+
+  var position                     = this.mousePosition(e);
+
+  // We don't get all the necessary events to reliably reselect a key
+  // if we moved away from it and then back onto it. We approximate the
+  // behavior by remembering the key until either we release the mouse
+  // button (we might never get this event if the mouse has since left
+  // the window), or until we move away too far.
+  var box                          = this.keyboard.firstChild;
+  if (position[0] <  box.offsetLeft + key.offsetWidth ||
+      position[1] <  box.offsetTop + key.offsetHeight ||
+      position[0] >= box.offsetLeft + box.offsetWidth - key.offsetWidth ||
+      position[1] >= box.offsetTop + box.offsetHeight - key.offsetHeight ||
+      position[0] <  box.offsetLeft + key.offsetLeft - key.offsetWidth ||
+      position[1] <  box.offsetTop + key.offsetTop - key.offsetHeight ||
+      position[0] >= box.offsetLeft + key.offsetLeft + 2*key.offsetWidth ||
+      position[1] >= box.offsetTop + key.offsetTop + 2*key.offsetHeight) {
+    if (this.lastSelectedKey.className) log.console('reset: deselecting');
+    this.lastSelectedKey.className = '';
+    this.lastSelectedKey           = undefined;
+  }
+  return false;
+};
+
+VT100.prototype.showShiftState = function(state) {
+  var style              = document.getElementById('shift_state');
+  if (state) {
+    this.setTextContentRaw(style,
+                           '#vt100 #keyboard .shifted {' +
+                             'display: inline }' +
+                           '#vt100 #keyboard .unshifted {' +
+                             'display: none }');
+  } else {
+    this.setTextContentRaw(style, '');
+  }
+  var elems              = this.keyboard.getElementsByTagName('I');
+  for (var i = 0; i < elems.length; ++i) {
+    if (elems[i].id == '16') {
+      elems[i].className = state ? 'selected' : '';
+    }
+  }
+};
+
+VT100.prototype.showCtrlState = function(state) {
+  var ctrl         = this.getChildById(this.keyboard, '17' /* Ctrl */);
+  if (ctrl) {
+    ctrl.className = state ? 'selected' : '';
+  }
+};
+
+VT100.prototype.showAltState = function(state) {
+  var alt         = this.getChildById(this.keyboard, '18' /* Alt */);
+  if (alt) {
+    alt.className = state ? 'selected' : '';
+  }
+};
+
+VT100.prototype.clickedKeyboard = function(e, elem, ch, key, shift, ctrl, alt){
+  var fake      = [ ];
+  fake.charCode = ch;
+  fake.keyCode  = key;
+  fake.ctrlKey  = ctrl;
+  fake.shiftKey = shift;
+  fake.altKey   = alt;
+  fake.metaKey  = alt;
+  return this.handleKey(fake);
+};
+
+VT100.prototype.addKeyBinding = function(elem, ch, key, CH, KEY) {
+  if (elem == undefined) {
+    return;
+  }
+  if (ch == '\u00A0') {
+    // &nbsp; should be treated as a regular space character.
+    ch                                  = ' ';
+  }
+  if (ch != undefined && CH == undefined) {
+    // For letter keys, we automatically compute the uppercase character code
+    // from the lowercase one.
+    CH                                  = ch.toUpperCase();
+  }
+  if (KEY == undefined && key != undefined) {
+    // Most keys have identically key codes for both lowercase and uppercase
+    // keypresses. Normally, only function keys would have distinct key codes,
+    // whereas regular keys have character codes.
+    KEY                                 = key;
+  } else if (KEY == undefined && CH != undefined) {
+    // For regular keys, copy the character code to the key code.
+    KEY                                 = CH.charCodeAt(0);
+  }
+  if (key == undefined && ch != undefined) {
+    // For regular keys, copy the character code to the key code.
+    key                                 = ch.charCodeAt(0);
+  }
+  // Convert characters to numeric character codes. If the character code
+  // is undefined (i.e. this is a function key), set it to zero.
+  ch                                    = ch ? ch.charCodeAt(0) : 0;
+  CH                                    = CH ? CH.charCodeAt(0) : 0;
+
+  // Mouse down events high light the key. We also set lastSelectedKey. This
+  // is needed to that mouseout/mouseover can keep track of the key that
+  // is currently being clicked.
+  this.addListener(elem, 'mousedown',
+    function(vt100, elem, key) { return function(e) {
+      if ((e.which || e.button) == 1) {
+        if (vt100.lastSelectedKey) {       
+          vt100.lastSelectedKey.className= '';
+        }
+        // Highlight the key while the mouse button is held down.
+        if (key == 16 /* Shift */) {
+          if (!elem.className != vt100.isShift) {
+            vt100.showShiftState(!vt100.isShift);
+          }
+        } else if (key == 17 /* Ctrl */) {
+          if (!elem.className != vt100.isCtrl) {
+            vt100.showCtrlState(!vt100.isCtrl);
+          }
+        } else if (key == 18 /* Alt */) {
+          if (!elem.className != vt100.isAlt) {
+            vt100.showAltState(!vt100.isAlt);
+          }
+        } else {
+          elem.className                  = 'selected';
+        }
+        vt100.lastSelectedKey             = elem;
+      }
+      return false; }; }(this, elem, key));
+  var clicked                           =
+    // Modifier keys update the state of the keyboard, but do not generate
+    // any key clicks that get forwarded to the application.
+    key >= 16 /* Shift */ && key <= 18 /* Alt */ ?
+    function(vt100, elem) { return function(e) {
+      if (elem == vt100.lastSelectedKey) {
+        if (key == 16 /* Shift */) {
+          // The user clicked the Shift key
+          vt100.isShift                 = !vt100.isShift;
+          vt100.showShiftState(vt100.isShift);
+        } else if (key == 17 /* Ctrl */) {
+          vt100.isCtrl                  = !vt100.isCtrl;
+          vt100.showCtrlState(vt100.isCtrl);
+        } else if (key == 18 /* Alt */) {
+          vt100.isAlt                   = !vt100.isAlt;
+          vt100.showAltState(vt100.isAlt);
+        }
+        vt100.lastSelectedKey           = undefined;
+      }
+      if (vt100.lastSelectedKey) {
+        vt100.lastSelectedKey.className = '';
+        vt100.lastSelectedKey           = undefined;
+      }
+      return false; }; }(this, elem) :
+    // Regular keys generate key clicks, when the mouse button is released or
+    // when a mouse click event is received.
+    function(vt100, elem, ch, key, CH, KEY) { return function(e) {
+      if (vt100.lastSelectedKey) {
+        if (elem == vt100.lastSelectedKey) {
+          // The user clicked a key.
+          if (vt100.isShift) {
+            vt100.clickedKeyboard(e, elem, CH, KEY,
+                                  true, vt100.isCtrl, vt100.isAlt);
+          } else {
+            vt100.clickedKeyboard(e, elem, ch, key,
+                                  false, vt100.isCtrl, vt100.isAlt);
+          }
+          vt100.isShift                 = false;
+          vt100.showShiftState(false);
+          vt100.isCtrl                  = false;
+          vt100.showCtrlState(false);
+          vt100.isAlt                   = false;
+          vt100.showAltState(false);
+        }
+        vt100.lastSelectedKey.className = '';
+        vt100.lastSelectedKey           = undefined;
+      }
+      elem.className                    = '';
+      return false; }; }(this, elem, ch, key, CH, KEY);
+  this.addListener(elem, 'mouseup', clicked);
+  this.addListener(elem, 'click', clicked);
+
+  // When moving the mouse away from a key, check if any keys need to be
+  // deselected.
+  this.addListener(elem, 'mouseout',
+    function(vt100, elem, key) { return function(e) {
+      if (key == 16 /* Shift */) {
+        if (!elem.className == vt100.isShift) {
+          vt100.showShiftState(vt100.isShift);
+        }
+      } else if (key == 17 /* Ctrl */) {
+        if (!elem.className == vt100.isCtrl) {
+          vt100.showCtrlState(vt100.isCtrl);
+        }
+      } else if (key == 18 /* Alt */) {
+        if (!elem.className == vt100.isAlt) {
+          vt100.showAltState(vt100.isAlt);
+        }
+      } else if (elem.className) {
+        elem.className                  = '';
+        vt100.lastSelectedKey           = elem;
+      } else if (vt100.lastSelectedKey) {
+        vt100.resetLastSelectedKey(e);
+      }
+      return false; }; }(this, elem, key));
+
+  // When moving the mouse over a key, select it if the user is still holding
+  // the mouse button down (i.e. elem == lastSelectedKey)
+  this.addListener(elem, 'mouseover',
+    function(vt100, elem, key) { return function(e) {
+      if (elem == vt100.lastSelectedKey) {
+        if (key == 16 /* Shift */) {
+          if (!elem.className != vt100.isShift) {
+            vt100.showShiftState(!vt100.isShift);
+          }
+        } else if (key == 17 /* Ctrl */) {
+          if (!elem.className != vt100.isCtrl) {
+            vt100.showCtrlState(!vt100.isCtrl);
+          }
+        } else if (key == 18 /* Alt */) {
+          if (!elem.className != vt100.isAlt) {
+            vt100.showAltState(!vt100.isAlt);
+          }
+        } else if (!elem.className) {
+          elem.className                = 'selected';
+        }
+      } else {
+        vt100.resetLastSelectedKey(e);
+      }
+      return false; }; }(this, elem, key));
+};
+
+VT100.prototype.initializeKeyBindings = function(elem) {
+  if (elem) {
+    if (elem.nodeName == "I" || elem.nodeName == "B") {
+      if (elem.id) {
+        // Function keys. The Javascript keycode is part of the "id"
+        var i     = parseInt(elem.id);
+        if (i) {
+          // If the id does not parse as a number, it is not a keycode.
+          this.addKeyBinding(elem, undefined, i);
+        }
+      } else {
+        var child = elem.firstChild;
+        if (child.nodeName == "#text") {
+          // If the key only has a text node as a child, then it is a letter.
+          // Automatically compute the lower and upper case version of the key.
+          this.addKeyBinding(elem, this.getTextContent(child).toLowerCase());
+        } else {
+          // If the key has two children, they are the lower and upper case
+          // character code, respectively.
+          this.addKeyBinding(elem, this.getTextContent(child), undefined,
+                             this.getTextContent(child.nextSibling));
+        }
+      }
+    }
+  }
+  // Recursively parse all other child nodes.
+  for (elem = elem.firstChild; elem; elem = elem.nextSibling) {
+    this.initializeKeyBindings(elem);
+  }
+};
+
+VT100.prototype.initializeKeyboard = function() {
+  // Configure mouse event handlers for button that displays/hides keyboard
+  var box                               = this.keyboard.firstChild;
+  this.hideSoftKeyboard();
+  this.addListener(this.keyboardImage, 'click',
+    function(vt100) { return function(e) {
+      if (vt100.keyboard.style.display != '') {
+        if (vt100.reconnectBtn.style.visibility != '') {
+          vt100.showSoftKeyboard();
+        }
+      } else {
+        vt100.hideSoftKeyboard();
+        vt100.input.focus();
+      }
+      return false; }; }(this));
+
+  // Enable button that displays keyboard
+  if (this.softKeyboard) {
+    this.keyboardImage.style.visibility = 'visible';
+  }
+
+  // Configure mouse event handlers for on-screen keyboard
+  this.addListener(this.keyboard, 'click',
+    function(vt100) { return function(e) {
+      vt100.hideSoftKeyboard();
+      vt100.input.focus();
+      return false; }; }(this));
+  this.addListener(this.keyboard, 'selectstart', this.cancelEvent);
+  this.addListener(box, 'click', this.cancelEvent);
+  this.addListener(box, 'mouseup',
+    function(vt100) { return function(e) {
+      if (vt100.lastSelectedKey) {
+        vt100.lastSelectedKey.className = '';
+        vt100.lastSelectedKey           = undefined;
+      }
+      return false; }; }(this));
+  this.addListener(box, 'mouseout',
+    function(vt100) { return function(e) {
+      return vt100.resetLastSelectedKey(e); }; }(this));
+  this.addListener(box, 'mouseover',
+    function(vt100) { return function(e) {
+      return vt100.resetLastSelectedKey(e); }; }(this));
+
+  // Configure SHIFT key behavior
+  var style                             = document.createElement('style');
+  var id                                = document.createAttribute('id');
+  id.nodeValue                          = 'shift_state';
+  style.setAttributeNode(id);
+  var type                              = document.createAttribute('type');
+  type.nodeValue                        = 'text/css';
+  style.setAttributeNode(type);
+  document.getElementsByTagName('head')[0].appendChild(style);
+
+  // Set up key bindings
+  this.initializeKeyBindings(box);
+};
+
 VT100.prototype.initializeElements = function(container) {
   // If the necessary objects have not already been defined in the HTML
   // page, create them now.
@@ -483,6 +805,9 @@ VT100.prototype.initializeElements = function(container) {
 
   if (!this.getChildById(this.container, 'reconnect')   ||
       !this.getChildById(this.container, 'menu')        ||
+      !this.getChildById(this.container, 'keyboard')    ||
+      !this.getChildById(this.container, 'kbd_button')  ||
+      !this.getChildById(this.container, 'kbd_img')     ||
       !this.getChildById(this.container, 'scrollable')  ||
       !this.getChildById(this.container, 'console')     ||
       !this.getChildById(this.container, 'alt_console') ||
@@ -525,7 +850,15 @@ VT100.prototype.initializeElements = function(container) {
                        '<div id="cursize" style="visibility: hidden">' +
                        '</div>' +
                        '<div id="menu"></div>' +
+                       '<div id="keyboard" unselectable="on">' +
+                         '<pre class="box"><div><i id="27">Esc</i><i id="112">F1</i><i id="113">F2</i><i id="114">F3</i><i id="115">F4</i><i id="116">F5</i><i id="117">F6</i><i id="118">F7</i><i id="119">F8</i><i id="120">F9</i><i id="121">F10</i><i id="122">F11</i><i id="123">F12</i><br /><b><span class="unshifted">`</span><span class="shifted">~</span></b><b><span class="unshifted">1</span><span class="shifted">!</span></b><b><span class="unshifted">2</span><span class="shifted">@</span></b><b><span class="unshifted">3</span><span class="shifted">#</span></b><b><span class="unshifted">4</span><span class="shifted">&#36;</span></b><b><span class="unshifted">5</span><span class="shifted">&#37;</span></b><b><span class="unshifted">6</span><span class="shifted">^</span></b><b><span class="unshifted">7</span><span class="shifted">&amp;</span></b><b><span class="unshifted">8</span><span class="shifted">*</span></b><b><span class="unshifted">9</span><span class="shifted">(</span></b><b><span class="unshifted">0</span><span class="shifted">)</span></b><b><span class="unshifted">-</span><span class="shifted">_</span></b><b><span class="unshifted">=</span><span class="shifted">+</span></b><i id="8">&nbsp;&larr;&nbsp;</i><br /><i id="9">Tab</i><b>Q</b><b>W</b><b>E</b><b>R</b><b>T</b><b>Y</b><b>U</b><b>I</b><b>O</b><b>P</b><b><span class="unshifted">[</span><span class="shifted">{</span></b><b><span class="unshifted">]</span><span class="shifted">}</span></b><b><span class="unshifted">&#92;</span><span class="shifted">|</span></b><br /><u>Tab&nbsp;&nbsp;</u><b>A</b><b>S</b><b>D</b><b>F</b><b>G</b><b>H</b><b>J</b><b>K</b><b>L</b><b><span class="unshifted">;</span><span class="shifted">:</span></b><b><span class="unshifted">&#39;</span><span class="shifted">"</span></b><i id="13">Enter</i><br /><u>&nbsp;&nbsp;</u><i id="16">Shift</i><b>Z</b><b>X</b><b>C</b><b>V</b><b>B</b><b>N</b><b>M</b><b><span class="unshifted">,</span><span class="shifted">&lt;</span></b><b><span class="unshifted">.</span><span class="shifted">&gt;</span></b><b><span class="unshifted">/</span><span class="shifted">?</span></b><i id="16">Shift</i><br /><u>XXX</u><i id="17">Ctrl</i><i id="18">Alt</i><i style="width: 25ex">&nbsp</i></div>&nbsp;&nbsp;&nbsp;<div><i id="45">Ins</i><i id="46">Del</i><i id="36">Home</i><i id="35">End</i><br /><u>&nbsp;</u><br /><u>&nbsp;</u><br /><u>Ins</u><s>&nbsp;</s><b id="38">&uarr;</b><s>&nbsp;</s><u>&nbsp;</u><b id="33">&uArr;</b><br /><u>Ins</u><b id="37">&larr;</b><b id="40">&darr;</b><b id="39">&rarr;</b><u>&nbsp;</u><b id="34">&dArr;</b></div></pre>' +
+                       '</div>' +
                        '<div id="scrollable">' +
+                         '<table id="kbd_button">' +
+                           '<tr><td width="100%">&nbsp;</td>' +
+                           '<td><img id="kbd_img" src="keyboard.png" /></td>' +
+                           '<td>&nbsp;&nbsp;&nbsp;&nbsp;</td></tr>' +
+                         '</table>' +
                          '<pre id="lineheight">&nbsp;</pre>' +
                          '<pre id="console">' +
                            '<pre></pre>' +
@@ -566,6 +899,8 @@ VT100.prototype.initializeElements = function(container) {
   this.reconnectBtn            = this.getChildById(this.container,'reconnect');
   this.curSizeBox              = this.getChildById(this.container, 'cursize');
   this.menu                    = this.getChildById(this.container, 'menu');
+  this.keyboard                = this.getChildById(this.container, 'keyboard');
+  this.keyboardImage           = this.getChildById(this.container, 'kbd_img');
   this.scrollable              = this.getChildById(this.container,
                                                                  'scrollable');
   this.lineheight              = this.getChildById(this.container,
@@ -645,6 +980,9 @@ VT100.prototype.initializeElements = function(container) {
 
   // Hide context menu
   this.hideContextMenu();
+
+  // Set up onscreen soft keyboard
+  this.initializeKeyboard();
 
   // Add listener to reconnect button
   this.addListener(this.reconnectBtn.firstChild, 'click',
@@ -733,6 +1071,7 @@ VT100.prototype.reconnect = function() {
 
 VT100.prototype.showReconnect = function(state) {
   if (state) {
+    this.hideSoftKeyboard();
     this.reconnectBtn.style.visibility = '';
   } else {
     this.reconnectBtn.style.visibility = 'hidden';
@@ -766,6 +1105,9 @@ VT100.prototype.resized = function(w, h) {
 };
 
 VT100.prototype.resizer = function() {
+  // Hide onscreen soft keyboard
+  this.hideSoftKeyboard();
+
   // The cursor can get corrupted if the print-preview is displayed in Firefox.
   // Recreating it, will repair it.
   var newCursor                = document.createElement('pre');
@@ -945,6 +1287,17 @@ VT100.prototype.cancelEvent = function(event) {
   return false;
 };
 
+VT100.prototype.mousePosition = function(event) {
+  var offsetX      = this.container.offsetLeft;
+  var offsetY      = this.container.offsetTop;
+  for (var e = this.container; e = e.offsetParent; ) {
+    offsetX       += e.offsetLeft;
+    offsetY       += e.offsetTop;
+  }
+  return [ event.clientX - offsetX,
+           event.clientY - offsetY ];
+};
+
 VT100.prototype.mouseEvent = function(event, type) {
   // If any text is currently selected, do not move the focus as that would
   // invalidate the selection.
@@ -954,15 +1307,10 @@ VT100.prototype.mouseEvent = function(event, type) {
   }
 
   // Compute mouse position in characters.
-  var offsetX      = this.container.offsetLeft;
-  var offsetY      = this.container.offsetTop;
-  for (var e = this.container; e = e.offsetParent; ) {
-    offsetX       += e.offsetLeft;
-    offsetY       += e.offsetTop;
-  }
-  var x            = (event.clientX - offsetX) / this.cursorWidth;
-  var y            = ((event.clientY - offsetY) + this.scrollable.offsetTop) /
-                     this.cursorHeight - this.numScrollbackLines;
+  var position     = this.mousePosition(event);
+  var x            = Math.floor(position[0] / this.cursorWidth);
+  var y            = Math.floor((position[1] + this.scrollable.scrollTop) /
+                                this.cursorHeight) - this.numScrollbackLines;
   var inside       = true;
   if (x >= this.terminalWidth) {
     x              = this.terminalWidth - 1;
@@ -1022,7 +1370,7 @@ VT100.prototype.mouseEvent = function(event, type) {
   // Bring up context menu.
   if (button == 2 && !event.shiftKey) {
     if (type == 0 /* MOUSE_DOWN */) {
-      this.showContextMenu(event.clientX - offsetX, event.clientY - offsetY);
+      this.showContextMenu(position[0], position[1]);
     }
     return this.cancelEvent(event);
   }
@@ -1056,6 +1404,29 @@ VT100.prototype.htmlEscape = function(s) {
 VT100.prototype.getTextContent = function(elem) {
   return elem.textContent ||
          (typeof elem.textContent == 'undefined' ? elem.innerText : '');
+};
+
+VT100.prototype.setTextContentRaw = function(elem, s) {
+  // Updating the content of an element is an expensive operation. It actually
+  // pays off to first check whether the element is still unchanged.
+  if (typeof elem.textContent == 'undefined') {
+    if (elem.innerText != s) {
+      try {
+        elem.innerText = s;
+      } catch (e) {
+        // Very old versions of IE do not allow setting innerText. Instead,
+        // remove all children, by setting innerHTML and then set the text
+        // using DOM methods.
+        elem.innerHTML = '';
+        elem.appendChild(document.createTextNode(
+                                          this.replaceChar(s, ' ', '\u00A0')));
+      }
+    }
+  } else {
+    if (elem.textContent != s) {
+      elem.textContent = s;
+    }
+  }
 };
 
 VT100.prototype.setTextContent = function(elem, s) {
@@ -1103,26 +1474,7 @@ VT100.prototype.setTextContent = function(elem, s) {
     return;
   }
 
-  // Updating the content of an element is an expensive operation. It actually
-  // pays off to first check whether the element is still unchanged.
-  if (typeof elem.textContent == 'undefined') {
-    if (elem.innerText != s) {
-      try {
-        elem.innerText = s;
-      } catch (e) {
-        // Very old versions of IE do not allow setting innerText. Instead,
-        // remove all children, by setting innerHTML and then set the text
-        // using DOM methods.
-        elem.innerHTML = '';
-        elem.appendChild(document.createTextNode(
-                                          this.replaceChar(s, ' ', '\u00A0')));
-      }
-    }
-  } else {
-    if (elem.textContent != s) {
-      elem.textContent = s;
-    }
-  }
+  this.setTextContentRaw(elem, s);
 };
 
 VT100.prototype.insertBlankLine = function(y, color, style) {
@@ -1578,27 +1930,21 @@ VT100.prototype.enableAlternateScreen = function(state) {
   this.console[this.currentScreen].style.display     = '';
 
   // Select appropriate character pitch.
-  var styles                                         = [ 'transform',
-                                                         'WebkitTransform',
-                                                         'MozTransform',
-                                                         'filter' ];
-  for (var i = 0; i < styles.length; ++i) {
-    if (typeof this.console[0].style[styles[i]] != 'undefined') {
-      if (state) {
-        // Upon enabling the alternate screen, we switch to 80 column mode. But
-        // upon returning to the regular screen, we restore the mode that was
-        // in effect previously.
-        this.console[1].style[styles[i]]             = '';
-      }
-      var style                                      =
-                             this.console[this.currentScreen].style[styles[i]];
-      this.cursor.style[styles[i]]                   = style;
-      this.space.style[styles[i]]                    = style;
-      this.scale                                     = style == '' ? 1.0:1.65;
-      if (styles[i] == 'filter') {
-        this.console[this.currentScreen].style.width = style == '' ? '165%':'';
-      }
-      break;
+  var transform                                      = this.getTransformName();
+  if (transform) {
+    if (state) {
+      // Upon enabling the alternate screen, we switch to 80 column mode. But
+      // upon returning to the regular screen, we restore the mode that was
+      // in effect previously.
+      this.console[1].style[transform]               = '';
+    }
+    var style                                        =
+                             this.console[this.currentScreen].style[transform];
+    this.cursor.style[transform]                     = style;
+    this.space.style[transform]                      = style;
+    this.scale                                       = style == '' ? 1.0:1.65;
+    if (transform == 'filter') {
+       this.console[this.currentScreen].style.width  = style == '' ? '165%':'';
     }
   }
   this.resizer();
@@ -1969,12 +2315,76 @@ VT100.prototype.toggleBell = function() {
   this.visualBell = !this.visualBell;
 };
 
+VT100.prototype.toggleSoftKeyboard = function() {
+  this.softKeyboard = !this.softKeyboard;
+  this.keyboardImage.style.visibility = this.softKeyboard ? 'visible' : '';
+};
+
+VT100.prototype.deselectKeys = function(elem) {
+  if (elem && elem.className == 'selected') {
+    elem.className = '';
+  }
+  for (elem = elem.firstChild; elem; elem = elem.nextSibling) {
+    this.deselectKeys(elem);
+  }
+};
+
+VT100.prototype.showSoftKeyboard = function() {
+  // Make sure no key is currently selected
+  this.lastSelectedKey           = undefined;
+  this.deselectKeys(this.keyboard);
+  this.isShift                   = false;
+  this.showShiftState(false);
+  this.isCtrl                    = false;
+  this.showCtrlState(false);
+  this.isAlt                     = false;
+  this.showAltState(false);
+
+  this.keyboard.style.left       = '0px';
+  this.keyboard.style.top        = '0px';
+  this.keyboard.style.width      = this.container.offsetWidth  + 'px';
+  this.keyboard.style.height     = this.container.offsetHeight + 'px';
+  this.keyboard.style.visibility = 'hidden';
+  this.keyboard.style.display    = '';
+
+  var kbd                        = this.keyboard.firstChild;
+  var scale                      = 1.0;
+  var transform                  = this.getTransformName();
+  if (transform) {
+    kbd.style[transform]         = '';
+    if (kbd.offsetWidth > 0.9 * this.container.offsetWidth) {
+      scale                      = (kbd.offsetWidth/
+                                    this.container.offsetWidth)/0.9;
+    }
+    if (kbd.offsetHeight > 0.9 * this.container.offsetHeight) {
+      scale                      = Math.max((kbd.offsetHeight/
+                                             this.container.offsetHeight)/0.9);
+    }
+    var style                    = this.getTransformStyle(transform,
+                                              scale > 1.0 ? scale : undefined);
+    kbd.style[transform]         = style;
+  }
+  if (transform == 'filter') {
+    scale                        = 1.0;
+  }
+  kbd.style.left                 = ((this.container.offsetWidth -
+                                     kbd.offsetWidth/scale)/2) + 'px';
+  kbd.style.top                  = ((this.container.offsetHeight -
+                                     kbd.offsetHeight/scale)/2) + 'px';
+
+  this.keyboard.style.visibility = 'visible';
+};
+
+VT100.prototype.hideSoftKeyboard = function() {
+  this.keyboard.style.display    = 'none';
+};
+
 VT100.prototype.toggleCursorBlinking = function() {
   this.blinkingCursor = !this.blinkingCursor;
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.10 (revision 220)" +
+  alert("VT100 Terminal Emulator " + "2.10 (revision 221)" +
         "\nCopyright 2008-2010 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
@@ -2007,6 +2417,9 @@ VT100.prototype.showContextMenu = function(x, y) {
           '<li>' +
              (this.visualBell ? '<img src="enabled.gif" />' : '') +
              'Visual Bell</li>'+
+          '<li>' +
+             (this.softKeyboard ? '<img src="enabled.gif" />' : '') +
+             'Onscreen Keyboard</li>' +
           '<li id="endconfig">' +
              (this.blinkingCursor ? '<img src="enabled.gif" />' : '') +
              'Blinking Cursor</li>'+
@@ -2038,6 +2451,7 @@ VT100.prototype.showContextMenu = function(x, y) {
   // Actions for default items
   var actions                 = [ this.copyLast, p, this.reset,
                                   this.toggleUTF, this.toggleBell,
+                                  this.toggleSoftKeyboard,
                                   this.toggleCursorBlinking ];
 
   // Actions for user CSS styles (if any)
@@ -2093,26 +2507,30 @@ VT100.prototype.showContextMenu = function(x, y) {
   }
 
   // Position menu next to the mouse pointer
-  if (x + popup.clientWidth > this.container.offsetWidth) {
-    x                         = this.container.offsetWidth - popup.clientWidth;
+  this.menu.style.left        = '0px';
+  this.menu.style.top         = '0px';
+  this.menu.style.width       =  this.container.offsetWidth  + 'px';
+  this.menu.style.height      =  this.container.offsetHeight + 'px';
+  popup.style.left            = '0px';
+  popup.style.top             = '0px';
+  
+  var margin                  = 2;
+  if (x + popup.clientWidth >= this.container.offsetWidth - margin) {
+    x              = this.container.offsetWidth-popup.clientWidth - margin - 1;
   }
-  if (x < 0) {
-    x                         = 0;
+  if (x < margin) {
+    x                         = margin;
   }
-  if (y + popup.clientHeight > this.container.offsetHeight) {
-    y                         = this.container.offsetHeight-popup.clientHeight;
+  if (y + popup.clientHeight >= this.container.offsetHeight - margin) {
+    y            = this.container.offsetHeight-popup.clientHeight - margin - 1;
   }
-  if (y < 0) {
-    y                         = 0;
+  if (y < margin) {
+    y                         = margin;
   }
   popup.style.left            = x + 'px';
   popup.style.top             = y + 'px';
 
   // Block all other interactions with the terminal emulator
-  this.menu.style.left        = '0px';
-  this.menu.style.top         = '0px';
-  this.menu.style.width       =  this.container.offsetWidth  + 'px';
-  this.menu.style.height      =  this.container.offsetHeight + 'px';
   this.addListener(this.menu, 'click', function(vt100) {
                                          return function() {
                                            vt100.hideContextMenu();
@@ -2895,39 +3313,42 @@ VT100.prototype.restoreCursor = function() {
               this.savedY[this.currentScreen]);
 };
 
-VT100.prototype.set80_132Mode = function(state) {
-  var transform                                       = undefined;
-  var styles                                          = [ 'transform',
-                                                          'WebkitTransform',
-                                                          'MozTransform',
-                                                          'filter'
-                                                        ];
+VT100.prototype.getTransformName = function() {
+  var styles = [ 'transform', 'WebkitTransform', 'MozTransform', 'filter' ];
   for (var i = 0; i < styles.length; ++i) {
     if (typeof this.console[0].style[styles[i]] != 'undefined') {
-      transform                                       = styles[i];
-      break;
+      return styles[i];
     }
   }
+  return undefined;
+};
 
+VT100.prototype.getTransformStyle = function(transform, scale) {
+  return scale && scale != 1.0
+    ? transform == 'filter'
+      ? 'progid:DXImageTransform.Microsoft.Matrix(' +
+                                 'M11=' + (1.0/scale) + ',M12=0,M21=0,M22=1,' +
+                                 "sizingMethod='auto expand')"
+      : 'translateX(-50%) ' +
+        'scaleX(' + (1.0/scale) + ') ' +
+        'translateX(50%)'
+    : '';
+};
+
+VT100.prototype.set80_132Mode = function(state) {
+  var transform                  = this.getTransformName();
   if (transform) {
     if ((this.console[this.currentScreen].style[transform] != '') == state) {
       return;
     }
-    var style                                         =
-      state ? transform == 'filter'
-            ? 'progid:DXImageTransform.Microsoft.Matrix(' +
-                             'M11=0.606060606060606060606,M12=0,M21=0,M22=1,' +
-                             "sizingMethod='auto expand')"
-            : 'translateX(-50%) ' +
-              'scaleX(0.606060606060606060606) ' +
-              'translateX(50%)'
-            : '';
+    var style                    = state ?
+                                   this.getTransformStyle(transform, 1.65):'';
     this.console[this.currentScreen].style[transform] = style;
-    this.cursor.style[transform]                      = style;
-    this.space.style[transform]                       = style;
-    this.scale                                        = state ? 1.65 : 1.0;
+    this.cursor.style[transform] = style;
+    this.space.style[transform]  = style;
+    this.scale                   = state ? 1.65 : 1.0;
     if (transform == 'filter') {
-      this.console[this.currentScreen].style.width    = state ? '165%' : '';
+      this.console[this.currentScreen].style.width = state ? '165%' : '';
     }
     this.resizer();
   }

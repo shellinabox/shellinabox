@@ -1,156 +1,233 @@
 #vt100 a { 
-  text-decoration:  none;
-  color:            inherit;
+  text-decoration:      none;
+  color:                inherit;
 }
 
 #vt100 a:hover { 
-  text-decoration:  underline;
+  text-decoration:      underline;
 }
 
 #vt100 #reconnect {
-  position:         absolute;
-  z-index:          2;
+  position:             absolute;
+  z-index:              2;
 }
 
 #vt100 #reconnect input { 
-  padding:          1ex;
-  font-weight:      bold;
-  font-size:        x-large;
+  padding:              1ex;
+  font-weight:          bold;
+  font-size:            x-large;
 }
 
 #vt100 #cursize {
-  background:       #EEEEEE;
-  border:           1px solid black;
-  font-family:      sans-serif;
-  font-size:        large;
-  font-weight:      bold;
-  padding:          1ex;
-  position:         absolute;
-  z-index:          2;
+  background:           #EEEEEE;
+  border:               1px solid black;
+  font-family:          sans-serif;
+  font-size:            large;
+  font-weight:          bold;
+  padding:              1ex;
+  position:             absolute;
+  z-index:              2;
 }
 
 #vt100 pre { 
-  margin:           0px;
+  margin:               0px;
 }
 
 #vt100 pre pre {
-  overflow:         hidden;
+  overflow:             hidden;
 }
 
 #vt100 #scrollable {
-  overflow-x:       hidden;
-  overflow-y:       scroll;
-  position:         relative;
-  padding:          1px;
+  overflow-x:           hidden;
+  overflow-y:           scroll;
+  position:             relative;
+  padding:              1px;
 }
 
 #vt100 #console, #vt100 #alt_console, #vt100 #cursor, #vt100 #lineheight, #vt100 .hidden pre { 
-  font-family:      "DejaVu Sans Mono", "Everson Mono", FreeMono, "Andale Mono", "Lucida Console", monospace;
+  font-family:          "DejaVu Sans Mono", "Everson Mono", FreeMono, "Andale Mono", "Lucida Console", monospace;
 }
 
 #vt100 #lineheight { 
-  position:         absolute;
-  visibility:       hidden;
+  position:             absolute;
+  visibility:           hidden;
 }
 
 #vt100 #cursor {
-  position:         absolute;
-  left:             0px;
-  top:              0px;
-  overflow:         hidden;
-  z-index:          1;
+  position:             absolute;
+  left:                 0px;
+  top:                  0px;
+  overflow:             hidden;
+  z-index:              1;
 }
 
 #vt100 #cursor.bright { 
-  background-color: #e60000;
-  color:            white;
+  background-color:     #e60000;
+  color:                white;
 }
 
 #vt100 #cursor.dim {
-  visibility:       hidden;
+  visibility:           hidden;
 }
 
 #vt100 #cursor.inactive {
-  border:           1px solid #e60000;
-  margin:           -1px;
+  border:               1px solid #e60000;
+  margin:               -1px;
 }
 
 #vt100 #padding { 
-  visibility:       hidden;
-  width:            1px;
-  height:           0px;
-  overflow:         hidden;
+  visibility:           hidden;
+  width:                1px;
+  height:               0px;
+  overflow:             hidden;
 }
 
 #vt100 .hidden {
-  position:         absolute;
-  top:              -10000px;
-  left:             -10000px;
-  width:            0px;
-  height:           0px;
+  position:             absolute;
+  top:                  -10000px;
+  left:                 -10000px;
+  width:                0px;
+  height:               0px;
 }
 
 #vt100 #menu { 
-  overflow:         visible;
-  position:         absolute;
-  z-index:          3;
+  overflow:             visible;
+  position:             absolute;
+  z-index:              3;
 }
 
 #vt100 #menu .popup {
-  background-color: #EEEEEE;
-  border:           1px solid black;
-  font-family:      sans-serif;
-  position:         absolute;
+  background-color:     #EEEEEE;
+  border:               1px solid black;
+  font-family:          sans-serif;
+  position:             absolute;
 }
 
 #vt100 #menu .popup ul { 
-  list-style-type:  none;
-  padding:          0px;
-  margin:           0px;
-  min-width:        10em;
+  list-style-type:      none;
+  padding:              0px;
+  margin:               0px;
+  min-width:            10em;
 }
 
 #vt100 #menu .popup li { 
-  padding:          3px 0.5ex 3px 0.5ex;
+  padding:              3px 0.5ex 3px 0.5ex;
 }
 
 #vt100 #menu .popup li.hover {
-  background-color: #444444;
-  color:            white;
+  background-color:     #444444;
+  color:                white;
 }
 
 #vt100 #menu .popup li.disabled {
-  color:            #AAAAAA;
+  color:                #AAAAAA;
 }
 
 #vt100 #menu .popup hr { 
-  margin:           0.5ex 0px 0.5ex 0px;
+  margin:               0.5ex 0px 0.5ex 0px;
 }
 
 #vt100 #menu img { 
-  margin-right:     0.5ex;
-  width:            1ex;
-  height:           1ex;
+  margin-right:         0.5ex;
+  width:                1ex;
+  height:               1ex;
 }
 
 #vt100 #scrollable.inverted { color:            #ffffff;
                               background-color: #000000; }
 
+#vt100 #kbd_button { 
+  float:                left;
+  position:             fixed;
+  z-index:              0;
+  visibility:           hidden;
+}
+
+#vt100 #keyboard {
+  z-index:              3;
+  position:             absolute;
+}
+
+#vt100 #keyboard .box {
+  font-family:          sans-serif;
+  background-color:     #cccccc;
+  padding:              .8em;
+  float:                left;
+  position:             absolute;
+  border-radius:        10px;
+  -moz-border-radius:   10px;
+  box-shadow:           4px 4px 6px #222222;
+  -webkit-box-shadow:   4px 4px 6px #222222;
+  /* Don't set the -moz-box-shadow. It doesn't properly scale when CSS
+   * transforms are in effect. Once Firefox supports box-shadow, it should
+   * automatically do the right thing. Until then, leave shadows disabled
+   * for Firefox.
+   */
+  opacity:              0.85;
+  -moz-opacity:         0.85;
+  filter:               alpha(opacity=85);
+}
+
+#vt100 #keyboard .box * {
+  vertical-align:       top;
+  display:              inline-block;
+}
+
+#vt100 #keyboard b, #vt100 #keyboard i, #vt100 #keyboard s, #vt100 #keyboard u {
+  font-style:           normal;
+  font-weight:          bold;
+  border-radius:        5px;
+  -moz-border-radius:   5px;
+  background-color:     #555555;
+  color:                #eeeeee;
+  box-shadow:           2px 2px 3px #222222;
+  -webkit-box-shadow:   2px 2px 3px #222222;
+  padding:              4px;
+  margin:               2px;
+  height:               2ex;
+  display:              inline-block;
+  text-align:           center;
+  text-decoration:      none;
+}
+
+#vt100 #keyboard b, #vt100 #keyboard s {
+  width:                2ex;
+}
+
+#vt100 #keyboard u, #vt100 #keyboard s {
+  visibility:           hidden;
+}
+
+#vt100 #keyboard .shifted { 
+  display:              none;
+}
+
+#vt100 #keyboard .selected {
+  color:                #888888;
+  background-color:     #eeeeee;
+  box-shadow:           0px 0px 3px #222222;
+  -webkit-box-shadow:   0px 0px 3px #222222;
+  position:             relative;
+  top:                  1px;
+  left:                 1px;
+}
+
+
 @media print {
   #vt100 .scrollback {
-    display:        none;
+    display:            none;
   }
 
-  #vt100 #reconnect, #vt100 #cursor, #vt100 #menu { 
-    visibility:     hidden;
+  #vt100 #reconnect, #vt100 #cursor, #vt100 #menu, #vt100 #kbd_button, #vt100 #keyboard { 
+    visibility:         hidden;
   }
 
   #vt100 #scrollable { 
-    overflow:       hidden;
+    overflow:           hidden;
   }
 
   #vt100 #console, #vt100 #alt_console { 
-    overflow:       hidden;
-    width:          1000000ex;
+    overflow:           hidden;
+    width:              1000000ex;
   }
 }

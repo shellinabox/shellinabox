@@ -1,3 +1,8 @@
+2010-09-04  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added an optional on-screen keyboard. Must be activated by the
+	user by selecting the option in the context-menu.
+
 2010-09-03  Markus Gutschke  <markus@shellinabox.com>
 
 	* Fix some scaling related issues. This fix is thanks to some

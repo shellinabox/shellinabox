@@ -32,6 +32,7 @@ EXTRA_DIST           = INSTALL.Debian                                         \
                        demo/demo.jspp                                         \
                        demo/demo.xml                                          \
                        demo/enabled.gif                                       \
+                       demo/keyboard.png                                      \
                        demo/styles.css                                        \
                        demo/print-styles.css                                  \
                        demo/vt100.js                                          \
@@ -106,6 +107,8 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/print-styles.css                           \
                        shellinabox/enabled.gif                                \
                        shellinabox/favicon.ico                                \
+                       shellinabox/keyboard.png                               \
+                       shellinabox/keyboard-layout.html                       \
                        shellinabox/beep.wav                                   \
                        config.h
 shellinaboxd_LDADD   = liblogging.la                                          \
@@ -148,7 +151,9 @@ libtool: $(LIBTOOL_DEPS)
 
 ${top_srcdir}/demo/demo.js: ${top_srcdir}/demo/beep.wav                       \
                             ${top_srcdir}/demo/demo.jspp                      \
+                            ${top_srcdir}/demo/enabled.gif                    \
                             ${top_srcdir}/demo/favicon.ico                    \
+                            ${top_srcdir}/demo/keyboard.png                   \
                             ${top_srcdir}/demo/styles.css                     \
                             ${top_srcdir}/demo/print-styles.css               \
                             ${top_srcdir}/demo/vt100.js                       \
@@ -166,6 +171,10 @@ ${top_srcdir}/demo/enabled.gif: ${top_srcdir}/shellinabox/enabled.gif
 	ln "$?" "$@"
 
 ${top_srcdir}/demo/favicon.ico: ${top_srcdir}/shellinabox/favicon.ico
+	@rm -f "$@"
+	ln "$?" "$@"
+
+${top_srcdir}/demo/keyboard.png: ${top_srcdir}/shellinabox/keyboard.png
 	@rm -f "$@"
 	ln "$?" "$@"
 
@@ -197,7 +206,8 @@ ${top_srcdir}/demo/vt100.js: ${top_srcdir}/shellinabox/vt100.js
 	@rm -f "$@"
 	ln "$?" "$@"
 
-shellinaboxd.1: shellinabox/shellinaboxd.man.in config.h
+shellinaboxd.1: ${top_srcdir}/shellinabox/shellinaboxd.man.in                 \
+		${top_srcdir}/config.h
 	@src="${top_srcdir}/shellinabox/shellinaboxd.man.in";                 \
 	echo preprocess  "$$src" '>'"$@";                                     \
 	if sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d config.h |           \
@@ -253,6 +263,13 @@ clean-local:
 	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
 	  rm -f GNU-stack
 
+.png.o:
+	@echo $(OBJCOPY) "$<" "$@"
+	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
+	  "$<" "$@"
+	@-printf '\000' >GNU-stack &&                                         \
+	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
+	  rm -f GNU-stack
 
 .html.o:
 	@echo $(OBJCOPY) "$<" "$@"
@@ -272,15 +289,23 @@ clean-local:
 	  rm -f GNU-stack
 
 
-shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
+shellinabox/shell_in_a_box.o: ${top_srcdir}/shellinabox/shell_in_a_box.js     \
+		${top_srcdir}/config.h
+
+${top_srcdir}/shellinabox/vt100.js: ${top_srcdir}/shellinabox/vt100.jspp      \
+		${top_srcdir}/shellinabox/keyboard-layout.html
 
 .jspp.js:
 	@echo preprocess "$<" "$@"
-	@sed -e "`sed -e 's/^#define *\([^ ]*\) *\(.*\)/\/^[^#]\/s\/\1\/\2 \\\\\/* \1 *\\\\\/\/g/' \
+	@kbd=`while read i; do                                                \
+	        printf '%s' "\`echo "$$i" | sed 's/&/\\\\\\&/g'\`";           \
+	      done <${top_srcdir}/shellinabox/keyboard-layout.html`;          \
+	sed -e "`sed -e 's/^#define *\([^ ]*\) *\(.*\)/\/^[^#]\/s\/\1\/\2 \\\\\/* \1 *\\\\\/\/g/' \
 	             -e t                                                     \
 	             -e d "$<"`"                                              \
 	     -e "s/^#/\/\/ #/"                                                \
 	     -e "s/VERSION/\"@VERSION@ (revision @VCS_REVISION@)\"/g"         \
+	     -e "s%KEYBOARD%'$${kbd}'%"                                       \
 	     "$<" >"$@"
 
 .js.o:

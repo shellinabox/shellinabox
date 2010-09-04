@@ -82,6 +82,8 @@ am_shellinaboxd_OBJECTS = shellinaboxd.$(OBJEXT) \
 	shellinabox/styles.$(OBJEXT) \
 	shellinabox/print-styles.$(OBJEXT) \
 	shellinabox/enabled.$(OBJEXT) shellinabox/favicon.$(OBJEXT) \
+	shellinabox/keyboard.$(OBJEXT) \
+	shellinabox/keyboard-layout.$(OBJEXT) \
 	shellinabox/beep.$(OBJEXT)
 shellinaboxd_OBJECTS = $(am_shellinaboxd_OBJECTS)
 shellinaboxd_DEPENDENCIES = liblogging.la libhttp.la
@@ -288,6 +290,7 @@ EXTRA_DIST = INSTALL.Debian                                         \
                        demo/demo.jspp                                         \
                        demo/demo.xml                                          \
                        demo/enabled.gif                                       \
+                       demo/keyboard.png                                      \
                        demo/styles.css                                        \
                        demo/print-styles.css                                  \
                        demo/vt100.js                                          \
@@ -366,6 +369,8 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/print-styles.css                           \
                        shellinabox/enabled.gif                                \
                        shellinabox/favicon.ico                                \
+                       shellinabox/keyboard.png                               \
+                       shellinabox/keyboard-layout.html                       \
                        shellinabox/beep.wav                                   \
                        config.h
 
@@ -407,7 +412,7 @@ all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .css .gif .html .ico .js .jspp .lo .o .obj .wav
+.SUFFIXES: .c .css .gif .html .ico .js .jspp .lo .o .obj .png .wav
 am--refresh:
 	@:
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
@@ -537,6 +542,10 @@ shellinabox/enabled.$(OBJEXT): shellinabox/$(am__dirstamp) \
 	shellinabox/$(DEPDIR)/$(am__dirstamp)
 shellinabox/favicon.$(OBJEXT): shellinabox/$(am__dirstamp) \
 	shellinabox/$(DEPDIR)/$(am__dirstamp)
+shellinabox/keyboard.$(OBJEXT): shellinabox/$(am__dirstamp) \
+	shellinabox/$(DEPDIR)/$(am__dirstamp)
+shellinabox/keyboard-layout.$(OBJEXT): shellinabox/$(am__dirstamp) \
+	shellinabox/$(DEPDIR)/$(am__dirstamp)
 shellinabox/beep.$(OBJEXT): shellinabox/$(am__dirstamp) \
 	shellinabox/$(DEPDIR)/$(am__dirstamp)
 shellinaboxd$(EXEEXT): $(shellinaboxd_OBJECTS) $(shellinaboxd_DEPENDENCIES) 
@@ -549,6 +558,8 @@ mostlyclean-compile:
 	-rm -f shellinabox/cgi_root.$(OBJEXT)
 	-rm -f shellinabox/enabled.$(OBJEXT)
 	-rm -f shellinabox/favicon.$(OBJEXT)
+	-rm -f shellinabox/keyboard-layout.$(OBJEXT)
+	-rm -f shellinabox/keyboard.$(OBJEXT)
 	-rm -f shellinabox/print-styles.$(OBJEXT)
 	-rm -f shellinabox/root_page.$(OBJEXT)
 	-rm -f shellinabox/shell_in_a_box.$(OBJEXT)
@@ -1162,7 +1173,9 @@ libtool: $(LIBTOOL_DEPS)
 
 ${top_srcdir}/demo/demo.js: ${top_srcdir}/demo/beep.wav                       \
                             ${top_srcdir}/demo/demo.jspp                      \
+                            ${top_srcdir}/demo/enabled.gif                    \
                             ${top_srcdir}/demo/favicon.ico                    \
+                            ${top_srcdir}/demo/keyboard.png                   \
                             ${top_srcdir}/demo/styles.css                     \
                             ${top_srcdir}/demo/print-styles.css               \
                             ${top_srcdir}/demo/vt100.js                       \
@@ -1180,6 +1193,10 @@ ${top_srcdir}/demo/enabled.gif: ${top_srcdir}/shellinabox/enabled.gif
 	ln "$?" "$@"
 
 ${top_srcdir}/demo/favicon.ico: ${top_srcdir}/shellinabox/favicon.ico
+	@rm -f "$@"
+	ln "$?" "$@"
+
+${top_srcdir}/demo/keyboard.png: ${top_srcdir}/shellinabox/keyboard.png
 	@rm -f "$@"
 	ln "$?" "$@"
 
@@ -1211,7 +1228,8 @@ ${top_srcdir}/demo/vt100.js: ${top_srcdir}/shellinabox/vt100.js
 	@rm -f "$@"
 	ln "$?" "$@"
 
-shellinaboxd.1: shellinabox/shellinaboxd.man.in config.h
+shellinaboxd.1: ${top_srcdir}/shellinabox/shellinaboxd.man.in                 \
+		${top_srcdir}/config.h
 	@src="${top_srcdir}/shellinabox/shellinaboxd.man.in";                 \
 	echo preprocess  "$$src" '>'"$@";                                     \
 	if sed -e 's/^#define \([^ ]*\).*/\1/' -e t -e d config.h |           \
@@ -1267,6 +1285,14 @@ clean-local:
 	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
 	  rm -f GNU-stack
 
+.png.o:
+	@echo $(OBJCOPY) "$<" "$@"
+	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
+	  "$<" "$@"
+	@-printf '\000' >GNU-stack &&                                         \
+	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
+	  rm -f GNU-stack
+
 .html.o:
 	@echo $(OBJCOPY) "$<" "$@"
 	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
@@ -1283,15 +1309,23 @@ clean-local:
 	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
 	  rm -f GNU-stack
 
-shellinabox/shell_in_a_box.o: shellinabox/shell_in_a_box.js config.h
+shellinabox/shell_in_a_box.o: ${top_srcdir}/shellinabox/shell_in_a_box.js     \
+		${top_srcdir}/config.h
+
+${top_srcdir}/shellinabox/vt100.js: ${top_srcdir}/shellinabox/vt100.jspp      \
+		${top_srcdir}/shellinabox/keyboard-layout.html
 
 .jspp.js:
 	@echo preprocess "$<" "$@"
-	@sed -e "`sed -e 's/^#define *\([^ ]*\) *\(.*\)/\/^[^#]\/s\/\1\/\2 \\\\\/* \1 *\\\\\/\/g/' \
+	@kbd=`while read i; do                                                \
+	        printf '%s' "\`echo "$$i" | sed 's/&/\\\\\\&/g'\`";           \
+	      done <${top_srcdir}/shellinabox/keyboard-layout.html`;          \
+	sed -e "`sed -e 's/^#define *\([^ ]*\) *\(.*\)/\/^[^#]\/s\/\1\/\2 \\\\\/* \1 *\\\\\/\/g/' \
 	             -e t                                                     \
 	             -e d "$<"`"                                              \
 	     -e "s/^#/\/\/ #/"                                                \
 	     -e "s/VERSION/\"@VERSION@ (revision @VCS_REVISION@)\"/g"         \
+	     -e "s%KEYBOARD%'$${kbd}'%"                                       \
 	     "$<" >"$@"
 
 .js.o:
