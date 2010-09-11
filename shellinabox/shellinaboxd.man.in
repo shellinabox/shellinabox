@@ -1,6 +1,6 @@
 '\" t
 .\" shellinaboxd.man -- Make command line applications available as AJAX web applications
-.\" Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+.\" Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 .\"
 .\" This program is free software; you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License version 2 as
@@ -44,7 +44,7 @@
 .\" The most up-to-date version of this program is always available from
 .\" http://shellinabox.com
 .\"
-.TH SHELLINABOXD 1 "Dec 03, 2009"
+.TH SHELLINABOXD 1 "Sep 11, 2010"
 .SH NAME
 shellinaboxd \- publish command line shell through AJAX interface
 .SH SYNOPSIS
@@ -65,6 +65,7 @@ shellinaboxd \- publish command line shell through AJAX interface
 [\ \fB--localhost-only\fP\ ]
 [\ \fB--no-beep\fP\ ]
 [\ \fB-n\fP\ | \fB--numeric\fP\ ]
+[\ \fB--pidfile=\fP\fIpidfile\fP\ ]
 [\ \fB-p\fP\ | \fB--port=\fP\fIport\fP\ ]
 [\ \fB-s\fP\ | \fB--service=\fP\fIservice\fP\ ]
 #ifdef HAVE_OPENSSL
@@ -188,7 +189,8 @@ should be configured to pass through the firewall.
 The
 .B --cgi
 option is mutually exclusive with the
-.B --background
+.BR --background ,
+.B --pidfile
 and
 .B --port
 options.
@@ -311,6 +313,12 @@ log file to
 By default, host names of peers get resolved
 before logging them. As DNS look-ups can be expensive, it is possible
 to request logging of numeric IP addresses, instead.
+.TP
+\fB--pidfile=\fP\fIpidfile\fP
+The
+.B shellinaboxd
+daemon can be configured to store its process identifier in
+.IR pidfile .
 .TP
 \fB-p\fP\ |\ \fB--port=\fP\fIport\fP
 Unless overridden by this option, the web server listens on port 4200
@@ -798,7 +806,7 @@ and
 .B --user
 options should be used to change to a dedicated user.
 .SH AUTHOR
-Copyright (C) 2008-2009 by Markus Gutschke
+Copyright (C) 2008-2010 by Markus Gutschke
 .RI < "markus@shellinabox.com" >.
 .P
 This program is free software; you can redistribute it and/or modify

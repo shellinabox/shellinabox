@@ -1,3 +1,8 @@
+2010-09-11  Markus Gutschke  <markus@shellinabox.com>
+
+	* Added --pidfile= option that can be used even if running in the
+	foreground.
+
 2010-09-04  Markus Gutschke  <markus@shellinabox.com>
 
 	* Added an optional on-screen keyboard. Must be activated by the

@@ -52,6 +52,8 @@
 #include <limits.h>
 #include <locale.h>
 #include <poll.h>
+#include <setjmp.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,6 +96,9 @@ static char           *cgiSessionKey;
 static int            cgiSessions;
 static char           *cssStyleSheet;
 static struct UserCSS *userCSSList;
+static const char     *pidfile;
+static sigjmp_buf     jmpenv;
+static volatile int   exiting;
 
 static char *jsonEscape(const char *buf, int len) {
   static const char *hexDigit = "0123456789ABCDEF";
@@ -757,6 +762,7 @@ static void usage(void) {
           "      --localhost-only        only listen on 127.0.0.1\n"
           "      --no-beep               suppress all audio output\n"
           "  -n, --numeric               do not resolve hostnames\n"
+          "      --pidfile=PIDFILE       publish pid of daemon process\n"
           "  -p, --port=PORT             select a port (default: %d)\n"
           "  -s, --service=SERVICE       define one or more services\n"
           "%s"
@@ -822,6 +828,13 @@ static void destroyExternalFileHashEntry(void *arg, char *key, char *value) {
   free(value);
 }
 
+static void sigHandler(int signo, siginfo_t *info, void *context) {
+  if (exiting++) {
+    _exit(1);
+  }
+  siglongjmp(jmpenv, 1);
+}
+
 static void parseArgs(int argc, char * const argv[]) {
   int hasSSL               = serverSupportsSSL();
   if (!hasSSL) {
@@ -829,7 +842,6 @@ static void parseArgs(int argc, char * const argv[]) {
   }
   int demonize             = 0;
   int cgi                  = 0;
-  const char *pidfile      = NULL;
   int verbosity            = MSG_DEFAULT;
   externalFiles            = newHashMap(destroyExternalFileHashEntry, NULL);
   HashMap *serviceTable    = newHashMap(destroyServiceHashEntry, NULL);
@@ -855,6 +867,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "localhost-only",   0, 0,  0  },
       { "no-beep",          0, 0,  0  },
       { "numeric",          0, 0, 'n' },
+      { "pidfile",          1, 0,  0  },
       { "port",             1, 0, 'p' },
       { "service",          1, 0, 's' },
       { "disable-ssl",      0, 0, 't' },
@@ -894,7 +907,7 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Only one pidfile can be given");
       }
       if (optarg && *optarg) {
-        pidfile            = strdup(optarg);
+        check(pidfile     = strdup(optarg));
       }
     } else if (!idx--) {
       // Certificate
@@ -957,6 +970,9 @@ static void parseArgs(int argc, char * const argv[]) {
       if (demonize) {
         fatal("CGI and background operations are mutually exclusive");
       }
+      if (pidfile) {
+        fatal("CGI operation and --pidfile= are mutually exclusive");
+      }
       if (port) {
         fatal("Cannot specify a port for CGI operation");
       }
@@ -987,7 +1003,7 @@ static void parseArgs(int argc, char * const argv[]) {
       check(path           = malloc(ptr - optarg + 1));
       memcpy(path, optarg, ptr - optarg);
       path[ptr - optarg]   = '\000';
-      file                 = strdup(ptr + 1);
+      check(file           = strdup(ptr + 1));
       if (getRefFromHashMap(externalFiles, path)) {
         fatal("Duplicate static-file definition for \"%s\".", path);
       }
@@ -1022,6 +1038,18 @@ static void parseArgs(int argc, char * const argv[]) {
     } else if (!idx--) {
       // Numeric
       numericHosts         = 1;
+    } else if (!idx--) {
+      // Pidfile
+      if (cgi) {
+        fatal("CGI operation and --pidfile= are mutually exclusive");
+      }
+      if (!optarg || !*optarg) {
+        fatal("Must specify a filename for --pidfile= option");
+      }
+      if (pidfile) {
+        fatal("Only one pidfile can be given");
+      }
+      check(pidfile        = strdup(optarg));
     } else if (!idx--) {
       // Port
       if (port) {
@@ -1138,21 +1166,23 @@ static void parseArgs(int argc, char * const argv[]) {
       _exit(0);
     }
     setsid();
-    if (pidfile) {
+  }
+  if (pidfile) {
 #ifndef O_LARGEFILE
 #define O_LARGEFILE 0
 #endif
-      int fd               = NOINTR(open(pidfile,
+    int fd                 = NOINTR(open(pidfile,
                                          O_WRONLY|O_TRUNC|O_LARGEFILE|O_CREAT,
                                          0644));
-      if (fd >= 0) {
-        char buf[40];
-        NOINTR(write(fd, buf, snprintf(buf, 40, "%d", (int)getpid())));
-        check(!NOINTR(close(fd)));
-      }
+    if (fd >= 0) {
+      char buf[40];
+      NOINTR(write(fd, buf, snprintf(buf, 40, "%d", (int)getpid())));
+      check(!NOINTR(close(fd)));
+    } else {
+      free((char *)pidfile);
+      pidfile              = NULL;
     }
   }
-  free((char *)pidfile);
 }
 
 static void removeLimits() {
@@ -1278,7 +1308,20 @@ int main(int argc, char * const argv[]) {
   iterateOverHashMap(externalFiles, registerExternalFiles, server);
 
   // Start the server
-  serverLoop(server);
+  if (!sigsetjmp(jmpenv, 1)) {
+    // Clean up upon orderly shut down. Do _not_ cleanup if we die
+    // unexpectedly, as we cannot guarantee if we are still in a valid
+    // static. This means, we should never catch SIGABRT.
+    static const int signals[] = { SIGHUP, SIGINT, SIGQUIT, SIGTERM };
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_sigaction = sigHandler;
+    sa.sa_flags   = SA_SIGINFO | SA_RESETHAND;
+    for (int i = 0; i < sizeof(signals)/sizeof(*signals); ++i) {
+      sigaction(signals[i], &sa, NULL);
+    }
+    serverLoop(server);
+  }
 
   // Clean up
   deleteServer(server);
@@ -1290,6 +1333,27 @@ int main(int argc, char * const argv[]) {
   free(services);
   free(certificateDir);
   free(cgiSessionKey);
+  if (pidfile) {
+    // As a convenience, remove the pidfile, if it is still the version that
+    // we wrote. In general, pidfiles are not expected to be incredibly
+    // reliable, as there is no way to properly deal with multiple programs
+    // accessing the same pidfile. But we at least make a best effort to be
+    // good citizens.
+    char buf[40];
+    int fd        = open(pidfile, O_RDONLY);
+    if (fd >= 0) {
+      ssize_t sz;
+      NOINTR(sz   = read(fd, buf, sizeof(buf)-1));
+      NOINTR(close(fd));
+      if (sz > 0) {
+        buf[sz]   = '\000';
+        if (atoi(buf) == getpid()) {
+          unlink(pidfile);
+        }
+      }
+    }
+    free((char *)pidfile);
+  }
   info("Done");
   _exit(0);
 }
