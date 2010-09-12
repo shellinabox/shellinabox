@@ -646,7 +646,12 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     extern char faviconStart[];
     extern char faviconEnd[];
     serveStaticFile(http, "image/x-icon", faviconStart, faviconEnd);
-  } else if (pathInfoLength == 12 && !memcmp(pathInfo, "keyboard.png", 11)) {
+  } else if (pathInfoLength == 13 && !memcmp(pathInfo, "keyboard.html", 13)) {
+    // Serve the keyboard layout
+    extern char keyboardLayoutStart[];
+    extern char keyboardLayoutEnd[];
+    serveStaticFile(http, "text/html", keyboardLayoutStart, keyboardLayoutEnd);
+  } else if (pathInfoLength == 12 && !memcmp(pathInfo, "keyboard.png", 12)) {
     // Serve the keyboard icon
     extern char keyboardStart[];
     extern char keyboardEnd[];

@@ -32,6 +32,7 @@ EXTRA_DIST           = INSTALL.Debian                                         \
                        demo/demo.jspp                                         \
                        demo/demo.xml                                          \
                        demo/enabled.gif                                       \
+                       demo/keyboard.html                                     \
                        demo/keyboard.png                                      \
                        demo/styles.css                                        \
                        demo/print-styles.css                                  \
@@ -153,6 +154,7 @@ ${top_srcdir}/demo/demo.js: ${top_srcdir}/demo/beep.wav                       \
                             ${top_srcdir}/demo/demo.jspp                      \
                             ${top_srcdir}/demo/enabled.gif                    \
                             ${top_srcdir}/demo/favicon.ico                    \
+                            ${top_srcdir}/demo/keyboard.html                  \
                             ${top_srcdir}/demo/keyboard.png                   \
                             ${top_srcdir}/demo/styles.css                     \
                             ${top_srcdir}/demo/print-styles.css               \
@@ -171,6 +173,10 @@ ${top_srcdir}/demo/enabled.gif: ${top_srcdir}/shellinabox/enabled.gif
 	ln "$?" "$@"
 
 ${top_srcdir}/demo/favicon.ico: ${top_srcdir}/shellinabox/favicon.ico
+	@rm -f "$@"
+	ln "$?" "$@"
+
+${top_srcdir}/demo/keyboard.html: ${top_srcdir}/shellinabox/keyboard-layout.html
 	@rm -f "$@"
 	ln "$?" "$@"
 
@@ -292,20 +298,15 @@ clean-local:
 shellinabox/shell_in_a_box.o: ${top_srcdir}/shellinabox/shell_in_a_box.js     \
 		${top_srcdir}/config.h
 
-${top_srcdir}/shellinabox/vt100.js: ${top_srcdir}/shellinabox/vt100.jspp      \
-		${top_srcdir}/shellinabox/keyboard-layout.html
+${top_srcdir}/shellinabox/vt100.js: ${top_srcdir}/shellinabox/vt100.jspp
 
 .jspp.js:
 	@echo preprocess "$<" "$@"
-	@kbd=`while read i; do                                                \
-	        printf '%s' "\`echo "$$i" | sed 's/&/\\\\\\&/g'\`";           \
-	      done <${top_srcdir}/shellinabox/keyboard-layout.html`;          \
 	sed -e "`sed -e 's/^#define *\([^ ]*\) *\(.*\)/\/^[^#]\/s\/\1\/\2 \\\\\/* \1 *\\\\\/\/g/' \
 	             -e t                                                     \
 	             -e d "$<"`"                                              \
 	     -e "s/^#/\/\/ #/"                                                \
 	     -e "s/VERSION/\"@VERSION@ (revision @VCS_REVISION@)\"/g"         \
-	     -e "s%KEYBOARD%'$${kbd}'%"                                       \
 	     "$<" >"$@"
 
 .js.o:

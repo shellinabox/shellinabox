@@ -716,15 +716,20 @@ VT100.prototype.initializeKeyBindings = function(elem) {
         }
       } else {
         var child = elem.firstChild;
-        if (child.nodeName == "#text") {
-          // If the key only has a text node as a child, then it is a letter.
-          // Automatically compute the lower and upper case version of the key.
-          this.addKeyBinding(elem, this.getTextContent(child).toLowerCase());
-        } else {
-          // If the key has two children, they are the lower and upper case
-          // character code, respectively.
-          this.addKeyBinding(elem, this.getTextContent(child), undefined,
-                             this.getTextContent(child.nextSibling));
+        if (child) {
+          if (child.nodeName == "#text") {
+            // If the key only has a text node as a child, then it is a letter.
+            // Automatically compute the lower and upper case version of the
+            // key.
+            var text = this.getTextContent(child) ||
+                       this.getTextContent(elem);
+            this.addKeyBinding(elem, text.toLowerCase());
+          } else if (child.nextSibling) {
+            // If the key has two children, they are the lower and upper case
+            // character code, respectively.
+            this.addKeyBinding(elem, this.getTextContent(child), undefined,
+                               this.getTextContent(child.nextSibling));
+          }
         }
       }
     }
@@ -735,14 +740,13 @@ VT100.prototype.initializeKeyBindings = function(elem) {
   }
 };
 
-VT100.prototype.initializeKeyboard = function() {
+VT100.prototype.initializeKeyboardButton = function() {
   // Configure mouse event handlers for button that displays/hides keyboard
-  var box                               = this.keyboard.firstChild;
-  this.hideSoftKeyboard();
   this.addListener(this.keyboardImage, 'click',
     function(vt100) { return function(e) {
       if (vt100.keyboard.style.display != '') {
         if (vt100.reconnectBtn.style.visibility != '') {
+          vt100.initializeKeyboard();
           vt100.showSoftKeyboard();
         }
       } else {
@@ -755,6 +759,18 @@ VT100.prototype.initializeKeyboard = function() {
   if (this.softKeyboard) {
     this.keyboardImage.style.visibility = 'visible';
   }
+};
+
+VT100.prototype.initializeKeyboard = function() {
+  // Only need to initialize the keyboard the very first time. When doing so,
+  // copy the keyboard layout from the iframe.
+  if (this.keyboard.firstChild) {
+    return;
+  }
+  this.keyboard.innerHTML               =
+                                    this.layout.contentDocument.body.innerHTML;
+  var box                               = this.keyboard.firstChild;
+  this.hideSoftKeyboard();
 
   // Configure mouse event handlers for on-screen keyboard
   this.addListener(this.keyboard, 'click',
@@ -808,6 +824,7 @@ VT100.prototype.initializeElements = function(container) {
       !this.getChildById(this.container, 'keyboard')    ||
       !this.getChildById(this.container, 'kbd_button')  ||
       !this.getChildById(this.container, 'kbd_img')     ||
+      !this.getChildById(this.container, 'layout')      ||
       !this.getChildById(this.container, 'scrollable')  ||
       !this.getChildById(this.container, 'console')     ||
       !this.getChildById(this.container, 'alt_console') ||
@@ -851,7 +868,6 @@ VT100.prototype.initializeElements = function(container) {
                        '</div>' +
                        '<div id="menu"></div>' +
                        '<div id="keyboard" unselectable="on">' +
-                         '<pre class="box"><div><i id="27">Esc</i><i id="112">F1</i><i id="113">F2</i><i id="114">F3</i><i id="115">F4</i><i id="116">F5</i><i id="117">F6</i><i id="118">F7</i><i id="119">F8</i><i id="120">F9</i><i id="121">F10</i><i id="122">F11</i><i id="123">F12</i><br /><b><span class="unshifted">`</span><span class="shifted">~</span></b><b><span class="unshifted">1</span><span class="shifted">!</span></b><b><span class="unshifted">2</span><span class="shifted">@</span></b><b><span class="unshifted">3</span><span class="shifted">#</span></b><b><span class="unshifted">4</span><span class="shifted">&#36;</span></b><b><span class="unshifted">5</span><span class="shifted">&#37;</span></b><b><span class="unshifted">6</span><span class="shifted">^</span></b><b><span class="unshifted">7</span><span class="shifted">&amp;</span></b><b><span class="unshifted">8</span><span class="shifted">*</span></b><b><span class="unshifted">9</span><span class="shifted">(</span></b><b><span class="unshifted">0</span><span class="shifted">)</span></b><b><span class="unshifted">-</span><span class="shifted">_</span></b><b><span class="unshifted">=</span><span class="shifted">+</span></b><i id="8">&nbsp;&larr;&nbsp;</i><br /><i id="9">Tab</i><b>Q</b><b>W</b><b>E</b><b>R</b><b>T</b><b>Y</b><b>U</b><b>I</b><b>O</b><b>P</b><b><span class="unshifted">[</span><span class="shifted">{</span></b><b><span class="unshifted">]</span><span class="shifted">}</span></b><b><span class="unshifted">&#92;</span><span class="shifted">|</span></b><br /><u>Tab&nbsp;&nbsp;</u><b>A</b><b>S</b><b>D</b><b>F</b><b>G</b><b>H</b><b>J</b><b>K</b><b>L</b><b><span class="unshifted">;</span><span class="shifted">:</span></b><b><span class="unshifted">&#39;</span><span class="shifted">"</span></b><i id="13">Enter</i><br /><u>&nbsp;&nbsp;</u><i id="16">Shift</i><b>Z</b><b>X</b><b>C</b><b>V</b><b>B</b><b>N</b><b>M</b><b><span class="unshifted">,</span><span class="shifted">&lt;</span></b><b><span class="unshifted">.</span><span class="shifted">&gt;</span></b><b><span class="unshifted">/</span><span class="shifted">?</span></b><i id="16">Shift</i><br /><u>XXX</u><i id="17">Ctrl</i><i id="18">Alt</i><i style="width: 25ex">&nbsp</i></div>&nbsp;&nbsp;&nbsp;<div><i id="45">Ins</i><i id="46">Del</i><i id="36">Home</i><i id="35">End</i><br /><u>&nbsp;</u><br /><u>&nbsp;</u><br /><u>Ins</u><s>&nbsp;</s><b id="38">&uarr;</b><s>&nbsp;</s><u>&nbsp;</u><b id="33">&uArr;</b><br /><u>Ins</u><b id="37">&larr;</b><b id="40">&darr;</b><b id="39">&rarr;</b><u>&nbsp;</u><b id="34">&dArr;</b></div></pre>' +
                        '</div>' +
                        '<div id="scrollable">' +
                          '<table id="kbd_button">' +
@@ -876,6 +892,7 @@ VT100.prototype.initializeElements = function(container) {
                          (typeof suppressAllAudio != 'undefined' &&
                           suppressAllAudio ? "" :
                          embed + '<bgsound id="beep_bgsound" loop=1 />') +
+                          '<iframe id="layout" src="keyboard.html" />' +
                         '</div>';
   }
 
@@ -901,6 +918,7 @@ VT100.prototype.initializeElements = function(container) {
   this.menu                    = this.getChildById(this.container, 'menu');
   this.keyboard                = this.getChildById(this.container, 'keyboard');
   this.keyboardImage           = this.getChildById(this.container, 'kbd_img');
+  this.layout                  = this.getChildById(this.container, 'layout');
   this.scrollable              = this.getChildById(this.container,
                                                                  'scrollable');
   this.lineheight              = this.getChildById(this.container,
@@ -978,11 +996,11 @@ VT100.prototype.initializeElements = function(container) {
     try { document.body.oncontextmenu = function() {return false;};} catch(e){}
   }
 
+  // Set up onscreen soft keyboard
+  this.initializeKeyboardButton();
+
   // Hide context menu
   this.hideContextMenu();
-
-  // Set up onscreen soft keyboard
-  this.initializeKeyboard();
 
   // Add listener to reconnect button
   this.addListener(this.reconnectBtn.firstChild, 'click',
@@ -2384,7 +2402,7 @@ VT100.prototype.toggleCursorBlinking = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.10 (revision 223)" +
+  alert("VT100 Terminal Emulator " + "2.10 (revision 225)" +
         "\nCopyright 2008-2010 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
