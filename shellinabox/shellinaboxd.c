@@ -269,7 +269,7 @@ static int handleSession(struct ServerConnection *connection, void *arg,
   if (len <= 0) {
     len                         = 1;
   }
-  char buf[len];
+  char buf[MAX_RESPONSE];
   int bytes                     = 0;
   if (revents & POLLIN) {
     bytes                       = NOINTR(read(session->pty, buf, len));
