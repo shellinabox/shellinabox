@@ -2,9 +2,6 @@ AM_CPPFLAGS          =
 AM_CFLAGS            = -g -std=gnu99 -Wall
 AM_LDFLAGS           = -g -lm
 
-OBJCOPY             ?= objcopy
-OBJDUMP             ?= objdump
-
 noinst_LTLIBRARIES   = libhttp.la                                             \
                        liblogging.la
 noinst_DATA          = $(top_srcdir)/demo/demo.js
@@ -112,39 +109,36 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/keyboard-layout.html                       \
                        shellinabox/beep.wav                                   \
                        config.h
+BUILT_SOURCES        = shellinabox/beep.h                                     \
+                       shellinabox/cgi_root.h                                 \
+                       shellinabox/enabled.h                                  \
+                       shellinabox/favicon.h                                  \
+                       shellinabox/keyboard.h                                 \
+                       shellinabox/keyboard-layout.h                          \
+                       shellinabox/print-styles.h                             \
+                       shellinabox/root_page.h                                \
+                       shellinabox/shell_in_a_box.h                           \
+                       shellinabox/shell_in_a_box.js                          \
+                       shellinabox/styles.h                                   \
+                       shellinabox/vt100.h                                    \
+                       shellinabox/vt100.js
+
+
 shellinaboxd_LDADD   = liblogging.la                                          \
                        libhttp.la
 shellinaboxd_LDFLAGS = -static
 
-objcopyflags         = case "$(host_cpu)" in                                  \
-                         i[0-9]86)echo '-O elf32-i386 -B i386';;              \
-                         x86_64)  echo '-O elf64-x86-64 -B i386:x86-64';;     \
-                         *)       trap 'rm -f /tmp/probe$$$$.o' EXIT;         \
-                                  $(CC) $(AM_CFLAGS) $(CFLAGS) -c -xc         \
-                                        -o /tmp/probe$$$$.o /dev/null &&      \
-                                  $(OBJDUMP) -f /tmp/probe$$$$.o |            \
-                                  sed -e 's/.*file format */-O /;t;           \
-                                       s/architecture: *\([^,]*\).*/-B \1/;t; \
-                                       d';;                                   \
-                       esac
-
-renamesymbols        =                                                        \
-  sed -e 's/\(.*\/\)\([^.]*\)\([.].*\)/\1\2\3=\2 /'                           \
+symbolname           =                                                        \
+  sed -e 's/.*\/\([^.]*\)[.].*/\1/'                                           \
       -e 't0'                                                                 \
-      -e 's/\([^.]*\)\([.].*\)/\1\2=\1 /'                                     \
-      -e 't0'                                                                 \
-      -e 's/.*/&=& /'                                                         \
+      -e 's/\([^.]*\)[.].*/\1/'                                               \
       -e ':0'                                                                 \
-      -e 's/$$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/'         \
+      -e 's/$$/ aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/'        \
       -e ':1'                                                                 \
-      -e 's/\(=[^-_]*\)[-_]\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/'            \
+      -e 's/\([^-_]*\)[-_]\([a-z]\)\([^ ]* .*\2\)\(.\)/\1\4\3\4/'             \
       -e 't1'                                                                 \
       -e 's/.\{53\}$$//'                                                      \
-      -e 's/[-/.]/_/g'                                                        \
-      -e 's/^/--redefine-sym _binary_/'                                       \
-      -e 's/\([^=]*\)\(=[^ ]*\)/& \1_end\2End/'                               \
-      -e 's/\([^=]*\)\(=[^ ]*\)/& \1_start\2Start/'                           \
-      -e 's/[^ ]*\([^=]*\)=[^ ]*/-N\1_size/'
+      -e 's/[-/.]/_/g'
 
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status --recheck
@@ -251,57 +245,72 @@ clean-local:
 	        debian/shellinabox*.debhelper*                                \
 	        debian/shellinabox.substvars                                  \
 	        debian/tmp
-	-rm -rf GNU-stack
+	-rm -rf shellinabox/beep.h                                            \
+	        shellinabox/cgi_root.h      				      \
+	        shellinabox/enabled.h       				      \
+	        shellinabox/favicon.h       				      \
+	        shellinabox/keyboard.h      				      \
+	        shellinabox/keyboard-layout.h				      \
+	        shellinabox/print-styles.h  				      \
+	        shellinabox/root_page.h     				      \
+	        shellinabox/shell_in_a_box.h				      \
+	        shellinabox/styles.h                                          \
+	        shellinabox/vt100.h
 
-.css.o:
-	@echo $(OBJCOPY) "$<" "$@"
-	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
-	  "$<" "$@"
-	@-printf '\000' >GNU-stack &&                                         \
-	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
-	  rm -f GNU-stack
+.css.h:
+	@echo od "$<" '>'"$@"
+	@mkdir -p "`dirname "$@"`"
+	@{ sym="`echo "$<" | $(symbolname)`";                                 \
+	   echo "static const char $${sym}Start[]=";                          \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo ';';                                                          \
+	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	 } >"$@"
 
-.gif.o:
-	@echo $(OBJCOPY) "$<" "$@"
-	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
-	  "$<" "$@"
-	@-printf '\000' >GNU-stack &&                                         \
-	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
-	  rm -f GNU-stack
+.gif.h:
+	@echo od "$<" '>'"$@"
+	@mkdir -p "`dirname "$@"`"
+	@{ sym="`echo "$<" | $(symbolname)`";                                 \
+	   echo "static const char $${sym}Start[]=";                          \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo ';';                                                          \
+	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	 } >"$@"
 
-.png.o:
-	@echo $(OBJCOPY) "$<" "$@"
-	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
-	  "$<" "$@"
-	@-printf '\000' >GNU-stack &&                                         \
-	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
-	  rm -f GNU-stack
+.png.h:
+	@echo od "$<" '>'"$@"
+	@mkdir -p "`dirname "$@"`"
+	@{ sym="`echo "$<" | $(symbolname)`";                                 \
+	   echo "static const char $${sym}Start[]=";                          \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo ';';                                                          \
+	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	 } >"$@"
 
-.html.o:
-	@echo $(OBJCOPY) "$<" "$@"
-	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
-	  "$<" "$@"
-	@-printf '\000' >GNU-stack &&                                         \
-	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
-	  rm -f GNU-stack
-
-
-.ico.o:
-	@echo $(OBJCOPY) "$<" "$@"
-	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
-	  "$<" "$@"
-	@-printf '\000' >GNU-stack &&                                         \
-	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
-	  rm -f GNU-stack
+.html.h:
+	@echo od "$<" '>'"$@"
+	@mkdir -p "`dirname "$@"`"
+	@{ sym="`echo "$<" | $(symbolname)`";                                 \
+	   echo "static const char $${sym}Start[]=";                          \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo ';';                                                          \
+	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	 } >"$@"
 
 
-shellinabox/shell_in_a_box.o: ${top_srcdir}/shellinabox/shell_in_a_box.js     \
-		${top_srcdir}/config.h
-
-${top_srcdir}/shellinabox/vt100.js: ${top_srcdir}/shellinabox/vt100.jspp
+.ico.h:
+	@echo od "$<" '>'"$@"
+	@mkdir -p "`dirname "$@"`"
+	@{ sym="`echo "$<" | $(symbolname)`";                                 \
+	   echo "static const char $${sym}Start[]=";                          \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo ';';                                                          \
+	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	 } >"$@"
 
 .jspp.js:
 	@echo preprocess "$<" "$@"
+	@mkdir -p "`dirname "$@"`"
 	sed -e "`sed -e 's/^#define *\([^ ]*\) *\(.*\)/\/^[^#]\/s\/\1\/\2 \\\\\/* \1 *\\\\\/\/g/' \
 	             -e t                                                     \
 	             -e d "$<"`"                                              \
@@ -309,21 +318,24 @@ ${top_srcdir}/shellinabox/vt100.js: ${top_srcdir}/shellinabox/vt100.jspp
 	     -e "s/VERSION/\"@VERSION@ (revision @VCS_REVISION@)\"/g"         \
 	     "$<" >"$@"
 
-.js.o:
-	@echo $(OBJCOPY) "$<" "$@"
-	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
-	  "$<" "$@"
-	@-printf '\000' >GNU-stack &&                                         \
-	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
-	  rm -f GNU-stack
+.js.h:
+	@echo od "$<" '>'"$@"
+	@mkdir -p "`dirname "$@"`"
+	@{ sym="`echo "$<" | $(symbolname)`";                                 \
+	   echo "static const char $${sym}Start[]=";                          \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo ';';                                                          \
+	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	 } >"$@"
 
 
-.wav.o:
-	@echo $(OBJCOPY) "$<" "$@"
-	@$(OBJCOPY) -I binary `$(objcopyflags)` `echo "$<" | $(renamesymbols)`\
-	  "$<" "$@"
-	@-printf '\000' >GNU-stack &&                                         \
-	  $(OBJCOPY) --add-section .note.GNU-stack=GNU-stack "$@";            \
-	  rm -f GNU-stack
-
+.wav.h:
+	@echo od "$<" '>'"$@"
+	@mkdir -p "`dirname "$@"`"
+	@{ sym="`echo "$<" | $(symbolname)`";                                 \
+	   echo "static const char $${sym}Start[]=";                          \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo ';';                                                          \
+	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	 } >"$@"
 

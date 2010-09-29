@@ -76,6 +76,20 @@
 #include "shellinabox/session.h"
 #include "shellinabox/usercss.h"
 
+// Embedded resources
+#include "shellinabox/beep.h"
+#include "shellinabox/cgi_root.h"
+#include "shellinabox/enabled.h"
+#include "shellinabox/favicon.h"
+#include "shellinabox/keyboard.h"
+#include "shellinabox/keyboard-layout.h"
+#include "shellinabox/print-styles.h"
+#include "shellinabox/root_page.h"
+#include "shellinabox/shell_in_a_box.h"
+#include "shellinabox/styles.h"
+#include "shellinabox/vt100.h"
+
+
 #define PORTNUM           4200
 #define MAX_RESPONSE      2048
 
@@ -584,13 +598,6 @@ static void serveStaticFile(HttpConnection *http, const char *contentType,
   httpTransfer(http, response, len);
 }
 
-static const char *addr(const char *a) {
-  // Work-around for a gcc bug that could occasionally generate invalid
-  // assembly instructions when optimizing code too agressively.
-  asm volatile("");
-  return a;
-}
-
 static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
                                   const char *buf, int len) {
   checkGraveyard();
@@ -620,49 +627,32 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
       // client session.
       return dataHandler(http, arg, buf, len, url);
     }
-    extern char rootPageStart[];
-    extern char rootPageEnd[];
-    char *rootPage;
-    check(rootPage = malloc(rootPageEnd - rootPageStart + 1));
-    memcpy(rootPage, rootPageStart, rootPageEnd - rootPageStart);
-    rootPage[rootPageEnd - rootPageStart] = '\000';
-    char *html            = stringPrintf(NULL, rootPage,
+    char *html            = stringPrintf(NULL, rootPageStart,
                                          enableSSL ? "true" : "false");
     serveStaticFile(http, "text/html", html, strrchr(html, '\000'));
     free(html);
-    free(rootPage);
   } else if (pathInfoLength == 8 && !memcmp(pathInfo, "beep.wav", 8)) {
     // Serve the audio sample for the console bell.
-    extern char beepStart[];
-    extern char beepEnd[];
-    serveStaticFile(http, "audio/x-wav", beepStart, beepEnd);
+    serveStaticFile(http, "audio/x-wav", beepStart, beepStart + beepSize - 1);
   } else if (pathInfoLength == 11 && !memcmp(pathInfo, "enabled.gif", 11)) {
     // Serve the checkmark icon used in the context menu
-    extern char enabledStart[];
-    extern char enabledEnd[];
-    serveStaticFile(http, "image/gif", enabledStart, enabledEnd);
+    serveStaticFile(http, "image/gif", enabledStart,
+                    enabledStart + enabledSize - 1);
   } else if (pathInfoLength == 11 && !memcmp(pathInfo, "favicon.ico", 11)) {
     // Serve the favicon
-    extern char faviconStart[];
-    extern char faviconEnd[];
-    serveStaticFile(http, "image/x-icon", faviconStart, faviconEnd);
+    serveStaticFile(http, "image/x-icon", faviconStart,
+                    faviconStart + faviconSize - 1);
   } else if (pathInfoLength == 13 && !memcmp(pathInfo, "keyboard.html", 13)) {
     // Serve the keyboard layout
-    extern char keyboardLayoutStart[];
-    extern char keyboardLayoutEnd[];
-    serveStaticFile(http, "text/html", keyboardLayoutStart, keyboardLayoutEnd);
+    serveStaticFile(http, "text/html", keyboardLayoutStart,
+                    keyboardLayoutStart + keyboardLayoutSize - 1);
   } else if (pathInfoLength == 12 && !memcmp(pathInfo, "keyboard.png", 12)) {
     // Serve the keyboard icon
-    extern char keyboardStart[];
-    extern char keyboardEnd[];
-    serveStaticFile(http, "image/png", keyboardStart, keyboardEnd);
+    serveStaticFile(http, "image/png", keyboardStart,
+                    keyboardStart + keyboardSize - 1);
   } else if (pathInfoLength == 14 && !memcmp(pathInfo, "ShellInABox.js", 14)) {
     // Serve both vt100.js and shell_in_a_box.js in the same transaction.
     // Also, indicate to the client whether the server is SSL enabled.
-    extern char vt100Start[];
-    extern char vt100End[];
-    extern char shellInABoxStart[];
-    extern char shellInABoxEnd[];
     char *userCSSString   = getUserCSSString(userCSSList);
     char *stateVars       = stringPrintf(NULL,
                                          "serverSupportsSSL = %s;\n"
@@ -677,8 +667,8 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
     free(userCSSString);
     int stateVarsLength   = strlen(stateVars);
     int contentLength     = stateVarsLength +
-                            (addr(vt100End) - addr(vt100Start)) +
-                            (addr(shellInABoxEnd) - addr(shellInABoxStart));
+                            vt100Size - 1 +
+                            shellInABoxSize - 1;
     char *response        = stringPrintf(NULL,
                              "HTTP/1.1 200 OK\r\n"
                              "Content-Type: text/javascript; charset=utf-8\r\n"
@@ -690,8 +680,8 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
       check(response      = realloc(response, headerLength + contentLength));
       memcpy(memcpy(memcpy(
           response + headerLength, stateVars, stateVarsLength)+stateVarsLength,
-        vt100Start, vt100End - vt100Start) + (vt100End - vt100Start),
-      shellInABoxStart, shellInABoxEnd - shellInABoxStart);
+        vt100Start, vt100Size - 1) + vt100Size - 1,
+      shellInABoxStart, shellInABoxSize - 1);
     } else {
       contentLength       = 0;
     }
@@ -703,10 +693,8 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
                     cssStyleSheet, strrchr(cssStyleSheet, '\000'));
   } else if (pathInfoLength == 16 && !memcmp(pathInfo, "print-styles.css",16)){
     // Serve the style sheet.
-    extern char printStylesStart[];
-    extern char printStylesEnd[];
     serveStaticFile(http, "text/css; charset=utf-8",
-                    printStylesStart, printStylesEnd);
+                    printStylesStart, printStylesStart + printStylesSize - 1);
   } else if (pathInfoLength > 8 && !memcmp(pathInfo, "usercss-", 8)) {
     // Server user style sheets (if any)
     struct UserCSS *css   = userCSSList;
@@ -850,11 +838,7 @@ static void parseArgs(int argc, char * const argv[]) {
   int verbosity            = MSG_DEFAULT;
   externalFiles            = newHashMap(destroyExternalFileHashEntry, NULL);
   HashMap *serviceTable    = newHashMap(destroyServiceHashEntry, NULL);
-  extern char stylesStart[];
-  extern char stylesEnd[];
-  check(cssStyleSheet      = malloc(stylesEnd - stylesStart + 1));
-  memcpy(cssStyleSheet, stylesStart, stylesEnd - stylesStart);
-  cssStyleSheet[stylesEnd - stylesStart] = '\000';
+  check(cssStyleSheet      = strdup(stylesStart));
 
   for (;;) {
     static const char optstring[] = "+hb::c:df:g:np:s:tqu:v";
@@ -1278,19 +1262,12 @@ int main(int argc, char * const argv[]) {
 
     // Output a <frameset> that includes our root page
     check(port    = serverGetListeningPort(server));
-    extern char cgiRootStart[];
-    extern char cgiRootEnd[];
-    char *cgiRoot;
-    check(cgiRoot = malloc(cgiRootEnd - cgiRootStart + 1));
-    memcpy(cgiRoot, cgiRootStart, cgiRootEnd - cgiRootStart);
-    cgiRoot[cgiRootEnd - cgiRootStart] = '\000';
     printf("X-ShellInABox-Port: %d\r\n"
            "X-ShellInABox-Pid: %d\r\n"
            "Content-type: text/html; charset=utf-8\r\n\r\n",
            port, getpid());
-    printfUnchecked(cgiRoot, port, cgiSessionKey);
+    printfUnchecked(cgiRootStart, port, cgiSessionKey);
     fflush(stdout);
-    free(cgiRoot);
     check(!NOINTR(close(fds[1])));
     closeAllFds((int []){ launcherFd, serverGetFd(server) }, 2);
     logSetLogLevel(MSG_QUIET);

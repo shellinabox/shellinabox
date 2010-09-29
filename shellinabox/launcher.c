@@ -1400,8 +1400,8 @@ static void childProcess(struct Service *service, int width, int height,
         // Finish all pending PAM operations.
         int status, rc;
         check(NOINTR(waitpid(pid, &status, 0)) == pid);
-        pam_close_session(pam, PAM_SILENT);
-        pam_end(pam, rc);
+        rc = pam_close_session(pam, PAM_SILENT);
+        pam_end(pam, rc | PAM_DATA_SILENT);
         _exit(WIFEXITED(status) ? WEXITSTATUS(status) : -WTERMSIG(status));
       }
     }
