@@ -61,6 +61,14 @@
 #include "libhttp/ssl.h"
 #include "logging/logging.h"
 
+#ifdef HAVE_UNUSED
+#defined ATTR_UNUSED __attribute__((unused))
+#defined UNUSED(x)   do { } while (0)
+#else
+#define ATTR_UNUSED
+#define UNUSED(x)    do { (void)(x); } while (0)
+#endif
+
 #define INITIAL_TIMEOUT    (10*60)
 
 // Maximum amount of payload (e.g. form values that have been POST'd) that we
@@ -128,8 +136,8 @@ static int serverCollectHandler(struct HttpConnection *http, void *handler_) {
 
 }
 
-static void serverDestroyHandlers(void *arg, char *value) {
-  (void)arg;
+static void serverDestroyHandlers(void *arg ATTR_UNUSED, char *value) {
+  UNUSED(arg);
   free(value);
 }
 
@@ -183,8 +191,9 @@ void serverRegisterWebSocketHandler(struct Server *server, const char *url,
   }
 }
 
-static int serverQuitHandler(struct HttpConnection *http, void *arg) {
-  (void)arg;
+static int serverQuitHandler(struct HttpConnection *http ATTR_UNUSED,
+                             void *arg) {
+  UNUSED(arg);
   httpSendReply(http, 200, "Good Bye", NO_MSG);
   httpExitLoop(http, 1);
   return HTTP_DONE;

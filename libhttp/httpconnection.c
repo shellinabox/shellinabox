@@ -71,6 +71,13 @@
 #endif
 #define max(a, b) ({ typeof(a) _a = (a); typeof(b) _b = (b);                  \
                      _a > _b ? _a : _b; })
+#ifdef HAVE_UNUSED
+#defined ATTR_UNUSED __attribute__((unused))
+#defined UNUSED(x)   do { } while (0)
+#else
+#define ATTR_UNUSED
+#define UNUSED(x)    do { (void)(x); } while (0)
+#endif
 
 #include "libhttp/httpconnection.h"
 #include "logging/logging.h"
@@ -270,8 +277,8 @@ static int httpFinishCommand(struct HttpConnection *http) {
   return rc;
 }
 
-static void httpDestroyHeaders(void *arg, char *key, char *value) {
-  (void)arg;
+static void httpDestroyHeaders(void *arg ATTR_UNUSED, char *key, char *value) {
+  UNUSED(arg);
   free(key);
   free(value);
 }

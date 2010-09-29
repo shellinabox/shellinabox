@@ -89,6 +89,13 @@
 #include "shellinabox/styles.h"
 #include "shellinabox/vt100.h"
 
+#ifdef HAVE_UNUSED
+#defined ATTR_UNUSED __attribute__((unused))
+#defined UNUSED(x)   do { } while (0)
+#else
+#define ATTR_UNUSED
+#define UNUSED(x)    do { (void)(x); } while (0)
+#endif
 
 #define PORTNUM           4200
 #define MAX_RESPONSE      2048
@@ -275,8 +282,8 @@ static void sessionDone(void *arg) {
 }
 
 static int handleSession(struct ServerConnection *connection, void *arg,
-                         short *events, short revents) {
-  (void)events;
+                         short *events ATTR_UNUSED, short revents) {
+  UNUSED(events);
   struct Session *session       = (struct Session *)arg;
   session->connection           = connection;
   int len                       = MAX_RESPONSE - session->len;
@@ -330,8 +337,8 @@ static int invalidatePendingHttpSession(void *arg, const char *key,
 }
 
 static int dataHandler(HttpConnection *http, struct Service *service,
-                       const char *buf, int len, URL *url) {
-  (void)len;
+                       const char *buf, int len ATTR_UNUSED, URL *url) {
+  UNUSED(len);
   if (!buf) {
     // Somebody unexpectedly closed our http connection (e.g. because of a
     // timeout). This is the last notification that we will get.
@@ -815,8 +822,9 @@ static void usage(void) {
   free((char *)group);
 }
 
-static void destroyExternalFileHashEntry(void *arg, char *key, char *value) {
-  (void)arg;
+static void destroyExternalFileHashEntry(void *arg ATTR_UNUSED, char *key,
+                                         char *value) {
+  UNUSED(arg);
   free(key);
   free(value);
 }

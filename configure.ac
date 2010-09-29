@@ -2,7 +2,7 @@ AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
 AC_INIT(shellinabox, 2.10, markus@shellinabox.com)
-VCS_REVISION=230
+VCS_REVISION=231
 AC_SUBST(VCS_REVISION)
 AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
                    [Most recent revision number in the version control system])
@@ -34,7 +34,7 @@ AC_CHECK_FUNCS([strlcat])
 
 dnl Prefer thread-safe functions, if available
 AC_CHECK_FUNCS([getgrgid_r getgrnam_r gethostbyname_r getpwnam_r getpwuid_r  \
-                openpty strcasestr ])
+                openpty strcasestr getresuid getresgid setresuid setresgid ])
 
 dnl We prefer ptsname_r(), but will settle for ptsname() if necessary
 AC_TRY_LINK([#ifndef _XOPEN_SOURCE
@@ -77,6 +77,12 @@ AC_TRY_LINK([void x(void) { };
             [y();],
             [AC_DEFINE(HAVE_ATTRIBUTE_ALIAS, 1,
                        Define to 1 if you have support for symbol aliasing)])
+
+dnl Check if the compiler has support to mark parameters as unused
+AC_TRY_LINK([void x(int i __attribute__((unused))) __attribute__((unused));],
+            [],
+            [AC_DEFINE(HAVE_ATTRIBUTE_UNUSED, 1,
+                  Define to 1 if you have support for the "unused" attribute)])
 
 dnl On some systems, calling /bin/login does not work. Disable the LOGIN
 dnl feature, if the user tells us that it does not do the right thing.

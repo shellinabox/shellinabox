@@ -57,11 +57,20 @@
 #include "shellinabox/usercss.h"
 #include "libhttp/hashmap.h"
 
+#ifdef HAVE_UNUSED
+#defined ATTR_UNUSED __attribute__((unused))
+#defined UNUSED(x)   do { } while (0)
+#else
+#define ATTR_UNUSED
+#define UNUSED(x)    do { (void)(x); } while (0)
+#endif
+
 static struct HashMap *defines;
 
-static void definesDestructor(void *arg, char *key, char *value) {
-  (void)arg;
-  (void)value;
+static void definesDestructor(void *arg ATTR_UNUSED, char *key,
+                              char *value ATTR_UNUSED) {
+  UNUSED(arg);
+  UNUSED(value);
 
   free(key);
 }

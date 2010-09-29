@@ -1,5 +1,5 @@
 // privileges.h -- Manage process privileges
-// Copyright (C) 2008-2009 Markus Gutschke <markus@shellinabox.com>
+// Copyright (C) 2008-2010 Markus Gutschke <markus@shellinabox.com>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
@@ -59,5 +59,18 @@ uid_t parseUser(const char *arg, const char **name);
 const char *getGroupName(gid_t gid);
 gid_t getGroupId(const char *name);
 gid_t parseGroup(const char *arg, const char **name);
+
+#ifndef HAVE_GETRESUID
+int getresuid(uid_t *ruid, uid_t *euid, uid_t *suid);
+#endif
+#ifndef HAVE_GETRESGID
+int getresgid(gid_t *rgid, gid_t *egid, gid_t *sgid);
+#endif
+#ifndef HAVE_SETRESUID
+int setresuid(uid_t ruid, uid_t euid, uid_t suid);
+#endif
+#ifndef HAVE_SETRESGID
+int setresgid(gid_t rgid, gid_t egid, gid_t sgid);
+#endif
 
 #endif

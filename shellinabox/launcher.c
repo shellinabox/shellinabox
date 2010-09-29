@@ -99,6 +99,10 @@
 #if defined(HAVE_SECURITY_PAM_MISC_H)
 #include <security/pam_misc.h>
 #endif
+
+#ifndef PAM_DATA_SILENT
+#define PAM_DATA_SILENT 0
+#endif
 #else
 struct pam_message;
 struct pam_response;
@@ -115,6 +119,14 @@ typedef struct pam_handle pam_handle_t;
 #include "shellinabox/service.h"
 #include "libhttp/hashmap.h"
 #include "logging/logging.h"
+
+#ifdef HAVE_UNUSED
+#defined ATTR_UNUSED __attribute__((unused))
+#defined UNUSED(x)   do { } while (0)
+#else
+#define ATTR_UNUSED
+#define UNUSED(x)    do { (void)(x); } while (0)
+#endif
 
 #undef pthread_once
 #undef execle
@@ -562,9 +574,10 @@ void deleteUtmp(struct Utmp *utmp) {
   free(utmp);
 }
 
-static void destroyUtmpHashEntry(void *arg, char *key, char *value) {
-  (void)arg;
-  (void)key;
+static void destroyUtmpHashEntry(void *arg ATTR_UNUSED, char *key ATTR_UNUSED,
+                                 char *value) {
+  UNUSED(arg);
+  UNUSED(key);
   deleteUtmp((struct Utmp *)value);
 }
 
@@ -791,10 +804,11 @@ static const struct passwd *getPWEnt(uid_t uid) {
   return passwd;
 }
 
-static void sigAlrmHandler(int sig, siginfo_t *info, void *unused) {
-  (void)sig;
-  (void)info;
-  (void)unused;
+static void sigAlrmHandler(int sig ATTR_UNUSED, siginfo_t *info ATTR_UNUSED,
+                           void *unused ATTR_UNUSED) {
+  UNUSED(sig);
+  UNUSED(info);
+  UNUSED(unused);
   puts("\nLogin timed out after 60 seconds.");
   _exit(1);
 }
@@ -1079,17 +1093,18 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   return pam;
 }
 
-static void destroyVariableHashEntry(void *arg, char *key, char *value) {
-  (void)arg;
+static void destroyVariableHashEntry(void *arg ATTR_UNUSED, char *key,
+                                     char *value) {
+  UNUSED(arg);
   free(key);
   free(value);
 }
 
-static void execService(int width, int height, struct Service *service,
-                        const char *peerName, char **environment,
-                        const char *url) {
-  (void)width;
-  (void)height;
+static void execService(int width ATTR_UNUSED, int height ATTR_UNUSED,
+                        struct Service *service, const char *peerName,
+                        char **environment, const char *url) {
+  UNUSED(width);
+  UNUSED(height);
 
   // Create a hash table with all the variables that we can expand. This
   // includes all environment variables being passed to the child.
@@ -1450,10 +1465,11 @@ static void childProcess(struct Service *service, int width, int height,
   _exit(1);
 }
 
-static void sigChildHandler(int sig, siginfo_t *info, void *unused) {
-  (void)sig;
-  (void)info;
-  (void)unused;
+static void sigChildHandler(int sig ATTR_UNUSED, siginfo_t *info ATTR_UNUSED,
+                            void *unused ATTR_UNUSED) {
+  UNUSED(sig);
+  UNUSED(info);
+  UNUSED(unused);
 }
 
 static void launcherDaemon(int fd) {

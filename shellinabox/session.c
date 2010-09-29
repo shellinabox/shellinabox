@@ -54,6 +54,14 @@
 #include "shellinabox/session.h"
 #include "logging/logging.h"
 
+#ifdef HAVE_UNUSED
+#defined ATTR_UNUSED __attribute__((unused))
+#defined UNUSED(x)   do { } while (0)
+#else
+#define ATTR_UNUSED
+#define UNUSED(x)    do { (void)(x); } while (0)
+#endif
+
 static HashMap *sessions;
 
 
@@ -152,9 +160,10 @@ void finishAllSessions(void) {
   deleteHashMap(sessions);
 }
 
-static void destroySessionHashEntry(void *arg, char *key, char *value) {
-  (void)arg;
-  (void)key;
+static void destroySessionHashEntry(void *arg ATTR_UNUSED,
+                                    char *key ATTR_UNUSED, char *value) {
+  UNUSED(arg);
+  UNUSED(key);
 
   deleteSession((struct Session *)value);
 }

@@ -64,6 +64,14 @@
 #include "libhttp/httpconnection.h"
 #include "logging/logging.h"
 
+#ifdef HAVE_UNUSED
+#defined ATTR_UNUSED __attribute__((unused))
+#defined UNUSED(x)   do { } while (0)
+#else
+#define ATTR_UNUSED
+#define UNUSED(x)    do { (void)(x); } while (0)
+#endif
+
 #undef pthread_once
 #undef pthread_sigmask
 
@@ -541,8 +549,9 @@ static int sslSetCertificateFromFile(SSL_CTX *context,
 #endif
 
 #ifdef HAVE_TLSEXT
-static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
-  (void)al;
+static int sslSNICallback(SSL *sslHndl, int *al ATTR_UNUSED,
+                          struct SSLSupport *ssl) {
+  UNUSED(al);
   check(!ERR_peek_error());
   const char *name        = SSL_get_servername(sslHndl,
                                                TLSEXT_NAMETYPE_host_name);
@@ -615,10 +624,10 @@ static int sslSNICallback(SSL *sslHndl, int *al, struct SSLSupport *ssl) {
 // This is a not-thread-safe replacement for gethostbyname_r()
 #define gethostbyname_r x_gethostbyname_r
 static int gethostbyname_r(const char *name, struct hostent *ret,
-                           char *buf, size_t buflen,
+                           char *buf ATTR_UNUSED, size_t buflen ATTR_UNUSED,
                            struct hostent **result, int *h_errnop) {
-  (void)buf;
-  (void)buflen;
+  UNUSED(buf);
+  UNUSED(buflen);
   if (result) {
     *result          = NULL;
   }

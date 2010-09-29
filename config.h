@@ -4,6 +4,9 @@
 /* Define to 1 if you have support for symbol aliasing */
 #define HAVE_ATTRIBUTE_ALIAS 1
 
+/* Define to 1 if you have support for the "unused" attribute */
+#define HAVE_ATTRIBUTE_UNUSED 1
+
 /* Set if you want support for calling /bin/login */
 #define HAVE_BIN_LOGIN 1
 
@@ -27,6 +30,12 @@
 
 /* Define to 1 if you have the `getpwuid_r' function. */
 #define HAVE_GETPWUID_R 1
+
+/* Define to 1 if you have the `getresgid' function. */
+#define HAVE_GETRESGID 1
+
+/* Define to 1 if you have the `getresuid' function. */
+#define HAVE_GETRESUID 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
@@ -72,6 +81,12 @@
 
 /* Define to 1 if you have the <security/pam_misc.h> header file. */
 #define HAVE_SECURITY_PAM_MISC_H 1
+
+/* Define to 1 if you have the `setresgid' function. */
+#define HAVE_SETRESGID 1
+
+/* Define to 1 if you have the `setresuid' function. */
+#define HAVE_SETRESUID 1
 
 /* Define to 1 if you have a working sigwait */
 #define HAVE_SIGWAIT 1
@@ -156,7 +171,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "230"
+#define VCS_REVISION "231"
 
 /* Version number of package */
 #define VERSION "2.10"

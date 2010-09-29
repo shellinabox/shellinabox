@@ -3,6 +3,9 @@
 /* Define to 1 if you have support for symbol aliasing */
 #undef HAVE_ATTRIBUTE_ALIAS
 
+/* Define to 1 if you have support for the "unused" attribute */
+#undef HAVE_ATTRIBUTE_UNUSED
+
 /* Set if you want support for calling /bin/login */
 #undef HAVE_BIN_LOGIN
 
@@ -26,6 +29,12 @@
 
 /* Define to 1 if you have the `getpwuid_r' function. */
 #undef HAVE_GETPWUID_R
+
+/* Define to 1 if you have the `getresgid' function. */
+#undef HAVE_GETRESGID
+
+/* Define to 1 if you have the `getresuid' function. */
+#undef HAVE_GETRESUID
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -71,6 +80,12 @@
 
 /* Define to 1 if you have the <security/pam_misc.h> header file. */
 #undef HAVE_SECURITY_PAM_MISC_H
+
+/* Define to 1 if you have the `setresgid' function. */
+#undef HAVE_SETRESGID
+
+/* Define to 1 if you have the `setresuid' function. */
+#undef HAVE_SETRESUID
 
 /* Define to 1 if you have a working sigwait */
 #undef HAVE_SIGWAIT

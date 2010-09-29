@@ -55,6 +55,13 @@
 #include "shellinabox/privileges.h"
 #include "shellinabox/service.h"
 
+#ifdef HAVE_UNUSED
+#defined ATTR_UNUSED __attribute__((unused))
+#defined UNUSED(x)   do { } while (0)
+#else
+#define ATTR_UNUSED
+#define UNUSED(x)    do { (void)(x); } while (0)
+#endif
 
 struct Service **services;
 int            numServices;
@@ -242,15 +249,17 @@ void deleteService(struct Service *service) {
   free(service);
 }
 
-void destroyServiceHashEntry(void *arg, char *key, char *value) {
-  (void)arg;
-  (void)key;
-  (void)value;
+void destroyServiceHashEntry(void *arg ATTR_UNUSED, char *key ATTR_UNUSED,
+                             char *value ATTR_UNUSED) {
+  UNUSED(arg);
+  UNUSED(key);
+  UNUSED(value);
 }
 
-static int enumerateServicesHelper(void *arg, const char *key, char **value) {
-  (void)arg;
-  (void)key;
+static int enumerateServicesHelper(void *arg ATTR_UNUSED,
+                                   const char *key ATTR_UNUSED, char **value) {
+  UNUSED(arg);
+  UNUSED(key);
 
   check(services              = realloc(services,
                                     ++numServices * sizeof(struct Service *)));

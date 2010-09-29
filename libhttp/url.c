@@ -58,6 +58,14 @@
 
 #include "logging/logging.h"
 
+#ifdef HAVE_UNUSED
+#defined ATTR_UNUSED __attribute__((unused))
+#defined UNUSED(x)   do { } while (0)
+#else
+#define ATTR_UNUSED
+#define UNUSED(x)    do { (void)(x); } while (0)
+#endif
+
 static char *urlUnescape(char *s) {
   int warned    = 0;
   char *r       = s;
@@ -86,8 +94,9 @@ static char *urlUnescape(char *s) {
   return r;
 }
 
-static void urlDestroyHashMapEntry(void *arg, char *key, char *value) {
-  (void)arg;
+static void urlDestroyHashMapEntry(void *arg ATTR_UNUSED, char *key,
+                                   char *value) {
+  UNUSED(arg);
   free(key);
   free(value);
 }

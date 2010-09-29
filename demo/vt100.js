@@ -2402,7 +2402,7 @@ VT100.prototype.toggleCursorBlinking = function() {
 };
 
 VT100.prototype.about = function() {
-  alert("VT100 Terminal Emulator " + "2.10 (revision 230)" +
+  alert("VT100 Terminal Emulator " + "2.10 (revision 231)" +
         "\nCopyright 2008-2010 by Markus Gutschke\n" +
         "For more information check http://shellinabox.com");
 };
