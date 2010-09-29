@@ -21,6 +21,9 @@
 /* Define to 1 if you have the `getgrnam_r' function. */
 #undef HAVE_GETGRNAM_R
 
+/* Define to 1 if getgrouplist() takes ints as arguments */
+#undef HAVE_GETGROUPLIST_TAKES_INTS
+
 /* Define to 1 if you have the `gethostbyname_r' function. */
 #undef HAVE_GETHOSTBYNAME_R
 

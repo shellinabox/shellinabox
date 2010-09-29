@@ -2,7 +2,7 @@ AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
 AC_INIT(shellinabox, 2.10, markus@shellinabox.com)
-VCS_REVISION=232
+VCS_REVISION=233
 AC_SUBST(VCS_REVISION)
 AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
                    [Most recent revision number in the version control system])
@@ -83,6 +83,14 @@ AC_TRY_LINK([void x(int i __attribute__((unused))) __attribute__((unused));],
             [],
             [AC_DEFINE(HAVE_ATTRIBUTE_UNUSED, 1,
                   Define to 1 if you have support for the "unused" attribute)])
+
+dnl Check the function signature of getgrouplist()
+AC_TRY_LINK([#define _BSD_SOURCE
+             #include <grp.h>
+             #include <unistd.h>],
+            [int (*f)(const char *, int, int *, int *) = getgrouplist;],
+            [AC_DEFINE(HAVE_GETGROUPLIST_TAKES_INTS, 1,
+                       Define to 1 if getgrouplist() takes ints as arguments)])
 
 dnl On some systems, calling /bin/login does not work. Disable the LOGIN
 dnl feature, if the user tells us that it does not do the right thing.

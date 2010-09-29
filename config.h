@@ -22,6 +22,9 @@
 /* Define to 1 if you have the `getgrnam_r' function. */
 #define HAVE_GETGRNAM_R 1
 
+/* Define to 1 if getgrouplist() takes ints as arguments */
+/* #undef HAVE_GETGROUPLIST_TAKES_INTS */
+
 /* Define to 1 if you have the `gethostbyname_r' function. */
 #define HAVE_GETHOSTBYNAME_R 1
 
@@ -171,7 +174,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "232"
+#define VCS_REVISION "233"
 
 /* Version number of package */
 #define VERSION "2.10"

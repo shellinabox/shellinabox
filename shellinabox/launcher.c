@@ -168,9 +168,8 @@ static int (*x_misc_conv)(int, const struct pam_message **,
 #endif
 
 // MacOS X has a somewhat unusual definition of getgrouplist() which can
-// trigger a compile warning. Unfortunately, there is no good feature test
-// for this particular problem.
-#if defined(__APPLE__) && defined(__MACH__)
+// trigger a compile warning.
+#if defined(HAVE_GETGROUPLIST_TAKES_INTS)
 static int x_getgrouplist(const char *user, gid_t group,
                           gid_t *groups, int *ngroups) {
   return getgrouplist(user, (int)group, (int *)groups, ngroups);

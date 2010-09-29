@@ -2328,7 +2328,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-VCS_REVISION=232
+VCS_REVISION=233
 
 
 cat >>confdefs.h <<_ACEOF
@@ -10804,6 +10804,27 @@ _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
 
 $as_echo "#define HAVE_ATTRIBUTE_UNUSED 1" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#define _BSD_SOURCE
+             #include <grp.h>
+             #include <unistd.h>
+int
+main ()
+{
+int (*f)(const char *, int, int *, int *) = getgrouplist;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+$as_echo "#define HAVE_GETGROUPLIST_TAKES_INTS 1" >>confdefs.h
 
 fi
 rm -f core conftest.err conftest.$ac_objext \

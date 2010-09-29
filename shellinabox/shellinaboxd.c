@@ -634,6 +634,7 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
       // client session.
       return dataHandler(http, arg, buf, len, url);
     }
+    UNUSED(rootPageSize);
     char *html            = stringPrintf(NULL, rootPageStart,
                                          enableSSL ? "true" : "false");
     serveStaticFile(http, "text/html", html, strrchr(html, '\000'));
@@ -846,6 +847,7 @@ static void parseArgs(int argc, char * const argv[]) {
   int verbosity            = MSG_DEFAULT;
   externalFiles            = newHashMap(destroyExternalFileHashEntry, NULL);
   HashMap *serviceTable    = newHashMap(destroyServiceHashEntry, NULL);
+  UNUSED(stylesSize);
   check(cssStyleSheet      = strdup(stylesStart));
 
   for (;;) {
@@ -1274,6 +1276,7 @@ int main(int argc, char * const argv[]) {
            "X-ShellInABox-Pid: %d\r\n"
            "Content-type: text/html; charset=utf-8\r\n\r\n",
            port, getpid());
+    UNUSED(cgiRootSize);
     printfUnchecked(cgiRootStart, port, cgiSessionKey);
     fflush(stdout);
     check(!NOINTR(close(fds[1])));
