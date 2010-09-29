@@ -261,40 +261,44 @@ clean-local:
 	@echo od "$<" '>'"$@"
 	@mkdir -p "`dirname "$@"`"
 	@{ sym="`echo "$<" | $(symbolname)`";                                 \
-	   echo "static const char $${sym}Start[]=";                          \
-	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo "static const char $${sym}Start[] =";                         \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ *$$/"/;/^""$$/d;s/  */\\/g';     \
 	   echo ';';                                                          \
-	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	   echo "static const int $${sym}Size ATTR_UNUSED ="                  \
+	           "(int)sizeof($${sym}Start);";                              \
 	 } >"$@"
 
 .gif.h:
 	@echo od "$<" '>'"$@"
 	@mkdir -p "`dirname "$@"`"
 	@{ sym="`echo "$<" | $(symbolname)`";                                 \
-	   echo "static const char $${sym}Start[]=";                          \
-	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo "static const char $${sym}Start[] =";                         \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ *$$/"/;/^""$$/d;s/  */\\/g';     \
 	   echo ';';                                                          \
-	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	   echo "static const int $${sym}Size ATTR_UNUSED ="                  \
+	           "(int)sizeof($${sym}Start);";                              \
 	 } >"$@"
 
 .png.h:
 	@echo od "$<" '>'"$@"
 	@mkdir -p "`dirname "$@"`"
 	@{ sym="`echo "$<" | $(symbolname)`";                                 \
-	   echo "static const char $${sym}Start[]=";                          \
-	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo "static const char $${sym}Start[] =";                         \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ *$$/"/;/^""$$/d;s/  */\\/g';     \
 	   echo ';';                                                          \
-	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	   echo "static const int $${sym}Size ATTR_UNUSED ="                  \
+	           "(int)sizeof($${sym}Start);";                              \
 	 } >"$@"
 
 .html.h:
 	@echo od "$<" '>'"$@"
 	@mkdir -p "`dirname "$@"`"
 	@{ sym="`echo "$<" | $(symbolname)`";                                 \
-	   echo "static const char $${sym}Start[]=";                          \
-	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo "static const char $${sym}Start[] =";                         \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ *$$/"/;/^""$$/d;s/  */\\/g';     \
 	   echo ';';                                                          \
-	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	   echo "static const int $${sym}Size ATTR_UNUSED ="                  \
+	           "(int)sizeof($${sym}Start);";                              \
 	 } >"$@"
 
 
@@ -302,10 +306,11 @@ clean-local:
 	@echo od "$<" '>'"$@"
 	@mkdir -p "`dirname "$@"`"
 	@{ sym="`echo "$<" | $(symbolname)`";                                 \
-	   echo "static const char $${sym}Start[]=";                          \
-	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo "static const char $${sym}Start[] =";                         \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ *$$/"/;/^""$$/d;s/  */\\/g';     \
 	   echo ';';                                                          \
-	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	   echo "static const int $${sym}Size ATTR_UNUSED ="                  \
+	           "(int)sizeof($${sym}Start);";                              \
 	 } >"$@"
 
 .jspp.js:
@@ -322,10 +327,11 @@ clean-local:
 	@echo od "$<" '>'"$@"
 	@mkdir -p "`dirname "$@"`"
 	@{ sym="`echo "$<" | $(symbolname)`";                                 \
-	   echo "static const char $${sym}Start[]=";                          \
-	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo "static const char $${sym}Start[] =";                         \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ *$$/"/;/^""$$/d;s/  */\\/g';     \
 	   echo ';';                                                          \
-	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	   echo "static const int $${sym}Size ATTR_UNUSED ="                  \
+	           "(int)sizeof($${sym}Start);";                              \
 	 } >"$@"
 
 
@@ -333,9 +339,10 @@ clean-local:
 	@echo od "$<" '>'"$@"
 	@mkdir -p "`dirname "$@"`"
 	@{ sym="`echo "$<" | $(symbolname)`";                                 \
-	   echo "static const char $${sym}Start[]=";                          \
-	   od -vb "$<" | sed 's/[0-7]*/"/;s/ /\\/g;s/$$/"/';                  \
+	   echo "static const char $${sym}Start[] =";                         \
+	   od -vb "$<" | sed 's/[0-7]*/"/;s/ *$$/"/;/^""$$/d;s/  */\\/g';     \
 	   echo ';';                                                          \
-	   echo "static const int $${sym}Size=(int)sizeof($${sym}Start);";    \
+	   echo "static const int $${sym}Size ATTR_UNUSED ="                  \
+	           "(int)sizeof($${sym}Start);";                              \
 	 } >"$@"
 

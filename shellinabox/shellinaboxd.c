@@ -76,6 +76,14 @@
 #include "shellinabox/session.h"
 #include "shellinabox/usercss.h"
 
+#ifdef HAVE_UNUSED
+#defined ATTR_UNUSED __attribute__((unused))
+#defined UNUSED(x)   do { } while (0)
+#else
+#define ATTR_UNUSED
+#define UNUSED(x)    do { (void)(x); } while (0)
+#endif
+
 // Embedded resources
 #include "shellinabox/beep.h"
 #include "shellinabox/cgi_root.h"
@@ -88,14 +96,6 @@
 #include "shellinabox/shell_in_a_box.h"
 #include "shellinabox/styles.h"
 #include "shellinabox/vt100.h"
-
-#ifdef HAVE_UNUSED
-#defined ATTR_UNUSED __attribute__((unused))
-#defined UNUSED(x)   do { } while (0)
-#else
-#define ATTR_UNUSED
-#define UNUSED(x)    do { (void)(x); } while (0)
-#endif
 
 #define PORTNUM           4200
 #define MAX_RESPONSE      2048
@@ -1013,7 +1013,7 @@ static void parseArgs(int argc, char * const argv[]) {
       if (!optarg || !*optarg) {
         fatal("\"--group\" expects a group name.");
       }
-      runAsGroup           = parseGroup(optarg, NULL);
+      runAsGroup           = parseGroupArg(optarg, NULL);
     } else if (!idx--) {
       // Linkify
       if (!strcmp(optarg, "none")) {
@@ -1095,7 +1095,7 @@ static void parseArgs(int argc, char * const argv[]) {
       if (!optarg || !*optarg) {
         fatal("\"--user\" expects a user name.");
       }
-      runAsUser            = parseUser(optarg, NULL);
+      runAsUser            = parseUserArg(optarg, NULL);
     } else if (!idx--) {
       // User CSS
       if (!optarg || !*optarg) {

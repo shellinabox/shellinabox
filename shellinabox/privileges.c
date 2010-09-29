@@ -274,7 +274,7 @@ uid_t getUserId(const char *name) {
   return uid;
 }
 
-uid_t parseUser(const char *arg, const char **name) {
+uid_t parseUserArg(const char *arg, const char **name) {
   char *end;
   errno           = 0;
   unsigned long l = strtoul(arg, &end, 10);
@@ -404,7 +404,7 @@ gid_t getGroupId(const char *name) {
   return gid;
 }
 
-gid_t parseGroup(const char *arg, const char **name) {
+gid_t parseGroupArg(const char *arg, const char **name) {
   char *end;
   errno           = 0;
   unsigned long l = strtoul(arg, &end, 10);

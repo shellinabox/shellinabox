@@ -180,7 +180,8 @@ void initService(struct Service *service, const char *arg) {
       service->authUser                     = 0;
 
       // Numeric or symbolic user id
-      service->uid                          = parseUser(arg, &service->user);
+      service->uid                          = parseUserArg(arg,
+                                                           &service->user);
       *ptr                                  = ':';
       arg                                   = ptr + 1;
 
@@ -189,7 +190,8 @@ void initService(struct Service *service, const char *arg) {
         goto error;
       }
       *ptr                                  = '\000';
-      service->gid                          = parseGroup(arg, &service->group);
+      service->gid                          = parseGroupArg(arg,
+                                                            &service->group);
     }
     *ptr                                    = ':';
     arg                                     = ptr + 1;

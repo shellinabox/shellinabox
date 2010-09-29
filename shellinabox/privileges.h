@@ -55,10 +55,10 @@ void lowerPrivileges(void);
 void dropPrivileges(void);
 const char *getUserName(uid_t uid);
 uid_t getUserId(const char *name);
-uid_t parseUser(const char *arg, const char **name);
+uid_t parseUserArg(const char *arg, const char **name);
 const char *getGroupName(gid_t gid);
 gid_t getGroupId(const char *name);
-gid_t parseGroup(const char *arg, const char **name);
+gid_t parseGroupArg(const char *arg, const char **name);
 
 #ifndef HAVE_GETRESUID
 int getresuid(uid_t *ruid, uid_t *euid, uid_t *suid);
