@@ -1,6 +1,9 @@
 /* config.h.  Generated from config.h.in by configure.  */
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define to 1 if you have support for symbol aliasing */
+#define HAVE_ATTRIBUTE_ALIAS 1
+
 /* Set if you want support for calling /bin/login */
 #define HAVE_BIN_LOGIN 1
 
@@ -153,7 +156,7 @@
 #define STDC_HEADERS 1
 
 /* Most recent revision number in the version control system */
-#define VCS_REVISION "228"
+#define VCS_REVISION "229"
 
 /* Version number of package */
 #define VERSION "2.10"

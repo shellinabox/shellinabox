@@ -2328,7 +2328,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-VCS_REVISION=228
+VCS_REVISION=229
 
 
 cat >>confdefs.h <<_ACEOF
@@ -10765,6 +10765,26 @@ _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
 
 $as_echo "#define HAVE_UPDWTMPX 1" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+void x(void) { };
+             void y(void) __attribute__((alias("x")));
+int
+main ()
+{
+y();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+$as_echo "#define HAVE_ATTRIBUTE_ALIAS 1" >>confdefs.h
 
 fi
 rm -f core conftest.err conftest.$ac_objext \

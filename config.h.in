@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define to 1 if you have support for symbol aliasing */
+#undef HAVE_ATTRIBUTE_ALIAS
+
 /* Set if you want support for calling /bin/login */
 #undef HAVE_BIN_LOGIN
 

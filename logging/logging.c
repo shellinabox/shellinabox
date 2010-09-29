@@ -180,4 +180,15 @@ char *stringPrintf(char *buf, const char *fmt, ...) {
 }
 
 char *stringPrintfUnchecked(char *buf, const char *fmt, ...)
+#ifdef HAVE_ATTRIBUTE_ALIAS
   __attribute__((alias("stringPrintf")));
+#else
+{
+  va_list ap;
+  va_start(ap, fmt);
+  char *s = vStringPrintf(buf, fmt, ap);
+  va_end(ap);
+  return s;
+}
+#endif
+
