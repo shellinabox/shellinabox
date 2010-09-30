@@ -167,6 +167,9 @@ static int (*x_misc_conv)(int, const struct pam_message **,
 #define misc_conv             x_misc_conv
 #endif
 
+static int   launcher = -1;
+static uid_t restricted;
+
 // MacOS X has a somewhat unusual definition of getgrouplist() which can
 // trigger a compile warning.
 #if defined(HAVE_GETGROUPLIST_TAKES_INTS)
@@ -177,9 +180,82 @@ static int x_getgrouplist(const char *user, gid_t group,
 #define getgrouplist x_getgrouplist
 #endif
 
-static int   launcher = -1;
-static uid_t restricted;
+// BSD systems have special requirements on how utmp entries have to be filled
+// out in order to be updated by non-privileged users. In particular, they
+// want the real user name in the utmp recode.
+// This all wouldn't be so bad, if pututxline() wouldn't print an error message
+// to stderr, if it fails to run. Unfortunately, it has been observed to do so.
+// That means, we need to jump through some hoops to intercept these messages.
+#ifdef HAVE_UTMPX_H
+struct utmpx *x_pututxline(struct utmpx *ut) {
+  // N.B. changing global file descriptors isn't thread safe. But all call
+  // sites are guaranteed to be single-threaded. If that ever changes, this
+  // code will need rewriting.
+  int oldStdin         = dup(0);
+  int oldStdout        = dup(1);
+  int oldStderr        = dup(2);
+  check(oldStdin > 2 && oldStdout > 2 && oldStderr > 2);
+  int nullFd           = open("/dev/null", O_RDWR);
+  check(nullFd > 2);
+  check(dup2(nullFd, 0) == 0);
+  NOINTR(close(nullFd));
 
+  // Set up a pipe so that we can read error messages that might be printed
+  // to stderr. We assume that the kernel maintains a buffer that is
+  // sufficiently large to receive the bytes written to it without causing
+  // the I/O operation to block.
+  int fds[2];
+  check(!pipe(fds));
+  check(dup2(fds[1], 1) == 1);
+  check(dup2(fds[1], 2) == 2);
+  NOINTR(close(fds[1]));
+  struct utmpx *ret    = pututxline(ut);
+  int err              = ret == NULL;
+
+  // Close the write end of the pipe, so that we can read until EOF.
+  check(dup2(0, 1) == 1);
+  check(dup2(0, 2) == 2);
+  char buf[128];
+  while (NOINTR(read(fds[0], buf, sizeof(buf))) > 0) {
+    err                = 1;
+  }
+  NOINTR(close(fds[0]));
+
+  // If we either received an error from pututxline() or if we saw an error
+  // message being written out, adjust the utmp record and retry.
+  if (err) {
+    uid_t uid          = getuid();
+    if (uid) {
+      // We only retry if the code is not running as root. Otherwise, fixing
+      // the utmp record is unlikely to do anything for us.
+      // If running as non-root, we set the actual user name in the utmp
+      // record. This is not ideal, but if it allows us to update the record
+      // then that's the best we do.
+      const char *user = getUserName(uid);
+      if (user) {
+        memset(&ut->ut_user[0], 0, sizeof(ut->ut_user));
+        strncat(&ut->ut_user[0], user, sizeof(ut->ut_user));
+        ret            = pututxline(ut);
+        free((char *)user);
+      }
+    }
+  }
+
+  // Clean up. Reset file descriptors back to their original values.
+  check(dup2(oldStderr, 2) == 2);
+  check(dup2(oldStdout, 1) == 1);
+  check(dup2(oldStdin,  0) == 0);
+  NOINTR(close(oldStdin));
+  NOINTR(close(oldStdout));
+  NOINTR(close(oldStderr));
+
+  // It is quite likely that we won't always be in a situation to update the
+  // system's utmp records. Return a non-fatal error to the caller.
+
+  return ret;
+}
+#define pututxline x_pututxline
+#endif
 
 // If the PAM misc library cannot be found, we have to provide our own basic
 // conversation function. As we know that this code is only ever called from
@@ -1490,6 +1566,9 @@ static void launcherDaemon(int fd) {
   sa.sa_flags                 = SA_NOCLDSTOP | SA_SIGINFO;
   sa.sa_sigaction             = sigChildHandler;
   check(!sigaction(SIGCHLD, &sa, NULL));
+
+  // pututxline() can cause spurious SIGHUP signals. Better ignore those.
+  signal(SIGHUP, SIG_IGN);
 
   struct LaunchRequest request;
   for (;;) {
