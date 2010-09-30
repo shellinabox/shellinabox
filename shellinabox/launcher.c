@@ -497,7 +497,9 @@ void initUtmp(struct Utmp *utmp, int useLogin, const char *ptyPath,
   utmp->useLogin            = useLogin;
 #ifdef HAVE_UTMPX_H
   utmp->utmpx.ut_type       = useLogin ? LOGIN_PROCESS : USER_PROCESS;
-  dcheck(!strncmp(ptyPath, "/dev/pts", 8));
+  dcheck(!strncmp(ptyPath, "/dev/pts", 8) ||
+         !strncmp(ptyPath, "/dev/pty", 8) ||
+         !strncmp(ptyPath, "/dev/tty", 8));
   strncat(&utmp->utmpx.ut_line[0], ptyPath + 5,   sizeof(utmp->utmpx.ut_line));
   strncat(&utmp->utmpx.ut_id[0],   ptyPath + 8,   sizeof(utmp->utmpx.ut_id));
   strncat(&utmp->utmpx.ut_user[0], "SHELLINABOX", sizeof(utmp->utmpx.ut_user));
@@ -1619,7 +1621,7 @@ int forkLauncher(void) {
     // Temporarily drop most permissions. We still retain the ability to
     // switch back to root, which is necessary for launching "login".
     lowerPrivileges();
-    closeAllFds((int []){ pair[1] }, 1);
+    closeAllFds((int []){ pair[1], 2 }, 2);
     launcherDaemon(pair[1]);
     fatal("exit() failed!");
   case -1:
