@@ -583,12 +583,15 @@ void serverLoop(struct Server *server) {
         if (server->pollFds[i].revents) {
           eventCount--;
         }
+        short events                      = server->pollFds[i].events;
+        short oldEvents                   = events;
         if (!connection->handleConnection(connection, connection->arg,
-                                          &server->pollFds[i].events,
-                                          server->pollFds[i].revents)) {
+                                         &events, server->pollFds[i].revents)){
           connection                      = server->connections + i - 1;
           connection->destroyConnection(connection->arg);
           connection->deleted             = 1;
+        } else if (events != oldEvents) {
+          server->pollFds[i].events       = events;
         }
       }
     }
