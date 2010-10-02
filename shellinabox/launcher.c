@@ -437,7 +437,7 @@ static void loadPAM(void) {
       for (unsigned j = 0; j < sizeof(symbols)/sizeof(symbols[0]); j++) {
         *symbols[j].var = NULL;
       }
-      break;
+      return;
     }
   }
   debug("Loaded PAM suppport");
