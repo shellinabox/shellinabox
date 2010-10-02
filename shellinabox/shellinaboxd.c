@@ -282,8 +282,7 @@ static void sessionDone(void *arg) {
 }
 
 static int handleSession(struct ServerConnection *connection, void *arg,
-                         short *events ATTR_UNUSED, short revents) {
-  UNUSED(events);
+                         short *events, short revents) {
   struct Session *session       = (struct Session *)arg;
   session->connection           = connection;
   int len                       = MAX_RESPONSE - session->len;
@@ -311,7 +310,7 @@ static int handleSession(struct ServerConnection *connection, void *arg,
                                                       session->pty);
     session->connection         = connection;
     if (session->len >= MAX_RESPONSE) {
-      serverConnectionSetEvents(session->server, connection, 0);
+      *events                   = 0;
     }
     serverSetTimeout(connection, AJAX_TIMEOUT);
     return 1;
@@ -460,13 +459,15 @@ static int dataHandler(HttpConnection *http, struct Service *service,
       serverSetTimeout(session->connection, AJAX_TIMEOUT);
       if (session->len < MAX_RESPONSE) {
         // Re-enable input on the child's pty
-        serverConnectionSetEvents(session->server, session->connection,POLLIN);
+        serverConnectionSetEvents(session->server, session->connection,
+                                  session->pty, POLLIN);
       }
     }
     return HTTP_DONE;
   } else if (session->connection) {
     // Re-enable input on the child's pty
-    serverConnectionSetEvents(session->server, session->connection, POLLIN);
+    serverConnectionSetEvents(session->server, session->connection,
+                              session->pty, POLLIN);
     serverSetTimeout(session->connection, AJAX_TIMEOUT);
   }
 

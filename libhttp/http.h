@@ -98,7 +98,7 @@ time_t serverGetTimeout(ServerConnection *connection);
 ServerConnection *serverGetConnection(Server *server, ServerConnection *hint,
                                       int fd);
 short serverConnectionSetEvents(Server *server, ServerConnection *connection,
-                                short events);
+                                int fd, short events);
 void serverExitLoop(Server *server, int exitAll);
 void serverLoop(Server *server);
 int  serverSupportsSSL();

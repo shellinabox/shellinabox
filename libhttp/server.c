@@ -453,7 +453,7 @@ struct ServerConnection *serverGetConnection(struct Server *server,
 }
 
 short serverConnectionSetEvents(struct Server *server,
-                                struct ServerConnection *connection,
+                                struct ServerConnection *connection, int fd,
                                 short events) {
   dcheck(server);
   dcheck(connection);
@@ -463,6 +463,7 @@ short serverConnectionSetEvents(struct Server *server,
   dcheck(!connection->deleted);
   int   idx                       = connection - server->connections;
   short oldEvents                 = server->pollFds[idx + 1].events;
+  dcheck(fd == server->pollFds[idx + 1].fd);
   server->pollFds[idx + 1].events = events;
   return oldEvents;
 }
@@ -582,14 +583,12 @@ void serverLoop(struct Server *server) {
         if (server->pollFds[i].revents) {
           eventCount--;
         }
-        short events                      = server->pollFds[i].events;
         if (!connection->handleConnection(connection, connection->arg,
-                                         &events, server->pollFds[i].revents)){
+                                          &server->pollFds[i].events,
+                                          server->pollFds[i].revents)) {
           connection                      = server->connections + i - 1;
           connection->destroyConnection(connection->arg);
           connection->deleted             = 1;
-        } else {
-          server->pollFds[i].events       = events;
         }
       }
     }

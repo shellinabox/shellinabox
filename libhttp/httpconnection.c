@@ -768,7 +768,7 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
         if (!serverGetTimeout(connection)) {
           serverSetTimeout(connection, CONNECTION_TIMEOUT);
         }
-        serverConnectionSetEvents(http->server, connection,
+        serverConnectionSetEvents(http->server, connection, http->fd,
                                   http->msgLength ? POLLIN|POLLOUT : POLLIN);
       }
     }

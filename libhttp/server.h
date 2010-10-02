@@ -109,7 +109,7 @@ struct ServerConnection *serverGetConnection(struct Server *server,
                                              struct ServerConnection *hint,
                                              int fd);
 short serverConnectionSetEvents(struct Server *server,
-                                struct ServerConnection *connection,
+                                struct ServerConnection *connection, int fd,
                                 short events);
 void serverExitLoop(struct Server *server, int exitAll);
 void serverLoop(struct Server *server);
