@@ -76,6 +76,67 @@
 // API should be used, instead.
 #define MAX_PAYLOAD_LENGTH (64<<10)
 
+
+#if defined(__APPLE__) && defined(__MACH__)
+// While MacOS X does ship with an implementation of poll(), this
+// implementation is apparently known to be broken and does not comply
+// with POSIX standards. Fortunately, the operating system is not entirely
+// unable to check for input events. We can fall back on calling select()
+// instead. This is generally not desirable, as it is less efficient and
+// has a compile-time restriction on the maximum number of file
+// descriptors. But on MacOS X, that's the best we can do.
+
+int x_poll(struct pollfd *fds, nfds_t nfds, int timeout) {
+  fd_set r, w, x;
+  FD_ZERO(&r);
+  FD_ZERO(&w);
+  FD_ZERO(&x);
+  int maxFd             = -1;
+  for (int i = 0; i < nfds; ++i) {
+    if (fds[i].fd > maxFd) {
+      maxFd = fds[i].fd;
+    } else if (fds[i].fd < 0) {
+      continue;
+    }
+    if (fds[i].events & POLLIN) {
+      FD_SET(fds[i].fd, &r);
+    }
+    if (fds[i].events & POLLOUT) {
+      FD_SET(fds[i].fd, &w);
+    }
+    if (fds[i].events & POLLPRI) {
+      FD_SET(fds[i].fd, &x);
+    }
+  }
+  struct timeval tmoVal = { 0 }, *tmo;
+  if (timeout < 0) {
+    tmo                 = NULL;
+  } else {
+    tmoVal.tv_sec       =  timeout / 1000;
+    tmoVal.tv_usec      = (timeout % 1000) * 1000;
+    tmo                 = &tmoVal;
+  }
+  int numRet            = select(maxFd + 1, &r, &w, &x, tmo);
+  for (int i = 0, n = numRet; i < nfds && n > 0; ++i) {
+    if (fds[i].fd < 0) {
+      continue;
+    }
+    if (FD_ISSET(fds[i].fd, &x)) {
+      fds[i].revents    = POLLPRI;
+    } else if (FD_ISSET(fds[i].fd, &r)) {
+      fds[i].revents    = POLLIN;
+    } else {
+      fds[i].revents    = 0;
+    }
+    if (FD_ISSET(fds[i].fd, &w)) {
+      fds[i].revents   |= POLLOUT;
+    }
+  }
+  return numRet;
+}
+#define poll x_poll
+#endif
+
 time_t currentTime;
 
 struct PayLoad {
@@ -477,7 +538,7 @@ void serverLoop(struct Server *server) {
     currentTime                           = time(&lastTime);
     int isTimeout                         = timeout >= 0 &&
                                             timeout/1000 <= lastTime;
-    if (server->pollFds[0].revents) {
+    if (eventCount > 0 && server->pollFds[0].revents) {
       eventCount--;
       if (server->pollFds[0].revents && POLLIN) {
         struct sockaddr_in clientAddr;
