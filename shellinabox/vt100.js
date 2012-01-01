@@ -80,7 +80,7 @@
 // #define ESignore       14
 // #define ESnonstd       15
 // #define ESpalette      16
-// #define ESstatus       17
+// #define EStitle        17
 // #define ESss2          18
 // #define ESss3          19
 
@@ -187,7 +187,7 @@ function VT100(container) {
                               this.CodePage437Map, this.DirectToFontMap ];
   this.savedValid         = [ ];
   this.respondString      = '';
-  this.statusString       = '';
+  this.titleString        = '';
   this.internalClipboard  = undefined;
   this.reset(true);
 }
@@ -3846,7 +3846,7 @@ VT100.prototype.doControl = function(ch) {
   case 0x8F: this.isEsc       = 19 /* ESss3 */;                                  break;
   case 0x9A: this.respondID();                                          break;
   case 0x9B: this.isEsc       = 2 /* ESsquare */;                               break;
-  case 0x07: if (this.isEsc != 17 /* ESstatus */) {
+  case 0x07: if (this.isEsc != 17 /* EStitle */) {
                this.beep();                                             break;
              }
              /* fall thru */
@@ -3885,7 +3885,7 @@ VT100.prototype.doControl = function(ch) {
       switch (ch) {
 /*0*/ case 0x30:
 /*1*/ case 0x31:
-/*2*/ case 0x32: this.statusString = ''; this.isEsc  = 17 /* ESstatus */;        break;
+/*2*/ case 0x32: this.isEsc   = 17 /* EStitle */; this.titleString = '';         break;
 /*P*/ case 0x50: this.npar    = 0; this.par = [ 0, 0, 0, 0, 0, 0, 0 ];
                  this.isEsc   = 16 /* ESpalette */;                              break;
 /*R*/ case 0x52: // Palette support is not implemented
@@ -4081,18 +4081,22 @@ VT100.prototype.doControl = function(ch) {
         this.translate        = this.GMap[g];
       }
       break;
-    case 17 /* ESstatus */:
+    case 17 /* EStitle */:
       if (ch == 0x07) {
-        if (this.statusString && this.statusString.charAt(0) == ';') {
-          this.statusString   = this.statusString.substr(1);
+        if (this.titleString && this.titleString.charAt(0) == ';') {
+          this.titleString    = this.titleString.substr(1);
+          if (this.titleString != '') {
+            this.titleString += ' - ';
+          }
+          this.titleString += 'Shell In A Box'
         }
         try {
-          window.status       = this.statusString;
+          window.document.title = this.titleString;
         } catch (e) {
         }
         this.isEsc            = 0 /* ESnormal */;
       } else {
-        this.statusString    += String.fromCharCode(ch);
+        this.titleString     += String.fromCharCode(ch);
       }
       break;
     case 18 /* ESss2 */:
