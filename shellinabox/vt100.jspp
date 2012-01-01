@@ -3263,7 +3263,7 @@ VT100.prototype.respondSecondaryDA = function() {
 VT100.prototype.updateStyle = function() {
   this.style   = '';
   if (this.attr & ATTR_UNDERLINE) {
-    this.style = 'text-decoration:underline;';
+    this.style = 'text-decoration: underline;';
   }
   var bg       = (this.attr >> 4) & 0xF;
   var fg       =  this.attr       & 0xF;
@@ -3276,9 +3276,10 @@ VT100.prototype.updateStyle = function() {
     fg         = 8; // Dark grey
   } else if (this.attr & ATTR_BRIGHT) {
     fg        |= 8;
+    this.style = 'font-weight: bold;';
   }
   if (this.attr & ATTR_BLINK) {
-    bg        ^= 8;
+    this.style = 'text-decoration: blink;';
   }
   this.color   = 'ansi' + fg + ' bgAnsi' + bg;
 };
