@@ -3280,20 +3280,6 @@ VT100.prototype.updateStyle = function() {
   if (this.attr & 0x1000 /* ATTR_BLINK */) {
     bg        ^= 8;
   }
-  // Make some readability enhancements. Most notably, disallow identical
-  // background and foreground colors.
-  if (bg == fg) {
-    if ((fg   ^= 8) == 7) {
-      fg       = 8;
-    }
-  }
-  // And disallow bright colors on a light-grey background.
-  if (bg == 7 && fg >= 8) {
-    if ((fg   -= 8) == 7) {
-      fg       = 8;
-    }
-  }
-
   this.color   = 'ansi' + fg + ' bgAnsi' + bg;
 };
 
