@@ -61,8 +61,8 @@
   z-index:              1;
 }
 
-#vt100 #cursor.bright { 
-  background-color:     #e60000;
+#vt100 #cursor.bright {
+  background-color:     black;
   color:                white;
 }
 
@@ -71,7 +71,7 @@
 }
 
 #vt100 #cursor.inactive {
-  border:               1px solid #e60000;
+  border:               1px solid;
   margin:               -1px;
 }
 
