@@ -672,12 +672,15 @@ void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
       char hostname[256], buf[4096];
       check(!gethostname(hostname, sizeof(hostname)));
       struct hostent he_buf, *he;
-      int h_err;
-      if (gethostbyname_r(hostname, &he_buf, buf, sizeof(buf),
-                          &he, &h_err)) {
-        sslGenerateCertificate(defaultCertificate, hostname);
-      } else {
+      int h_err = 0;
+      int ret = gethostbyname_r(hostname, &he_buf, buf, sizeof(buf), &he, &h_err);
+      if (!ret && he && he->h_name) {
         sslGenerateCertificate(defaultCertificate, he->h_name);
+      } else {
+        if (h_err) {
+          warn("Error getting host information: \"%s\".", hstrerror(h_err));
+        }
+        sslGenerateCertificate(defaultCertificate, hostname);
       }
     } else {
       goto valid_certificate;
