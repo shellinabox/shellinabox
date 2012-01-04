@@ -89,7 +89,7 @@ d_reload() {
 #       Function that check the status of the daemon/service.
 #
 d_status() {
-  [ -r "$PIDFILE" && kill -0 `cat "$PIDFILE"` ] &&
+  [ -r "$PIDFILE" ] && kill -0 `cat "$PIDFILE"` &&
     echo "$DESC is running" || echo "$DESC is not running"
 }
 
@@ -117,7 +117,7 @@ case "$1" in
         ;;
     status)
         d_status
-	;;
+        ;;
     *)
         echo "Usage: $SCRIPTNAME {start|stop|restart|force-reload|reload}" >&2
         exit 1
