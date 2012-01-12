@@ -234,7 +234,7 @@ struct utmpx *x_pututxline(struct utmpx *ut) {
       const char *user = getUserName(uid);
       if (user) {
         memset(&ut->ut_user[0], 0, sizeof(ut->ut_user));
-        strncat(&ut->ut_user[0], user, sizeof(ut->ut_user));
+        strncat(&ut->ut_user[0], user, sizeof(ut->ut_user) - 1);
         ret            = pututxline(ut);
         free((char *)user);
       }
@@ -576,10 +576,10 @@ void initUtmp(struct Utmp *utmp, int useLogin, const char *ptyPath,
   dcheck(!strncmp(ptyPath, "/dev/pts", 8) ||
          !strncmp(ptyPath, "/dev/pty", 8) ||
          !strncmp(ptyPath, "/dev/tty", 8));
-  strncat(&utmp->utmpx.ut_line[0], ptyPath + 5,   sizeof(utmp->utmpx.ut_line));
-  strncat(&utmp->utmpx.ut_id[0],   ptyPath + 8,   sizeof(utmp->utmpx.ut_id));
-  strncat(&utmp->utmpx.ut_user[0], "SHELLINABOX", sizeof(utmp->utmpx.ut_user));
-  strncat(&utmp->utmpx.ut_host[0], peerName,      sizeof(utmp->utmpx.ut_host));
+  strncat(&utmp->utmpx.ut_line[0], ptyPath + 5,   sizeof(utmp->utmpx.ut_line) - 1);
+  strncat(&utmp->utmpx.ut_id[0],   ptyPath + 8,   sizeof(utmp->utmpx.ut_id) - 1);
+  strncat(&utmp->utmpx.ut_user[0], "SHELLINABOX", sizeof(utmp->utmpx.ut_user) - 1);
+  strncat(&utmp->utmpx.ut_host[0], peerName,      sizeof(utmp->utmpx.ut_host) - 1);
   struct timeval tv;
   check(!gettimeofday(&tv, NULL));
   utmp->utmpx.ut_tv.tv_sec  = tv.tv_sec;
@@ -1166,7 +1166,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   if (service->authUser != 2 /* SSH */) {
     memset(&utmp->utmpx.ut_user, 0, sizeof(utmp->utmpx.ut_user));
     strncat(&utmp->utmpx.ut_user[0], service->user,
-            sizeof(utmp->utmpx.ut_user));
+            sizeof(utmp->utmpx.ut_user) - 1);
     setutxent();
     pututxline(&utmp->utmpx);
     endutxent();
@@ -1474,7 +1474,7 @@ static void childProcess(struct Service *service, int width, int height,
 #if defined(HAVE_UPDWTMP) || defined(HAVE_UPDWTMPX)
   if (!utmp->useLogin) {
     memset(&utmpx.ut_user, 0, sizeof(utmpx.ut_user));
-    strncat(&utmpx.ut_user[0], "LOGIN", sizeof(utmpx.ut_user));
+    strncat(&utmpx.ut_user[0], "LOGIN", sizeof(utmpx.ut_user) - 1);
     updwtmpx("/var/log/wtmp", &utmpx);
   }
 #endif
