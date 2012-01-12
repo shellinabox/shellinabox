@@ -572,17 +572,13 @@ static int sslSNICallback(SSL *sslHndl, int *al ATTR_UNUSED,
     } else if (ch != '\000' && ch != '.' && ch != '-' &&
                (ch < '0' ||(ch > '9' && ch < 'A') || (ch > 'Z' &&
                 ch < 'a')|| ch > 'z')) {
-      i++;
-      continue;
+      free(serverName);
+      return SSL_TLSEXT_ERR_OK;
     }
     serverName[++i]       = ch;
     if (!ch) {
       break;
     }
-  }
-  if (!*serverName) {
-    free(serverName);
-    return SSL_TLSEXT_ERR_OK;
   }
   SSL_CTX *context        = (SSL_CTX *)getFromTrie(&ssl->sniContexts,
                                                    serverName+1,
