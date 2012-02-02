@@ -364,7 +364,7 @@ static void sslGenerateCertificate(const char *certificate,
     umask(077);
     check(setenv("PATH", "/usr/bin:/usr/sbin", 1) == 0);
     execlp("openssl", "openssl", "req", "-x509", "-nodes", "-days", "7300",
-           "-newkey", "rsa:1024", "-keyout", certificate, "-out", certificate,
+           "-newkey", "rsa:2048", "-keyout", certificate, "-out", certificate,
            "-subj", stringPrintf(NULL, "/CN=%s/", serverName),
            (char *)NULL);
     check(0);
