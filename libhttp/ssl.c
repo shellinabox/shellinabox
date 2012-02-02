@@ -489,7 +489,7 @@ static int sslSetCertificateFromFd(SSL_CTX *context, int fd) {
   const unsigned char *data    = sslSecureReadASCIIFileToMem(fd);
   check(!NOINTR(close(fd)));
   long dataSize                = (long)strlen((const char *)data);
-  long certSize, rsaSize, dsaSize, ecSize;
+  long certSize, rsaSize, dsaSize, ecSize, notypeSize;
   const unsigned char *record;
   const unsigned char *cert    = sslPEMtoASN1(data, "CERTIFICATE", &certSize,
                                               &record);
@@ -499,21 +499,26 @@ static int sslSetCertificateFromFd(SSL_CTX *context, int fd) {
                                               NULL);
   const unsigned char *ec      = sslPEMtoASN1(data, "EC PRIVATE KEY",  &ecSize,
                                               NULL);
+  const unsigned char *notype  = sslPEMtoASN1(data, "PRIVATE KEY", &notypeSize,
+                                              NULL);
   if (certSize && (rsaSize || dsaSize
 #ifdef EVP_PKEY_EC
                                       || ecSize
 #endif
-                                               ) &&
+                                                || notypeSize) &&
       SSL_CTX_use_certificate_ASN1(context, certSize, cert) &&
       (!rsaSize ||
        SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, context, rsa, rsaSize)) &&
       (!dsaSize ||
-       SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_DSA, context, dsa, dsaSize))
+       SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_DSA, context, dsa, dsaSize)) &&
 #ifdef EVP_PKEY_EC
-      &&
       (!ecSize ||
-       SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_EC, context, ec, ecSize))
+       SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_EC, context, ec, ecSize)) &&
 #endif
+      // Assume a private key is RSA if the header does not specify a type.
+      // (e.g. BEGIN PRIVATE KEY)
+      (!notypeSize ||
+       SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, context, notype, notypeSize))
       ) {
     memset((char *)cert, 0, certSize);
     free((char *)cert);
@@ -549,6 +554,8 @@ static int sslSetCertificateFromFd(SSL_CTX *context, int fd) {
   free((char *)dsa);
   memset((char *)ec, 0, ecSize);
   free((char *)ec);
+  memset((char *)notype, 0, notypeSize);
+  free((char *)notype);
   return rc;
 }
 
