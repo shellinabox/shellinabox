@@ -1,3 +1,11 @@
+shellinabox (2.10-2) unstable; urgency=low
+
+  * NMU: this would be an NMU, but the package has never been added to
+    the archive. 
+  * First release into archive. (Closes: #535905.)
+
+ -- Marc Singer <elf@debian.org>  Sat, 24 Mar 2012 13:59:33 -0700
+
 shellinabox (2.10-1) unstable; urgency=low
 
   * New upstream release, version 2.10.

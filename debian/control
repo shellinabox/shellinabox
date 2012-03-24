@@ -1,15 +1,17 @@
 Source: shellinabox
 Section: web
 Priority: optional
-Homepage: http://shellinabox.com
-Maintainer: Markus Gutschke <markus@shellinabox.com>
-Build-Depends: debhelper (>= 6.0.0), binutils, libssl-dev, libpam0g-dev,
+Maintainer: Marc Singer <elf@buici.com>
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, binutils, libssl-dev, libpam0g-dev,
  zlib1g-dev
-Standards-Version: 3.8.3
+Standards-Version: 3.9.2
+Homepage: http://shelinabox.com
+Vcs-Git: git://github.com/beewoolie/shellinabox.git
+Vcs-Browser: https://github.com/beewoolie/shellinabox
 
 Package: shellinabox
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, lsb-base
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, lsb-base
 Suggests: libssl0.9.8, libpam0g, openssl
 Description: publish command line shell through AJAX interface
  Shellinabox can export arbitrary command line programs to any JavaScript

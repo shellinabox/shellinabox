@@ -1,2 +1,3 @@
 version=3
 http://shellinabox.googlecode.com/svn/trunk/distributions/debian/shellinabox_([\d\.]+).orig.tar.gz
+http://githubredir.debian.net/github/beewoolie/shellinabox (.+).tar.gz
