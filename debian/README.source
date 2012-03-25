@@ -1,18 +1,12 @@
-shellinabox for Debian
-----------------------
+The upstream source for shellinabox is archived in googlecode SVN
+repository, <http://shellinabox.googlecode.com/svn/trunk>.  Some
+patches were made by users before this package was prepared for the
+Debian archive.  Those patches as well as some of the unreleased
+changes made by the author are included in a single patch file.
+dpkg-source -x should prepare a patched directory for building.
 
-This package was originally Debianized by Markus Gutschke
-<markus@shellinabox.com> on 27 December 2008.  It was modified by Marc
-Singer <elf@debian.org> in preparation for addition to the Debian
-archive on the 24 March 2012.
-
-The source originated from http://shellinabox.com.  A fork of the
-project at git://github.com/beewoolie/shellinabox.git was used to
-package it.
-
-<this file describes information about the source package, see Debian policy
-manual section 4.14. You WILL either need to modify or delete this file>
-
-
-
-
+The working Debian repository for shellinabox is archived in github,
+<git://github.com/beewoolie/shellinabox.git>.  Upgrading the upstream
+sources may be accomplished by looking for the upstream tag in the
+repository, pulling back the changes since then, and reapplying those
+changes to updated archive.

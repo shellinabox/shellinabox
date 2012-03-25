@@ -45,3 +45,4 @@ override_dh_install:
 	echo '# of its GPLv2 code with OpenSSL';                              \
 	echo 'shellinabox binary: possible-gpl-code-linked-with-openssl'; }   \
 	   >"$(CURDIR)/debian/tmp/usr/share/lintian/overrides/shellinabox"
+	dh_install

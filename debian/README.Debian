@@ -1,6 +1,14 @@
 shellinabox for Debian
 ----------------------
 
- * Hold for usage or installation notes.
+
+This package was originally Debianized by Markus Gutschke
+<markus@shellinabox.com> on 27 December 2008.  It was modified by Marc
+Singer <elf@debian.org> in preparation for addition to the Debian
+archive on the 24 March 2012.
+
+The source originated from http://shellinabox.com.  A fork of the
+project at git://github.com/beewoolie/shellinabox.git was used to
+package it.
 
  -- Marc Singer <elf@buici.com>  Sat, 24 Mar 2012 12:26:58 -0700
