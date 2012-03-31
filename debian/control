@@ -11,8 +11,8 @@ Vcs-Browser: https://github.com/beewoolie/shellinabox
 
 Package: shellinabox
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, lsb-base
-Suggests: libssl0.9.8, libpam0g, openssl
+Depends: ${shlibs:Depends}, ${misc:Depends}, libssl0.9.8 (>= 0.9.8m-1), adduser, lsb-base
+Suggests: libpam0g, openssl
 Description: publish command line shell through AJAX interface
  Shellinabox can export arbitrary command line programs to any JavaScript
  enabled web browser. By default, it prompts for username and password
