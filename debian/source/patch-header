@@ -1,4 +1,0 @@
-While we wait for the (git) format to become supported the Debian
-patch for this package includes changes to the source tree to fix
-bugs.  The repository <git://github.com/beewoolie/shellinabox.git>
-holds the development repository.

@@ -1,12 +1,3 @@
-The upstream source for shellinabox is archived in googlecode SVN
-repository, <http://shellinabox.googlecode.com/svn/trunk>.  Some
-patches were made by users before this package was prepared for the
-Debian archive.  Those patches as well as some of the unreleased
-changes made by the author are included in a single patch file.
-dpkg-source -x should prepare a patched directory for building.
-
-The working Debian repository for shellinabox is archived in github,
-<git://github.com/beewoolie/shellinabox.git>.  Upgrading the upstream
-sources may be accomplished by looking for the upstream tag in the
-repository, pulling back the changes since then, and reapplying those
-changes to updated archive.
+The upstream source for shellinabox is archived in googlecode GIT
+repository, <http://code.google.com/p/shellinabox/>.  The package is
+being maintained as a native Debian package.

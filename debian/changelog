@@ -1,73 +1,7 @@
-shellinabox (2.10-2) unstable; urgency=low
+shellinabox (2.11-1) unstable; urgency=low
 
-  * NMU: this would be an NMU, but the package has never been added to
-    the archive. 
   * First release into archive. (Closes: #535905.)
+  * Applied patches from the issues database.
+  * Rolled major revision so that the tarball is complete.
 
- -- Marc Singer <elf@debian.org>  Sat, 24 Mar 2012 13:59:33 -0700
-
-shellinabox (2.10-1) unstable; urgency=low
-
-  * New upstream release, version 2.10.
-
- -- Markus Gutschke <markus@shellinabox.com>  Sat, 21 Nov 2009 14:42:03 -0800
-
-shellinabox (2.9-1) unstable; urgency=low
-
-  * New upstream release, version 2.9.
-
- -- Markus Gutschke <markus@shellinabox.com>  Sun, 05 Jul 2009 21:08:47 -0800
-
-shellinabox (2.8-1) unstable; urgency=low
-
-  * New upstream release, version 2.8.
-
- -- Markus Gutschke <markus@shellinabox.com>  Sat, 23 May 2009 11:53:13 -0800
-
-shellinabox (2.7-1) unstable; urgency=low
-
-  * New upstream release, version 2.7.
-
- -- Markus Gutschke <markus@shellinabox.com>  Mon, 27 Apr 2009 09:43:58 -0800
-
-shellinabox (2.6-1) unstable; urgency=low
-
-  * New upstream release, version 2.6.
-
- -- Markus Gutschke <markus@shellinabox.com>  Sun, 12 Apr 2009 10:16:31 -0800
-
-shellinabox (2.5-1) unstable; urgency=low
-
-  * New upstream release, version 2.5.
-
- -- Markus Gutschke <markus@shellinabox.com>  Sat, 21 Mar 2009 08:31:52 -0800
-
-shellinabox (2.4-1) unstable; urgency=low
-
-  * New upstream release, version 2.4.
-
- -- Markus Gutschke <markus@shellinabox.com>  Thu, 12 Feb 2009 17:52:14 -0800
-
-shellinabox (2.3-1) unstable; urgency=low
-
-  * New upstream release, version 2.3.
-
- -- Markus Gutschke <markus@shellinabox.com>  Wed, 21 Jan 2009 18:39:25 -0800
-
-shellinabox (2.2-1) unstable; urgency=low
-
-  * New upstream release, version 2.2.
-
- -- Markus Gutschke <markus@shellinabox.com>  Wed, 21 Jan 2009 16:32:17 -0800
-
-shellinabox (2.1-1) unstable; urgency=low
-
-  * New upstream release, version 2.1.
-
- -- Markus Gutschke <markus@shellinabox.com>  Thu,  8 Jan 2009 18:47:08 -0800
-
-shellinabox (2.0-1) unstable; urgency=low
-
-  * Initial release.
-
- -- Markus Gutschke <markus@shellinabox.com>  Sat, 27 Dec 2008 09:15:32 -0800
+ -- Marc Singer <elf@debian.org>  Sat, 31 Mar 2012 16:33:31 -0700
