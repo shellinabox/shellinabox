@@ -1106,7 +1106,7 @@ VT100.prototype.repairElements = function(console) {
         for (var span = line.firstChild; span; span = span.nextSibling) {
           var newSpan             = document.createElement(span.tagName);
           newSpan.style.cssText   = span.style.cssText;
-          newSpan.style.className = span.style.className;
+          newSpan.className	  = span.className;
           this.setTextContent(newSpan, this.getTextContent(span));
           newLine.appendChild(newSpan);
         }
@@ -1517,7 +1517,7 @@ VT100.prototype.insertBlankLine = function(y, color, style) {
     line                 = document.createElement('div');
     var span             = document.createElement('span');
     span.style.cssText   = style;
-    span.style.className = color;
+    span.className	 = color;
     this.setTextContent(span, this.spaces(this.terminalWidth));
     line.appendChild(span);
   }
