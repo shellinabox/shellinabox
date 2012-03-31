@@ -159,7 +159,11 @@ void initService(struct Service *service, const char *arg) {
           "-oPubkeyAuthentication=no -oRhostsRSAAuthentication=no "
           "-oRSAAuthentication=no -oStrictHostKeyChecking=no -oTunnel=no "
           "-oUserKnownHostsFile=/dev/null -oVerifyHostKeyDNS=no "
-          "-oVisualHostKey=no -oLogLevel=QUIET %%s@%s", host);
+// beewoolie-2012.03.30: while it would be nice to disable this
+//          feature, we cannot be sure that it is available on the
+//          target server.  Removing it for the sake of Centos.
+//          "-oVisualHostKey=no"
+	  " -oLogLevel=QUIET %%s@%s", host);
     free(host);
   } else {
     service->useLogin                       = 0;
