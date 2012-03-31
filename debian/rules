@@ -27,7 +27,7 @@ override_dh_install:
 	         "$(CURDIR)/debian/tmp/etc/shellinabox/options-enabled"
 	for i in "00+Black on White" "00_White On Black"                      \
 	         "01_Monochrome"     "01+Color Terminal"; do                  \
-	  ln "$(CURDIR)/debian/tmp/usr/share/doc/shellinabox/$$(echo "$$i"|   \
+	  cp "$(CURDIR)/debian/tmp/usr/share/doc/shellinabox/$$(echo "$$i"|   \
                                         sed -e 's/[0-9]*[_+]\([^ ]*\).*/\1/'| \
 	                                tr A-Z a-z)"*.css                     \
 	     "$(CURDIR)/debian/tmp/etc/shellinabox/options-available/$$i.css";\
