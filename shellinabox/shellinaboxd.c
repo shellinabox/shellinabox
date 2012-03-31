@@ -613,17 +613,15 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
   const HashMap *headers  = httpGetHeaders(http);
   const char *contentType = getFromHashMap(headers, "content-type");
 
-  // Normalize the path info
+  // Normalize the path info, present the final path element
   const char *pathInfo    = urlGetPathInfo(url);
-  while (*pathInfo == '/') {
-    pathInfo++;
-  }
-  const char *endPathInfo;
-  for (endPathInfo        = pathInfo;
-       *endPathInfo && *endPathInfo != '/';
-       endPathInfo++) {
-  }
-  int pathInfoLength      = endPathInfo - pathInfo;
+  int pathInfoLength = 0;
+  pathInfo = rindex (pathInfo, '/');
+  if (pathInfo)
+    ++pathInfo;
+  else
+    pathInfo = "";              /* Cheap way to get an empty string */
+  pathInfoLength = strlen (pathInfo);
 
   if (!pathInfoLength ||
       (pathInfoLength == 5 && !memcmp(pathInfo, "plain", 5)) ||
