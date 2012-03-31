@@ -267,16 +267,16 @@ ShellInABox.prototype.keysPressed = function(ch) {
     } else if (c < 0x10000) {
       s += 'E'                                 +
            hex.charAt(       (c >> 12)       ) +
-           hex.charAt(0x8 +  (c >> 10) & 0x3 ) +
+           hex.charAt(0x8 + ((c >> 10) & 0x3)) +
            hex.charAt(       (c >>  6) & 0xF ) +
            hex.charAt(0x8 + ((c >>  4) & 0x3)) +
            hex.charAt(        c        & 0xF );
     } else if (c < 0x110000) {
       s += 'F'                                 +
            hex.charAt(       (c >> 18)       ) +
-           hex.charAt(0x8 +  (c >> 16) & 0x3 ) +
+           hex.charAt(0x8 + ((c >> 16) & 0x3)) +
            hex.charAt(       (c >> 12) & 0xF ) +
-           hex.charAt(0x8 +  (c >> 10) & 0x3 ) +
+           hex.charAt(0x8 + ((c >> 10) & 0x3)) +
            hex.charAt(       (c >>  6) & 0xF ) +
            hex.charAt(0x8 + ((c >>  4) & 0x3)) +
            hex.charAt(        c        & 0xF );
