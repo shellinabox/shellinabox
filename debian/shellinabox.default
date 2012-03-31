@@ -10,7 +10,9 @@ SHELLINABOX_PORT=4200
 # SHELLINABOX_USER=shellinabox
 # SHELLINABOX_GROUP=shellinabox
 
-# Any optional arguments (e.g. extra service definitions)
-# We disable beeps, as there have been reports of the VLC plugin crashing
-# Firefox on Linux/x86_64.
-SHELLINABOX_ARGS=--no-beep
+# Any optional arguments (e.g. extra service definitions).  Make sure
+# that that argument is quoted.
+#
+#   Beeps are disabled because of reports of the VLC plugin crashing
+#   Firefox on Linux/x86_64.
+SHELLINABOX_ARGS="--no-beep"
