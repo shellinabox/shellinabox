@@ -2321,6 +2321,13 @@ VT100.prototype.pasteFnc = function() {
   }
 };
 
+VT100.prototype.pasteBrowserFnc = function() {
+  var clipboard     = prompt("Paste into this box:","");
+  if (clipboard != undefined) {
+     return this.keysPressed('' + clipboard);
+  }
+};
+
 VT100.prototype.toggleUTF = function() {
   this.utfEnabled   = !this.utfEnabled;
 
@@ -2426,6 +2433,7 @@ VT100.prototype.showContextMenu = function(x, y) {
         '<ul id="menuentries">' +
           '<li id="beginclipboard">Copy</li>' +
           '<li id="endclipboard">Paste</li>' +
+          '<li id="browserclipboard">Paste from browser</li>' +
           '<hr />' +
           '<li id="reset">Reset</li>' +
           '<hr />' +
@@ -2467,7 +2475,7 @@ VT100.prototype.showContextMenu = function(x, y) {
   }
 
   // Actions for default items
-  var actions                 = [ this.copyLast, p, this.reset,
+  var actions                 = [ this.copyLast, p, this.pasteBrowserFnc, this.reset,
                                   this.toggleUTF, this.toggleBell,
                                   this.toggleSoftKeyboard,
                                   this.toggleCursorBlinking ];
