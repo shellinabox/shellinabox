@@ -1047,6 +1047,24 @@ VT100.prototype.initializeElements = function(container) {
   this.addListener(this.scrollable,'mouseup',  mouseEvent(this, 1 /* MOUSE_UP */));
   this.addListener(this.scrollable,'click',    mouseEvent(this, 2 /* MOUSE_CLICK */));
 
+  // Check that browser supports drag and drop
+  if ('draggable' in document.createElement('span')) {
+      var dropEvent            = function (vt100) {
+          return function(e) {
+              if (!e) e = window.event;
+              if (e.preventDefault) e.preventDefault();
+              vt100.keysPressed(e.dataTransfer.getData('Text'));
+              return false;
+          };
+      };
+      // Tell the browser that we *can* drop on this target
+      this.addListener(this.scrollable, 'dragover', cancel);
+      this.addListener(this.scrollable, 'dragenter', cancel);
+
+      // Add a listener for the drop event
+      this.addListener(this.scrollable, 'drop', dropEvent(this));
+  }
+  
   // Initialize the blank terminal window.
   this.currentScreen           = 0;
   this.cursorX                 = 0;
@@ -1059,6 +1077,13 @@ VT100.prototype.initializeElements = function(container) {
   this.focusCursor();
   this.input.focus();
 };
+
+function cancel(event) {
+  if (event.preventDefault) {
+    event.preventDefault();
+  }
+  return false;
+}
 
 VT100.prototype.getChildById = function(parent, id) {
   var nodeList = parent.all || parent.getElementsByTagName('*');
