@@ -4,4 +4,4 @@ shellinabox (2.11-1) unstable; urgency=low
   * Applied patches from the issues database.
   * Rolled major revision so that the tarball is complete.
 
- -- Marc Singer <elf@debian.org>  Sat, 31 Mar 2012 16:33:31 -0700
+ -- Marc Singer <elf@debian.org>  Thu, 05 Apr 2012 20:53:32 -0700
