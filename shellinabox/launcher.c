@@ -1662,7 +1662,7 @@ static void launcherDaemon(int fd) {
 
       // Send file handle and process id back to parent
       char cmsg_buf[CMSG_SPACE(sizeof(int))]; // = { 0 }; // Valid initializer makes OSX mad.
-      cmsg_buf[0] = 0;
+      memset (cmsg_buf, 0, sizeof (cmsg_buf)); // Quiet complaint from valgrind
       struct iovec  iov       = { 0 };
       struct msghdr msg       = { 0 };
       iov.iov_base            = &pid;
