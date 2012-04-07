@@ -10,8 +10,19 @@
 #export DH_VERBOSE=1
 
 %:
-	dh $@  --with autotools-dev
+	dh $@ --with autotools-dev
 
+
+# elf-2012.04.07: Because the daemon loads libssl.so-X dynamically
+#		  there is no way for the debhelper script to find the
+#		  library name to add to the dependencies.  So we
+#		  link a small program to provide a target for
+#		  dpkg-shlibdeps to use to recover the dependency.
+override_dh_shlibdeps:
+	gcc -o debian/shellinabox/ssl-deps debian/ssl-deps.c -lcrypto
+	dpkg-shlibdeps -Tdebian/shellinabox.substvars debian/shellinabox/usr/bin/shellinaboxd \
+		-dRecommends debian/shellinabox/ssl-deps
+	rm debian/shellinabox/ssl-deps
 
 # elf-2012.03.24: This work should be done in the Makefile install
 #		  target instead of debian/rules.

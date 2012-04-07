@@ -193,13 +193,17 @@ static int maybeLoadCrypto(void) {
   // it, iff we haven't tried loading it before and iff libssl.so does not
   // work by itself.
   static int crypto;
+  const char* path_libcrypto = getenv ("SHELLINABOX_LIBCRYPTO_SO");
+  if (path_libcrypto == NULL)
+    path_libcrypto = "libcrypto.so";
+
   if (!crypto++) {
 #ifdef RTLD_NOLOAD
-    if (dlopen("libcrypto.so", RTLD_LAZY|RTLD_GLOBAL|RTLD_NOLOAD))
+    if (dlopen(path_libcrypto, RTLD_LAZY|RTLD_GLOBAL|RTLD_NOLOAD))
       return 1;
     else
 #endif
-      if (dlopen("libcrypto.so", RTLD_LAZY|RTLD_GLOBAL))
+      if (dlopen(path_libcrypto, RTLD_LAZY|RTLD_GLOBAL))
         return 1;
   }
   return 0;
@@ -245,6 +249,9 @@ static void *loadSymbol(const char *lib, const char *fn) {
 }
 
 static void loadSSL(void) {
+  const char* path_libssl    = getenv ("SHELLINABOX_LIBSSL_SO");
+  if (path_libssl == NULL)
+    path_libssl = "libssl.so";
   check(!SSL_library_init);
   struct {
     union {
@@ -298,7 +305,7 @@ static void loadSSL(void) {
     { { &X509_free },                   "X509_free" }
   };
   for (unsigned i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
-    if (!(*symbols[i].var = loadSymbol("libssl.so", symbols[i].fn))) {
+    if (!(*symbols[i].var = loadSymbol(path_libssl, symbols[i].fn))) {
       debug("Failed to load SSL support. Could not find \"%s\"",
             symbols[i].fn);
       for (unsigned j = 0; j < sizeof(symbols)/sizeof(symbols[0]); j++) {

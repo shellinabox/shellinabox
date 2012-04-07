@@ -40,6 +40,10 @@ SHELLINABOX_PORT="${SHELLINABOX_PORT:-4200}"
 SHELLINABOX_USER="${SHELLINABOX_USER:-shellinabox}"
 SHELLINABOX_GROUP="${SHELLINABOX_GROUP:-shellinabox}"
 
+# Export SO file names
+export SHELLINABOX_LIBCRYPTO_SO="${SHELLINABOX_LIBCRYPTO_SO:-libcrypto.so}"
+export SHELLINABOX_LIBSSL_SO="${SHELLINABOX_LIBSSL_SO:-libssl.so}"
+
 #
 #       Function that starts the daemon/service.
 #
