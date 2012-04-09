@@ -1,3 +1,10 @@
+shellinabox (2.13-1) unstable; urgency=low
+
+  * Typo in web address.  (Closes: #668130.)
+  * Removing PATH_MAX reference which should fix Hurd build.
+
+ -- Marc Singer <elf@buici.com>  Mon, 09 Apr 2012 18:34:17 -0700
+
 shellinabox (2.12-1) unstable; urgency=low
 
   * Moved libssl from a dependency to a recommended package using a helper

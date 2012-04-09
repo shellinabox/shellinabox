@@ -721,7 +721,7 @@ void closeAllFds(int *exceptFds, int num) {
   }
 }
 
-#if !defined(HAVE_OPENPTY) && !defined(HAVE_PTSNAME_R)
+#if !defined(HAVE_PTSNAME_R)
 static int ptsname_r(int fd, char *buf, size_t buflen) {
   // It is unfortunate that ptsname_r is not universally available.
   // For the time being, this is not a big problem, as ShellInABox is
@@ -748,14 +748,44 @@ static int ptsname_r(int fd, char *buf, size_t buflen) {
 static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
                    const char *peerName) {
   int slave;
-  char ptyPath[PATH_MAX];
   #ifdef HAVE_OPENPTY
-  if (openpty(pty, &slave, ptyPath, NULL, NULL) < 0) {
+  char* ptyPath = NULL;
+  if (openpty(pty, &slave, NULL, NULL, NULL) < 0) {
     *pty                    = -1;
     *utmp                   = NULL;
     return -1;
   }
+  // Recover name of PTY in a Hurd compatible way.  PATH_MAX doesn't
+  // exist, so we need to use ttyname_r to fetch the name of the
+  // pseudo-tty and find the buffer length that is sufficient. After
+  // finding an adequate buffer size for the ptyPath, we allocate it
+  // on the stack and release the freestore copy.  In this was we know
+  // that the memory won't leak.  Note that ptsname_r is not always
+  // available but we're already checking for this so it will be
+  // defined in any case.
+  {
+    size_t length = 32;
+    char* path = NULL;
+    while (path == NULL) {
+      path = malloc (length);
+      *path = 0;
+      if (ptsname_r (*pty, path, length)) {
+        if (errno == ERANGE) {
+          free (path);
+          path = NULL;
+        }
+        else
+          break;          // Every other error means no name for us
+      }
+      length <<= 1;
+    }
+    length = strlen (path);
+    ptyPath = alloca (length + 1);
+    strcpy (ptyPath, path);
+    free (path);
+  }
   #else
+  char ptyPath[PATH_MAX];
   if ((*pty                 = posix_openpt(O_RDWR|O_NOCTTY))          < 0 ||
       grantpt(*pty)                                                   < 0 ||
       unlockpt(*pty)                                                  < 0 ||
