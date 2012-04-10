@@ -193,7 +193,10 @@ static int maybeLoadCrypto(void) {
   // it, iff we haven't tried loading it before and iff libssl.so does not
   // work by itself.
   static int crypto;
-  const char* path_libcrypto = getenv ("SHELLINABOX_LIBCRYPTO_SO");
+  // SHELLINABOX_LIBCRYPTO_SO can be used to select the specific
+  // soname of libcrypto for systems where it is not libcrypto.so.
+  // The feature is currently disabled.
+  const char* path_libcrypto = NULL; // getenv ("SHELLINABOX_LIBCRYPTO_SO");
   if (path_libcrypto == NULL)
     path_libcrypto = "libcrypto.so";
 
@@ -249,7 +252,10 @@ static void *loadSymbol(const char *lib, const char *fn) {
 }
 
 static void loadSSL(void) {
-  const char* path_libssl    = getenv ("SHELLINABOX_LIBSSL_SO");
+  // SHELLINABOX_LIBSSL_SO can be used to select the specific
+  // soname of libssl for systems where it is not libssl.so.
+  // The feature is currently disabled.
+  const char* path_libssl = NULL; // = getenv ("SHELLINABOX_LIBSSL_SO");
   if (path_libssl == NULL)
     path_libssl = "libssl.so";
   check(!SSL_library_init);

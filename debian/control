@@ -12,14 +12,9 @@ Vcs-Browser: https://code.google.com/p/shellinabox/source/browse/
 Package: shellinabox
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, lsb-base
-Recommends: ${shlibs:Recommends}
-Suggests: libpam0g, openssl
+Suggests: openssl
 Description: publish command line shell through AJAX interface
  Shellinabox can export arbitrary command line programs to any JavaScript
  enabled web browser. By default, it prompts for username and password
  and then exports a SSL/TLS encrypted login shell. Shellinabox provides
  a VT100 compatible terminal emulator that runs within any modern browser.
- .
- ShellInABox links libssl dynamically, so libssl must be installed
- either manually or as a dependency of another package for SSL support
- to be available.

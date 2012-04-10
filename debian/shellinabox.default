@@ -10,10 +10,6 @@ SHELLINABOX_PORT=4200
 # SHELLINABOX_USER=shellinabox
 # SHELLINABOX_GROUP=shellinabox
 
-# Names of openssl libraries to load dynamically.
-SHELLINABOX_LIBSSL_SO=libssl.so.1.0.0
-SHELLINABOX_LIBCRYPTO_SO=libcrypto.so.1.0.0
-
 # Any optional arguments (e.g. extra service definitions).  Make sure
 # that that argument is quoted.
 #
