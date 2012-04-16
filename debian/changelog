@@ -1,3 +1,11 @@
+shellinabox (2.14-1) unstable; urgency=low
+
+  * Revised install target of debian/rules.
+  * Revised postrm and prerm to fix dangling symlinks on
+    purge. (Closes: #668720.)
+
+ -- Marc Singer <elf@debian.org>  Sat, 21 Apr 2012 10:26:21 -0700
+
 shellinabox (2.13-1) unstable; urgency=low
 
   * Typo in web address.  (Closes: #668130.)

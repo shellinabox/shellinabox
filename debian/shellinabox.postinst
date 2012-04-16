@@ -25,6 +25,10 @@ case "$1" in
           --home /var/lib/shellinabox --gecos "Shell In A Box" \
           --group shellinabox
       fi
+	# Shellinabox must own the certificate directory so that it
+	# can write the certificate even when the daemon has given-up
+	# root privileges.
+#      chown shellinabox:shellinabox /var/lib/shellinabox
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

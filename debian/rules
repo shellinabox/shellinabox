@@ -22,34 +22,43 @@ override_dh_auto_configure:
 
 # elf-2012.03.24: This work should be done in the Makefile install
 #		  target instead of debian/rules.
+DESTDIR=$(CURDIR)/debian/tmp
 override_dh_install:
 	dh_testdir
 	dh_testroot
 	dh_prep
 	dh_installdirs
-	@# Add here commands to install the package into debian/tmp
-	$(MAKE) install DESTDIR="$(CURDIR)/debian/tmp"
+# We need to install some files for the benefit of Debian that aren't
+# going into the program instal target.  So, we install into
+# debian/tmp the things that need to be included in the package.
+	$(MAKE) install DESTDIR=$(DESTDIR)
 # Set up system-wide user CSS style options
-	mkdir -p "$(CURDIR)/debian/tmp/etc/shellinabox/options-available"     \
-	         "$(CURDIR)/debian/tmp/etc/shellinabox/options-enabled"
-	for i in "00+Black on White" "00_White On Black"                      \
-	         "01_Monochrome"     "01+Color Terminal"; do                  \
-	  cp "$(CURDIR)/debian/tmp/usr/share/doc/shellinabox/$$(echo "$$i"|   \
-                                        sed -e 's/[0-9]*[_+]\([^ ]*\).*/\1/'| \
-	                                tr A-Z a-z)"*.css                     \
-	     "$(CURDIR)/debian/tmp/etc/shellinabox/options-available/$$i.css";\
+	mkdir -p "$(DESTDIR)/etc/shellinabox/options-available"
+	mkdir -p "$(DESTDIR)/etc/shellinabox/options-enabled"
+	for i in \
+		"00+Black on White" \
+		"00_White On Black" \
+		"01_Monochrome" \
+		"01+Color Terminal"; do \
+	  cp "$(DESTDIR)/usr/share/doc/shellinabox/$$(echo "$$i"|	\
+		sed -e 's/[0-9]*[_+]\([^ ]*\).*/\1/'| 			\
+		tr A-Z a-z)"*.css                     			\
+	     "$(DESTDIR)/etc/shellinabox/options-available/$$i.css";	\
 	done
-	cd "$(CURDIR)/debian/tmp/etc/shellinabox/options-enabled" &&          \
-	ln -s ../options-available/*.css .
+	cd "$(DESTDIR)/etc/shellinabox/options-enabled" \
+	  && ln -s ../options-available/*.css .
 	cp "$(CURDIR)/debian/README.available"                                \
-	   "$(CURDIR)/debian/tmp/etc/shellinabox/options-available/README"
+	   "$(DESTDIR)/etc/shellinabox/options-available/README"
 	cp "$(CURDIR)/debian/README.enabled"                                  \
-	   "$(CURDIR)/debian/tmp/etc/shellinabox/options-enabled/README"
+	   "$(DESTDIR)/etc/shellinabox/options-enabled/README"
+# Shellinabox home directory
+#	mkdir -p "$(DESTDIR)/var/lib/shellinabox"
 # Add Lintian override. ShellInABox has an explicit exemption allowing
 # the linking its GPLv2 code with OpenSSL.
-	mkdir -p "$(CURDIR)/debian/tmp/usr/share/lintian/overrides/"
+	mkdir -p "$(DESTDIR)/usr/share/lintian/overrides/"
 	{ echo '# ShellInABox has an explicit exemption allowing the linking';\
 	echo '# of its GPLv2 code with OpenSSL';                              \
 	echo 'shellinabox binary: possible-gpl-code-linked-with-openssl'; }   \
-	   >"$(CURDIR)/debian/tmp/usr/share/lintian/overrides/shellinabox"
+	   >"$(DESTDIR)/usr/share/lintian/overrides/shellinabox"
+# Now perform the normal debhelper install.
 	dh_install
