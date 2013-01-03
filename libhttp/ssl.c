@@ -583,6 +583,27 @@ static int sslSetCertificateFromFile(SSL_CTX *context,
 }
 #endif
 
+static SSL_CTX *sslMakeContext(void) {
+  SSL_CTX *context;
+  check(context = SSL_CTX_new(SSLv23_server_method()));
+  SSL_CTX_set_options(context, SSL_OP_ALL);
+  SSL_CTX_set_options(context, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
+#ifdef SSL_OP_NO_COMPRESSION
+  SSL_CTX_set_options(context, SSL_OP_NO_COMPRESSION);
+#elif OPENSSL_VERSION_NUMBER >= 0x00908000L
+  sk_SSL_COMP_zero(SSL_COMP_get_compression_methods());
+#endif
+  SSL_CTX_set_options(context, SSL_OP_SINGLE_DH_USE);
+#ifdef SSL_OP_SINGLE_ECDH_USE
+  SSL_CTX_set_options(context, SSL_OP_SINGLE_ECDH_USE);
+#endif
+#ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
+  SSL_CTX_set_options(context, SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+#endif
+  check(SSL_CTX_set_cipher_list(context, "HIGH:MEDIUM:!aNULL:!MD5"));
+  return context;
+}
+
 #ifdef HAVE_TLSEXT
 static int sslSNICallback(SSL *sslHndl, int *al ATTR_UNUSED,
                           struct SSLSupport *ssl) {
@@ -619,7 +640,7 @@ static int sslSNICallback(SSL *sslHndl, int *al ATTR_UNUSED,
                                                    serverName+1,
                                                    NULL);
   if (context == NULL) {
-    check(context         = SSL_CTX_new(SSLv23_server_method()));
+    context               = sslMakeContext();
     check(ssl->sniCertificatePattern);
     char *certificate     = stringPrintfUnchecked(NULL,
                                                   ssl->sniCertificatePattern,
@@ -697,7 +718,7 @@ void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
   }
 
   // Try to set the default certificate. If necessary, (re-)generate it.
-  check(ssl->sslContext              = SSL_CTX_new(SSLv23_server_method()));
+  ssl->sslContext                    = sslMakeContext();
   if (autoGenerateMissing) {
     if (sslSetCertificateFromFile(ssl->sslContext, defaultCertificate) < 0) {
       char hostname[256], buf[4096];
@@ -781,7 +802,7 @@ static char *sslFdToFilename(int fd) {
 
 void sslSetCertificateFd(struct SSLSupport *ssl, int fd) {
 #ifdef HAVE_OPENSSL
-  check(ssl->sslContext = SSL_CTX_new(SSLv23_server_method()));
+  ssl->sslContext = sslMakeContext();
   char *filename = sslFdToFilename(fd);
   if (!sslSetCertificateFromFd(ssl->sslContext, fd)) {
     fatal("Cannot read valid certificate from %s. Check file format.",
