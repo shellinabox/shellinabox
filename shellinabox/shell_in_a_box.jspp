@@ -172,7 +172,6 @@ ShellInABox.prototype.sendRequest = function(request) {
                                (this.session ? '&session=' +
                                 encodeURIComponent(this.session) : '&rooturl='+
                                 encodeURIComponent(this.rooturl));
-  request.setRequestHeader('Content-Length', content.length);
 
   request.onreadystatechange = function(shellInABox) {
     return function() {
@@ -230,7 +229,6 @@ ShellInABox.prototype.sendKeys = function(keys) {
                                  '&height=' + this.terminalHeight +
                                  '&session=' +encodeURIComponent(this.session)+
                                  '&keys=' + encodeURIComponent(keys);
-    request.setRequestHeader('Content-Length', content.length);
     request.onreadystatechange = function(shellInABox) {
       return function() {
                try {
