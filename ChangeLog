@@ -222,7 +222,7 @@
 2009-04-28  Markus Gutschke  <markus@shellinabox.com>
 
 	* Fixed variable expansion in service descriptions.
-	
+
 2009-04-27  Markus Gutschke  <markus@shellinabox.com>
 
 	* Released version 2.7
@@ -268,7 +268,7 @@
 	cursor if the line ends in spaces.
 
 	* Work-around for an IE6 bug when doing HTTPS through proxies.
-	
+
 2009-03-21  Markus Gutschke  <markus@shellinabox.com>
 
 	* Released version 2.5
@@ -374,11 +374,11 @@
 	* Added CGI mode for demand-loading the shellinaboxd daemon
 	from a web server. This also allows for the web server to
 	perform authentication, instead of having shellinaboxd do so.
-	
+
 	* Tightened setuid-root operation to no longer allow switching
 	to arbitrary users/groups. As before, setuid-root remains a
 	non-standard configuration that is not currently recommended.
-	
+
 	* Fixed session management to deal better with torn down
 	connections. Closed one bug that could have resulted in
 	permanently orphaned connections, when the browser navigated
@@ -389,4 +389,3 @@
 	* First public release of the version 2.0 rewrite. This is the
 	first release of ShellInABox that supports an AJAX interface
 	instead of the original Java applet.
-

@@ -75,7 +75,7 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
     while (*pathInfo == '/') {
       pathInfo++;
     }
-  
+
     // Compute file name of external file
     char *fn;
     int s_size             = strlen((char *)arg) +
@@ -91,7 +91,7 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
         ptr++;
       }
       strncat(fn, ptr, s_size);
-  
+
       // Any files/directories starting with a dot are inaccessible to us
       do {
         if (*ptr == '.') {
@@ -103,7 +103,7 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
         ptr                = strchr(ptr + 1, '/');
       } while (ptr);
     }
-  
+
     // Open file for reading
 #ifndef O_LARGEFILE
 #define O_LARGEFILE 0
@@ -147,7 +147,7 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
       httpSendReply(http, 404, "File not found", NO_MSG);
       return HTTP_DONE;
     }
-  
+
     // We only serve regular files, and restrict the file size to 100MB.
     // As a special-case, we also allow access to /dev/null.
     struct stat sb = { 0 };
@@ -161,7 +161,7 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
       return HTTP_DONE;
     }
     free(fn);
-  
+
     // Set up response header
     char *response         = stringPrintf(NULL,
                                           "HTTP/1.1 200 OK\r\n"
@@ -180,7 +180,7 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
       }
       check(response       = realloc(response, respLen + dataLen + 1));
       bytes                = NOINTR(read(fd, response + respLen, dataLen));
-      
+
       if (bytes < 0) {
         free(response);
         NOINTR(close(fd));
@@ -188,7 +188,7 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
         return HTTP_DONE;
       }
     }
-  
+
     if (bytes < 0 || bytes == sb.st_size) {
       // Read entire file. Transmit it in one go.
       httpTransfer(http, response,
@@ -199,7 +199,7 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
       // Transmit partial reply and store state for future calls into the
       // handler.
       httpTransferPartialReply(http, response, respLen + bytes);
-      
+
       check(state          = malloc(sizeof(struct ExternalFileState)));
       state->fd            = fd;
       state->totalSize     = sb.st_size;
