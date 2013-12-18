@@ -285,6 +285,12 @@ VT100.prototype.getUserSettings = function() {
   this.autoprint            = true;
   this.softKeyboard         = false;
   this.blinkingCursor       = true;
+  this.disableAlt           = false;
+
+  if (navigator.platform.indexOf("Mac") != -1) {
+    this.disableAlt         = true;
+  }
+
   if (this.visualBell) {
     this.signature          = Math.floor(16807*this.signature + 1) %
                                          ((1 << 31) - 1);
@@ -309,13 +315,14 @@ VT100.prototype.getUserSettings = function() {
   if (settings >= 0) {
     settings                = document.cookie.substr(settings + key.length).
                                                    replace(/([0-1]*).*/, "$1");
-    if (settings.length == 5 + (typeof userCSSList == 'undefined' ?
+    if (settings.length == 6 + (typeof userCSSList == 'undefined' ?
                                 0 : userCSSList.length)) {
       this.utfPreferred     = settings.charAt(0) != '0';
       this.visualBell       = settings.charAt(1) != '0';
       this.autoprint        = settings.charAt(2) != '0';
       this.softKeyboard     = settings.charAt(3) != '0';
       this.blinkingCursor   = settings.charAt(4) != '0';
+      this.disableAlt       = settings.charAt(5) != '0';
       if (typeof userCSSList != 'undefined') {
         for (var i = 0; i < userCSSList.length; ++i) {
           userCSSList[i][2] = settings.charAt(i + 5) != '0';
@@ -332,7 +339,8 @@ VT100.prototype.storeUserSettings = function() {
                   (this.visualBell     ? '1' : '0') +
                   (this.autoprint      ? '1' : '0') +
                   (this.softKeyboard   ? '1' : '0') +
-                  (this.blinkingCursor ? '1' : '0');
+                  (this.blinkingCursor ? '1' : '0') +
+                  (this.disableAlt     ? '1' : '0');
   if (typeof userCSSList != 'undefined') {
     for (var i = 0; i < userCSSList.length; ++i) {
       settings += userCSSList[i][2] ? '1' : '0';
@@ -2367,6 +2375,10 @@ VT100.prototype.toggleSoftKeyboard = function() {
   this.keyboardImage.style.visibility = this.softKeyboard ? 'visible' : '';
 };
 
+VT100.prototype.toggleDisableAlt = function() {
+  this.disableAlt = !this.disableAlt;
+};
+
 VT100.prototype.deselectKeys = function(elem) {
   if (elem && elem.className == 'selected') {
     elem.className = '';
@@ -2468,6 +2480,9 @@ VT100.prototype.showContextMenu = function(x, y) {
           '<li>' +
              (this.softKeyboard ? '<img src="enabled.gif" />' : '') +
              'Onscreen Keyboard</li>' +
+          '<li>' +
+             (this.disableAlt ? '<img src="enabled.gif" />' : '') +
+             'Disable Alt Key</li>' +
           '<li id="endconfig">' +
              (this.blinkingCursor ? '<img src="enabled.gif" />' : '') +
              'Blinking Cursor</li>'+
@@ -2500,6 +2515,7 @@ VT100.prototype.showContextMenu = function(x, y) {
   var actions                 = [ this.copyLast, p, this.pasteBrowserFnc, this.reset,
                                   this.toggleUTF, this.toggleBell,
                                   this.toggleSoftKeyboard,
+                                  this.toggleDisableAlt,
                                   this.toggleCursorBlinking ];
 
   // Actions for user CSS styles (if any)
@@ -2781,7 +2797,8 @@ VT100.prototype.handleKey = function(event) {
                                         (event.altKey|event.metaKey ? 2 : 0)  +
                                         (event.ctrlKey              ? 4 : 0)) +
                                         part2;
-    } else if (ch.length == 1 && (event.altKey || event.metaKey)) {
+    } else if (ch.length == 1 && (event.altKey || event.metaKey)
+               && !this.disableAlt) {
       ch                              = '\u001B' + ch;
     }
   }
@@ -2955,6 +2972,10 @@ VT100.prototype.keyDown = function(event) {
       normalKey                |= event.keyCode < 128;
     }
   } catch (e) {
+  }
+
+  if (this.disableAlt && normalKey) {
+    return true;
   }
 
   // We normally prefer to look at keypress events, as they perform the
