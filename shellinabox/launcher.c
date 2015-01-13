@@ -1616,7 +1616,8 @@ static void launcherDaemon(int fd) {
     int   status;
     pid_t pid;
     while (NOINTR(pid = waitpid(-1, &status, WNOHANG)) > 0) {
-      if (WIFEXITED(pid) || WIFSIGNALED(pid)) {
+      debug("Child %d exited with exit code %d\n", pid, WEXITSTATUS(status));
+      if (WIFEXITED(status) || WIFSIGNALED(status)) {
         char key[32];
         snprintf(&key[0], sizeof(key), "%d", pid);
         deleteFromHashMap(childProcesses, key);
@@ -1636,7 +1637,8 @@ static void launcherDaemon(int fd) {
       break;
     }
     while (NOINTR(pid = waitpid(-1, &status, WNOHANG)) > 0) {
-      if (WIFEXITED(pid) || WIFSIGNALED(pid)) {
+      debug("Child %d exited with exit code %d\n", pid, WEXITSTATUS(status));
+      if (WIFEXITED(status) || WIFSIGNALED(status)) {
         char key[32];
         snprintf(&key[0], sizeof(key), "%d", pid);
         deleteFromHashMap(childProcesses, key);
