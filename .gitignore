@@ -1,7 +1,17 @@
 *.o
+*.la
 *.lo
 *~
 .libs
+.deps
+autom4te.cache
+config.h
+config.log
+config.status
+demo/demo.js
+demo/vt100.js
+libtool
+Makefile
 shellinabox/beep.h
 shellinabox/cgi_root.h
 shellinabox/enabled.h
@@ -18,3 +28,4 @@ shellinabox/vt100.js
 shellinaboxd
 shellinaboxd.1
 shellinaboxd.ps
+stamp-h1
