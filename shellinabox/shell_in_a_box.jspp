@@ -164,6 +164,7 @@ ShellInABox.prototype.sendRequest = function(request) {
     request                  = new XMLHttpRequest();
   }
   request.open('POST', this.url + '?', true);
+  request.timeout = 30000; // Don't leave POST pending forever: force 30s timeout to prevent HTTP Proxy thread hijack
   request.setRequestHeader('Cache-Control', 'no-cache');
   request.setRequestHeader('Content-Type',
                            'application/x-www-form-urlencoded; charset=utf-8');
@@ -202,8 +203,12 @@ ShellInABox.prototype.onReadyStateChange = function(request) {
         this.sendRequest(request);
       }
     } else if (request.status == 0) {
-      // Time Out
-      this.sendRequest(request);
+      // Time Out or other connection problems: retry after 1s to prevent release CPU before retry
+      setTimeout(function(shellInABox) {
+        return function() { 
+          shellInABox.sendRequest();
+        };
+      }(this), 1000);
     } else {
       this.sessionClosed();
     }
