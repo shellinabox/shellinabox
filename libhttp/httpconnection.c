@@ -568,7 +568,7 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
   // also has difficulties with SSL connections that are being proxied.
   int ieBug                 = 0;
   const char *userAgent     = getFromHashMap(&http->header, "user-agent");
-  const char *msie          = userAgent ? strstr(userAgent, "MSIE ") : NULL;
+  const char *msie          = userAgent ? strstr(userAgent, "Trident") : NULL;
   if (msie) {
     ieBug++;
   }
