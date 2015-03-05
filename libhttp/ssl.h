@@ -111,6 +111,9 @@ extern int     (*x_SSL_write)(SSL *, const void *, int);
 extern SSL_METHOD *(*x_SSLv23_server_method)(void);
 extern X509 *  (*x_d2i_X509)(X509 **px, const unsigned char **in, int len);
 extern void    (*x_X509_free)(X509 *a);
+extern int     (*x_SSL_CTX_set_cipher_list)(SSL_CTX *ctx, const char *str);
+extern void    (*x_sk_zero)(void *st);
+extern void   *(*x_SSL_COMP_get_compression_methods)(void);
 
 #define BIO_ctrl                     x_BIO_ctrl
 #define BIO_f_buffer                 x_BIO_f_buffer
@@ -151,6 +154,9 @@ extern void    (*x_X509_free)(X509 *a);
 #define SSLv23_server_method         x_SSLv23_server_method
 #define d2i_X509                     x_d2i_X509
 #define X509_free                    x_X509_free
+#define SSL_CTX_set_cipher_list      x_SSL_CTX_set_cipher_list
+#define sk_zero                      x_sk_zero
+#define SSL_COMP_get_compression_methods    x_SSL_COMP_get_compression_methods
 
 #undef  BIO_set_buffer_read_data
 #undef  SSL_CTX_set_tlsext_servername_arg
