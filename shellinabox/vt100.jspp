@@ -1171,6 +1171,12 @@ VT100.prototype.resizer = function() {
                                   : (window.innerHeight ||
                                      document.documentElement.clientHeight ||
                                      document.body.clientHeight))-1;
+
+  // Prevent ever growing consoles on iPad.
+  if (navigator.userAgent.match(/iPad/i) != null) {
+    height                    -= 1;
+  }
+
   var partial                  = height % this.cursorHeight;
   this.scrollable.style.height = (height > 0 ? height : 0) + 'px';
   this.padding.style.height    = (partial > 0 ? partial : 0) + 'px';
