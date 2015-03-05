@@ -99,6 +99,16 @@
                          '</style>');
         }
       })();
+
+      // User warning on window close
+      window.onbeforeunload = function(e) {
+        if (typeof window.shellinabox.session != "undefined") {
+          return "Are you sure you want to leave this page?";
+        } else {
+          return null;
+        }
+      }
+
     --></script>
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <script type="text/javascript" src="ShellInABox.js"></script>
@@ -107,7 +117,7 @@
        correctly deal with the enclosing frameset (if any), if we do not
        do this
    -->
-  <body onload="setTimeout('new ShellInABox()', 100)"
+  <body onload="setTimeout('window.shellinabox = new ShellInABox()', 100)"
         scroll="no"><noscript>JavaScript
     must be enabled for ShellInABox</noscript></body>
 </html>
