@@ -3089,6 +3089,7 @@ VT100.prototype.keyUp = function(event) {
         asciiKey                                     ||
         event.keyCode ==  50                         ||
         event.keyCode >=  96 && event.keyCode <= 105;
+      // Not used ???
       var normalKey               =
         alphNumKey                                   ||
         event.keyCode ==  59 || event.keyCode ==  61 ||
@@ -3279,7 +3280,6 @@ VT100.prototype.lf = function(count) {
       this.scrollRegion(0, this.top + 1,
                         this.terminalWidth, this.bottom - this.top - 1,
                         0, -1, this.color, this.style);
-      offset = undefined;
     } else if (this.cursorY < this.terminalHeight - 1) {
       this.gotoXY(this.cursorX, this.cursorY + 1);
     }
@@ -3723,7 +3723,7 @@ VT100.prototype.csiJ = function(number) {
   default:
     return;
   }
-  needWrap = false;
+  this.needWrap = false;
 };
 
 VT100.prototype.csiK = function(number) {
@@ -3744,7 +3744,7 @@ VT100.prototype.csiK = function(number) {
   default:
     return;
   }
-  needWrap = false;
+  this.needWrap = false;
 };
 
 VT100.prototype.csiL = function(number) {
@@ -3761,7 +3761,7 @@ VT100.prototype.csiL = function(number) {
   this.scrollRegion(0, this.cursorY,
                     this.terminalWidth, this.bottom - this.cursorY - number,
                     0, number, this.color, this.style);
-  needWrap = false;
+  this.needWrap = false;
 };
 
 VT100.prototype.csiM = function(number) {
@@ -3773,12 +3773,12 @@ VT100.prototype.csiM = function(number) {
     number = 1;
   }
   if (number > this.bottom - this.cursorY) {
-    number = bottom - cursorY;
+    number = this.bottom - this.cursorY;
   }
   this.scrollRegion(0, this.cursorY + number,
                     this.terminalWidth, this.bottom - this.cursorY - number,
                     0, -number, this.color, this.style);
-  needWrap = false;
+  this.needWrap = false;
 };
 
 VT100.prototype.csim = function() {
@@ -3839,7 +3839,7 @@ VT100.prototype.csiP = function(number) {
   this.scrollRegion(this.cursorX + number, this.cursorY,
                     this.terminalWidth - this.cursorX - number, 1,
                     -number, 0, this.color, this.style);
-  needWrap = false;
+  this.needWrap = false;
 };
 
 VT100.prototype.csiX = function(number) {
@@ -3852,7 +3852,7 @@ VT100.prototype.csiX = function(number) {
   }
   this.clearRegion(this.cursorX, this.cursorY, number, 1,
                    this.color, this.style);
-  needWrap = false;
+  this.needWrap = false;
 };
 
 VT100.prototype.settermCommand = function() {

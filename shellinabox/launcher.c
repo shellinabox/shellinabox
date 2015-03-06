@@ -520,6 +520,7 @@ int launchChild(int service, struct Session *session, const char *url) {
   ssize_t len          = sizeof(struct LaunchRequest) + strlen(u) + 1;
   check(request        = calloc(len, 1));
   request->service     = service;
+  request->terminate   = -1;
   request->width       = session->width;
   request->height      = session->height;
   strncat(request->peerName, httpGetPeerName(session->http),
@@ -547,12 +548,41 @@ int launchChild(int service, struct Session *session, const char *url) {
     return -1;
   }
   check(bytes == sizeof(pid));
+  check(session->pid = pid);
   struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
   check(cmsg);
   check(cmsg->cmsg_level == SOL_SOCKET);
   check(cmsg->cmsg_type  == SCM_RIGHTS);
   memcpy(&session->pty, CMSG_DATA(cmsg), sizeof(int));
   return pid;
+}
+
+int terminateChild(struct Session *session) {
+  if (launcher < 0) {
+    errno              = EINVAL;
+    return -1;
+  }
+
+  if (session->pid < 1) {
+    debug("Child pid for termination not valid!");
+    return -1;
+  }
+
+  // Send terminate request to launcher process
+  struct LaunchRequest *request;
+  ssize_t len          = sizeof(struct LaunchRequest);
+  check(request        = calloc(len, 1));
+  request->terminate   = session->pid;
+  if (NOINTR(write(launcher, request, len)) != len) {
+    debug("Child %d termination request failed!", request->terminate);
+    free(request);
+    return -1;
+  }
+
+  free(request);
+  session->pid         = 0;
+  session->cleanup     = 0;
+  return 0;
 }
 
 struct Utmp {
@@ -1616,7 +1646,7 @@ static void launcherDaemon(int fd) {
     int   status;
     pid_t pid;
     while (NOINTR(pid = waitpid(-1, &status, WNOHANG)) > 0) {
-      debug("Child %d exited with exit code %d\n", pid, WEXITSTATUS(status));
+      debug("Child %d exited with exit code %d", pid, WEXITSTATUS(status));
       if (WIFEXITED(status) || WIFSIGNALED(status)) {
         char key[32];
         snprintf(&key[0], sizeof(key), "%d", pid);
@@ -1624,6 +1654,21 @@ static void launcherDaemon(int fd) {
       }
     }
     if (len != sizeof(request)) {
+      continue;
+    }
+
+    // Check if we received terminate request from parent process and
+    // try to terminate child, if child is still running
+    if (request.terminate > 0) {
+      errno = 0;
+      NOINTR(pid = waitpid(request.terminate, &status, WNOHANG));
+      if (pid == 0 && errno == 0) {
+        if (kill(request.terminate, SIGTERM) == 0) {
+          debug("Terminating child %d (kill)", request.terminate);
+        } else {
+          debug("Terminating child failed [%s]", strerror(errno));
+        }
+	  }
       continue;
     }
 
@@ -1637,7 +1682,7 @@ static void launcherDaemon(int fd) {
       break;
     }
     while (NOINTR(pid = waitpid(-1, &status, WNOHANG)) > 0) {
-      debug("Child %d exited with exit code %d\n", pid, WEXITSTATUS(status));
+      debug("Child %d exited with exit code %d", pid, WEXITSTATUS(status));
       if (WIFEXITED(status) || WIFSIGNALED(status)) {
         char key[32];
         snprintf(&key[0], sizeof(key), "%d", pid);
@@ -1682,6 +1727,7 @@ static void launcherDaemon(int fd) {
           childProcesses      = newHashMap(destroyUtmpHashEntry, NULL);
         }
         addToHashMap(childProcesses, utmp->pid, (char *)utmp);
+        debug("Child %d launched", pid);
       } else {
         int fds[2];
         if (!pipe(fds)) {

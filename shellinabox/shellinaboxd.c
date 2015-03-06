@@ -274,8 +274,11 @@ static int completePendingRequest(struct Session *session,
 }
 
 static void sessionDone(void *arg) {
-  debug("Child terminated");
   struct Session *session = (struct Session *)arg;
+  debug("Session %s done", session->sessionKey);
+  if (session->cleanup) {
+    terminateChild(session);
+  }
   session->done           = 1;
   addToGraveyard(session);
   completePendingRequest(session, "", 0, INT_MAX);
@@ -301,6 +304,7 @@ static int handleSession(struct ServerConnection *connection, void *arg,
   if (bytes || timedOut) {
     if (!session->http && timedOut) {
       debug("Timeout. Closing session.");
+      session->cleanup = 1;
       return 0;
     }
     check(!session->done);
