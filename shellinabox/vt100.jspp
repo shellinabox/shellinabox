@@ -2703,7 +2703,6 @@ VT100.prototype.handleKey = function(event) {
                              '\u001BOB' : '\u001B[B';                   break;
       case  45: /* Insert       */ ch = '\u001B[2~';                    break;
       case  46: /* Delete       */ ch = '\u001B[3~';                    break;
-      case  60: /* > for FF15   */ ch = this.applyModifiers(60, event); break;
       case  91: /* Left Window  */                                      return;
       case  92: /* Right Window */                                      return;
       case  93: /* Select       */                                      return;
@@ -2736,9 +2735,6 @@ VT100.prototype.handleKey = function(event) {
       case 123: /* F12          */ ch = '\u001B[24~';                   break;
       case 144: /* Num Lock     */                                      return;
       case 145: /* Scroll Lock  */                                      return;
-      case 163: /* # for FF15   */ ch = this.applyModifiers(35, event); break;
-      case 171: /* + for FF15   */ ch = this.applyModifiers(43, event); break;
-      case 173: /* - for FF15   */ ch = this.applyModifiers(45, event); break;
       case 186: /* ;            */ ch = this.applyModifiers(59, event); break;
       case 187: /* =            */ ch = this.applyModifiers(61, event); break;
       case 188: /* ,            */ ch = this.applyModifiers(44, event); break;
@@ -2872,11 +2868,7 @@ VT100.prototype.fixEvent = function(event) {
     case  55: /* 7 -> & */ u = 55; s =  38; break;
     case  56: /* 8 -> * */ u = 56; s =  42; break;
     case  57: /* 9 -> ( */ u = 57; s =  40; break;
-
     case  59: /* ; -> : */ u = 59; s =  58; break;
-
-    case  60: /* < -> > FF15 */ u = 60; s =  62; break;
-
     case  61: /* = -> + */ u = 61; s =  43; break;
     case  91: /* [ -> { */ u = 91; s = 123; break;
     case  92: /* \ -> | */ u = 92; s = 124; break;
@@ -2885,10 +2877,6 @@ VT100.prototype.fixEvent = function(event) {
 
     case 109: /* - -> _ */ u = 45; s =  95; break;
     case 111: /* / -> ? */ u = 47; s =  63; break;
-
-    case 163: /* # -> ~ FF15 */ u = 96; s =  126; break;
-    case 171: /* + -> * FF15 */ u = 43; s =   42; break;
-    case 173: /* - -> _ FF15 */ u = 45; s =   95; break;
 
     case 186: /* ; -> : */ u = 59; s =  58; break;
     case 187: /* = -> + */ u = 61; s =  43; break;
@@ -2954,11 +2942,13 @@ VT100.prototype.keyDown = function(event) {
     event.keyCode == 226;
   var normalKey                 =
     alphNumKey                                   ||
-    event.keyCode ==  61 ||
-    event.keyCode == 106 ||
+    event.keyCode ==  58                         || /* FF15 patch */
+    event.keyCode >=  60 && event.keyCode <=  64 || /* FF15 patch */
+    event.keyCode == 106                         ||
     event.keyCode >= 109 && event.keyCode <= 111 ||
+    event.keyCode >= 160 && event.keyCode <= 185 || /* FF15 patch */
     event.keyCode >= 186 && event.keyCode <= 191 ||
-    event.keyCode == 222 ||
+    event.keyCode == 222                         ||
     event.keyCode == 252;
   try {
     if (navigator.appName == 'Konqueror') {
