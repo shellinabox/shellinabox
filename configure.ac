@@ -1,8 +1,8 @@
 AC_PREREQ(2.57)
 
 dnl This is the one location where the authoritative version number is stored
-AC_INIT(shellinabox, 2.10, markus@shellinabox.com)
-VCS_REVISION=239
+AC_INIT(shellinabox, 2.15, markus@shellinabox.com)
+VCS_REVISION=240
 AC_SUBST(VCS_REVISION)
 AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
                    [Most recent revision number in the version control system])
