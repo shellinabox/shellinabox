@@ -9,6 +9,7 @@ config.h
 config.log
 config.status
 demo/demo.js
+demo/keyboard.png
 demo/vt100.js
 libtool
 Makefile
