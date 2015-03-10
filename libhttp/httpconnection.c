@@ -564,15 +564,6 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
   check(msg);
   check(len >= 0);
 
-  // Internet Explorer seems to have difficulties with compressed data. It
-  // also has difficulties with SSL connections that are being proxied.
-  int ieBug                 = 0;
-  const char *userAgent     = getFromHashMap(&http->header, "user-agent");
-  const char *msie          = userAgent ? strstr(userAgent, "Trident") : NULL;
-  if (msie) {
-    ieBug++;
-  }
-
   char *header              = NULL;
   int headerLength          = 0;
   int bodyOffset            = 0;
@@ -612,10 +603,10 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
 
         #ifdef HAVE_ZLIB
         // Compress replies that might exceed the size of a single IP packet
-        compress            = !ieBug && !isHead &&
+        compress            = !isHead &&
                               !http->isPartialReply &&
                               len > 1400 &&
-                              httpAcceptsEncoding(http, "deflate");
+                              httpAcceptsEncoding(http, "gzip");
         #endif
         break;
       } else {
@@ -630,7 +621,7 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
       line                  = eol + 1;
     }
 
-    if (ieBug || compress) {
+    if (compress) {
       if (l >= 2 && !memcmp(line, "\r\n", 2)) {
         line               += 2;
         l                  -= 2;
@@ -639,10 +630,6 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
       bodyOffset            = headerLength;
       check(header          = malloc(headerLength));
       memcpy(header, msg, headerLength);
-    }
-    if (ieBug) {
-      removeHeader(header, &headerLength, "connection:");
-      addHeader(&header, &headerLength, "Connection: close\r\n");
     }
 
     if (compress) {
@@ -659,7 +646,8 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
                                 .avail_out = len,
                                 .next_out  = (unsigned char *)compressed
                               };
-      if (deflateInit(&strm, Z_DEFAULT_COMPRESSION) == Z_OK) {
+      if (deflateInit2(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
+                       31, 8, Z_DEFAULT_STRATEGY) == Z_OK) {
         if (deflate(&strm, Z_FINISH) == Z_STREAM_END) {
           // Compression was successful and resulted in reduction in size
           debug("Compressed response from %d to %d", len, len-strm.avail_out);
@@ -670,7 +658,7 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
           removeHeader(header, &headerLength, "content-length:");
           removeHeader(header, &headerLength, "content-encoding:");
           addHeader(&header, &headerLength, "Content-Length: %d\r\n", len);
-          addHeader(&header, &headerLength, "Content-Encoding: deflate\r\n");
+          addHeader(&header, &headerLength, "Content-Encoding: gzip\r\n");
         } else {
           free(compressed);
         }
@@ -772,10 +760,6 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
                                   http->msgLength ? POLLIN|POLLOUT : POLLIN);
       }
     }
-  }
-
-  if (ieBug) {
-    httpCloseRead(http);
   }
 }
 
