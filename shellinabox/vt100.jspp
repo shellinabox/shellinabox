@@ -285,6 +285,10 @@ VT100.prototype.getUserSettings = function() {
   this.autoprint            = true;
   this.softKeyboard         = false;
   this.blinkingCursor       = true;
+  this.disableAlt           = false;
+  if (navigator.platform.indexOf("Mac") != -1) {
+    this.disableAlt         = true;
+  }
   if (this.visualBell) {
     this.signature          = Math.floor(16807*this.signature + 1) %
                                          ((1 << 31) - 1);
@@ -309,13 +313,14 @@ VT100.prototype.getUserSettings = function() {
   if (settings >= 0) {
     settings                = document.cookie.substr(settings + key.length).
                                                    replace(/([0-1]*).*/, "$1");
-    if (settings.length == 5 + (typeof userCSSList == 'undefined' ?
+    if (settings.length == 6 + (typeof userCSSList == 'undefined' ?
                                 0 : userCSSList.length)) {
       this.utfPreferred     = settings.charAt(0) != '0';
       this.visualBell       = settings.charAt(1) != '0';
       this.autoprint        = settings.charAt(2) != '0';
       this.softKeyboard     = settings.charAt(3) != '0';
       this.blinkingCursor   = settings.charAt(4) != '0';
+      this.disableAlt       = settings.charAt(5) != '0';
       if (typeof userCSSList != 'undefined') {
         for (var i = 0; i < userCSSList.length; ++i) {
           userCSSList[i][2] = settings.charAt(i + 5) != '0';
@@ -332,7 +337,8 @@ VT100.prototype.storeUserSettings = function() {
                   (this.visualBell     ? '1' : '0') +
                   (this.autoprint      ? '1' : '0') +
                   (this.softKeyboard   ? '1' : '0') +
-                  (this.blinkingCursor ? '1' : '0');
+                  (this.blinkingCursor ? '1' : '0') +
+                  (this.disableAlt     ? '1' : '0');
   if (typeof userCSSList != 'undefined') {
     for (var i = 0; i < userCSSList.length; ++i) {
       settings += userCSSList[i][2] ? '1' : '0';
@@ -355,7 +361,7 @@ VT100.prototype.initializeUserCSSStyles = function() {
         var label                        = userCSSList[i][0];
         var newGroup                     = userCSSList[i][1];
         var enabled                      = userCSSList[i][2];
-      
+
         // Add user style sheet to document
         var style                        = document.createElement('link');
         var id                           = document.createAttribute('id');
@@ -373,7 +379,7 @@ VT100.prototype.initializeUserCSSStyles = function() {
         document.getElementsByTagName('head')[0].appendChild(style);
         style.disabled                   = !enabled;
       }
-    
+
       // Add entry to menu
       if (newGroup || i == userCSSList.length) {
         if (beginOfGroup != 0 && (i - beginOfGroup > 1 || !wasSingleSel)) {
@@ -580,7 +586,7 @@ VT100.prototype.addKeyBinding = function(elem, ch, key, CH, KEY) {
   this.addListener(elem, 'mousedown',
     function(vt100, elem, key) { return function(e) {
       if ((e.which || e.button) == 1) {
-        if (vt100.lastSelectedKey) {       
+        if (vt100.lastSelectedKey) {
           vt100.lastSelectedKey.className= '';
         }
         // Highlight the key while the mouse button is held down.
@@ -742,7 +748,7 @@ VT100.prototype.initializeKeyBindings = function(elem) {
 
 VT100.prototype.initializeKeyboardButton = function() {
   // Configure mouse event handlers for button that displays/hides keyboard
-  this.addListener(this.keyboardImage, 'click',
+  this.addListener(this.keyboardButton, 'click',
     function(vt100) { return function(e) {
       if (vt100.keyboard.style.display != '') {
         if (vt100.reconnectBtn.style.visibility != '') {
@@ -757,7 +763,7 @@ VT100.prototype.initializeKeyboardButton = function() {
 
   // Enable button that displays keyboard
   if (this.softKeyboard) {
-    this.keyboardImage.style.visibility = 'visible';
+    this.keyboardButton.style.visibility = 'visible';
   }
 };
 
@@ -823,7 +829,6 @@ VT100.prototype.initializeElements = function(container) {
       !this.getChildById(this.container, 'menu')        ||
       !this.getChildById(this.container, 'keyboard')    ||
       !this.getChildById(this.container, 'kbd_button')  ||
-      !this.getChildById(this.container, 'kbd_img')     ||
       !this.getChildById(this.container, 'layout')      ||
       !this.getChildById(this.container, 'scrollable')  ||
       !this.getChildById(this.container, 'console')     ||
@@ -870,11 +875,6 @@ VT100.prototype.initializeElements = function(container) {
                        '<div id="keyboard" unselectable="on">' +
                        '</div>' +
                        '<div id="scrollable">' +
-                         '<table id="kbd_button">' +
-                           '<tr><td width="100%">&nbsp;</td>' +
-                           '<td><img id="kbd_img" src="keyboard.png" /></td>' +
-                           '<td>&nbsp;&nbsp;&nbsp;&nbsp;</td></tr>' +
-                         '</table>' +
                          '<pre id="lineheight">&nbsp;</pre>' +
                          '<pre id="console">' +
                            '<pre></pre>' +
@@ -884,11 +884,12 @@ VT100.prototype.initializeElements = function(container) {
                          '<div id="padding"></div>' +
                          '<pre id="cursor">&nbsp;</pre>' +
                        '</div>' +
+                       '<a id="kbd_button" href="#"></a>' +
                        '<div class="hidden">' +
                          '<div id="usercss"></div>' +
                          '<pre><div><span id="space"></span></div></pre>' +
-                         '<input type="text" id="input" autocorrect="off" autocapitalize="off" />' +
-                         '<input type="text" id="cliphelper" />' +
+                         '<input type="textfield" id="input" />' +
+                         '<input type="textfield" id="cliphelper" />' +
                          (typeof suppressAllAudio != 'undefined' &&
                           suppressAllAudio ? "" :
                          embed + '<bgsound id="beep_bgsound" loop=1 />') +
@@ -917,7 +918,7 @@ VT100.prototype.initializeElements = function(container) {
   this.curSizeBox              = this.getChildById(this.container, 'cursize');
   this.menu                    = this.getChildById(this.container, 'menu');
   this.keyboard                = this.getChildById(this.container, 'keyboard');
-  this.keyboardImage           = this.getChildById(this.container, 'kbd_img');
+  this.keyboardButton          = this.getChildById(this.container, 'kbd_button');
   this.layout                  = this.getChildById(this.container, 'layout');
   this.scrollable              = this.getChildById(this.container,
                                                                  'scrollable');
@@ -981,7 +982,7 @@ VT100.prototype.initializeElements = function(container) {
         vt100.indicateSize     = true;
       };
     }(this), 100);
-    this.addListener(window, 'resize', 
+    this.addListener(window, 'resize',
                      function(vt100) {
                        return function() {
                          vt100.hideContextMenu();
@@ -989,7 +990,7 @@ VT100.prototype.initializeElements = function(container) {
                          vt100.showCurrentSize();
                         }
                       }(this));
-    
+
     // Hide extra scrollbars attached to window
     document.body.style.margin = '0px';
     try { document.body.style.overflow ='hidden'; } catch (e) { }
@@ -1106,7 +1107,7 @@ VT100.prototype.repairElements = function(console) {
         for (var span = line.firstChild; span; span = span.nextSibling) {
           var newSpan             = document.createElement(span.tagName);
           newSpan.style.cssText   = span.style.cssText;
-          newSpan.className       = span.className;
+          newSpan.style.className = span.style.className;
           this.setTextContent(newSpan, this.getTextContent(span));
           newLine.appendChild(newSpan);
         }
@@ -1157,11 +1158,11 @@ VT100.prototype.resizer = function() {
   // still get confused if somebody enters a character that is wider/narrower
   // than normal. This can happen if the browser tries to substitute a
   // characters from a different font.
-  if (this.cursorWidth > 0) {
-    this.cursor.style.width    = this.cursorWidth  + 'px';
+  if(this.cursorWidth >0) {
+  this.cursor.style.width      = this.cursorWidth  + 'px';
   }
-  if (this.cursorHeight > 0) {
-    this.cursor.style.height   = this.cursorHeight + 'px';
+  if(this.cursorHeight >0) {
+  this.cursor.style.height     = this.cursorHeight + 'px';
   }
 
   // Adjust height for one pixel padding of the #vt100 element.
@@ -1171,12 +1172,6 @@ VT100.prototype.resizer = function() {
                                   : (window.innerHeight ||
                                      document.documentElement.clientHeight ||
                                      document.body.clientHeight))-1;
-
-  // Prevent ever growing consoles on iPad.
-  if (navigator.userAgent.match(/iPad/i) != null) {
-    height                    -= 1;
-  }
-
   var partial                  = height % this.cursorHeight;
   this.scrollable.style.height = (height > 0 ? height : 0) + 'px';
   this.padding.style.height    = (partial > 0 ? partial : 0) + 'px';
@@ -1527,7 +1522,7 @@ VT100.prototype.insertBlankLine = function(y, color, style) {
     line                 = document.createElement('div');
     var span             = document.createElement('span');
     span.style.cssText   = style;
-    span.className       = color;
+    span.style.className = color;
     this.setTextContent(span, this.spaces(this.terminalWidth));
     line.appendChild(span);
   }
@@ -1541,11 +1536,11 @@ VT100.prototype.insertBlankLine = function(y, color, style) {
 };
 
 VT100.prototype.updateWidth = function() {
-  //  if the cursorWidth is zero, something is wrong. Try to get it some other way.
-  if (this.cursorWidth <= 0) {
-    if (this.cursor.clientWidth <= 0) {
-      // Rats, this.cursor.clientWidth is zero too. Best guess?
-      this.terminalWidth = 80;
+  //  if the cursorWidth is zero, something is wrong.  Try to get it some other way.
+  if(this.cursorWidth <=0 ) {
+    if(this.cursor.clientWidth<=0) {
+        // Rats, this.cursor.clientWidth is zero too.  Best guess?
+        this.terminalWidth = 80;
     } else {
       // update the size.
       this.cursorWidth = this.cursor.clientWidth;
@@ -1676,7 +1671,7 @@ VT100.prototype.putString = function(x, y, text, color, style) {
       this.insertBlankLine(yIdx);
     }
     line                            = console.childNodes[yIdx];
-    
+
     // If necessary, promote blank '\n' line to a <div> tag
     if (line.tagName != 'DIV') {
       var div                       = document.createElement('div');
@@ -1720,7 +1715,7 @@ VT100.prototype.putString = function(x, y, text, color, style) {
           s                        += ' ';
         } while (xPos + s.length < x);
       }
-    
+
       // If styles do not match, create a new <span>
       var del                       = text.length - s.length + x - xPos;
       if (oldColor != color ||
@@ -1779,7 +1774,7 @@ VT100.prototype.putString = function(x, y, text, color, style) {
       }
       this.setTextContent(span, s);
 
-      
+
       // Delete all subsequent <span>'s that have just been overwritten
       sibling                       = span.nextSibling;
       while (del > 0 && sibling) {
@@ -1794,7 +1789,7 @@ VT100.prototype.putString = function(x, y, text, color, style) {
           break;
         }
       }
-      
+
       // Merge <span> with next sibling, if styles are identical
       if (sibling && span.className == sibling.className &&
           span.style.cssText == sibling.style.cssText) {
@@ -1875,7 +1870,7 @@ VT100.prototype.putString = function(x, y, text, color, style) {
                           this.getTextContent(span));
       line.removeChild(sibling);
     }
-    
+
     // Prune white space from the end of the current line
     span                            = line.lastChild;
     while (span &&
@@ -1956,7 +1951,7 @@ VT100.prototype.enableAlternateScreen = function(state) {
     this.resizer();
     return;
   }
-  
+
   // We save the full state of the normal screen, when we switch away from it.
   // But for the alternate screen, no saving is necessary. We always reset
   // it when we switch to it.
@@ -2202,7 +2197,7 @@ VT100.prototype.scrollRegion = function(x, y, w, h, incX, incY,
           while (console.childNodes.length < this.terminalHeight) {
             this.insertBlankLine(this.terminalHeight);
           }
-          
+
           // Add new lines at bottom in order to force scrolling
           for (var i = 0; i < y; i++) {
             this.insertBlankLine(console.childNodes.length, color, style);
@@ -2343,13 +2338,6 @@ VT100.prototype.pasteFnc = function() {
   }
 };
 
-VT100.prototype.pasteBrowserFnc = function() {
-  var clipboard     = prompt("Paste into this box:","");
-  if (clipboard != undefined) {
-       return this.keysPressed('' + clipboard);
-  }
-};
-
 VT100.prototype.toggleUTF = function() {
   this.utfEnabled   = !this.utfEnabled;
 
@@ -2364,7 +2352,11 @@ VT100.prototype.toggleBell = function() {
 
 VT100.prototype.toggleSoftKeyboard = function() {
   this.softKeyboard = !this.softKeyboard;
-  this.keyboardImage.style.visibility = this.softKeyboard ? 'visible' : '';
+  this.keyboardButton.style.visibility = this.softKeyboard ? 'visible' : '';
+};
+
+VT100.prototype.toggleDisableAlt = function() {
+  this.disableAlt = !this.disableAlt;
 };
 
 VT100.prototype.deselectKeys = function(elem) {
@@ -2455,7 +2447,6 @@ VT100.prototype.showContextMenu = function(x, y) {
         '<ul id="menuentries">' +
           '<li id="beginclipboard">Copy</li>' +
           '<li id="endclipboard">Paste</li>' +
-          '<li id="browserclipboard">Paste from browser</li>' +
           '<hr />' +
           '<li id="reset">Reset</li>' +
           '<hr />' +
@@ -2468,6 +2459,9 @@ VT100.prototype.showContextMenu = function(x, y) {
           '<li>' +
              (this.softKeyboard ? '<img src="enabled.gif" />' : '') +
              'Onscreen Keyboard</li>' +
+          '<li>' +
+             (this.disableAlt ? '<img src="enabled.gif" />' : '') +
+             'Disable Alt Key</li>' +
           '<li id="endconfig">' +
              (this.blinkingCursor ? '<img src="enabled.gif" />' : '') +
              'Blinking Cursor</li>'+
@@ -2497,9 +2491,10 @@ VT100.prototype.showContextMenu = function(x, y) {
   }
 
   // Actions for default items
-  var actions                 = [ this.copyLast, p, this.pasteBrowserFnc, this.reset,
+  var actions                 = [ this.copyLast, p, this.reset,
                                   this.toggleUTF, this.toggleBell,
                                   this.toggleSoftKeyboard,
+                                  this.toggleDisableAlt,
                                   this.toggleCursorBlinking ];
 
   // Actions for user CSS styles (if any)
@@ -2561,7 +2556,7 @@ VT100.prototype.showContextMenu = function(x, y) {
   this.menu.style.height      =  this.container.offsetHeight + 'px';
   popup.style.left            = '0px';
   popup.style.top             = '0px';
-  
+
   var margin                  = 2;
   if (x + popup.clientWidth >= this.container.offsetWidth - margin) {
     x              = this.container.offsetWidth-popup.clientWidth - margin - 1;
@@ -2649,7 +2644,7 @@ VT100.prototype.handleKey = function(event) {
   ch                                  = this.applyModifiers(ch, event);
 
   // By this point, "ch" is either defined and contains the character code, or
-  // it is undefined and "key" defines the code of a function key 
+  // it is undefined and "key" defines the code of a function key
   if (ch != undefined) {
     this.scrollable.scrollTop         = this.numScrollbackLines *
                                         this.cursorHeight + 1;
@@ -2736,19 +2731,15 @@ VT100.prototype.handleKey = function(event) {
       case 144: /* Num Lock     */                                      return;
       case 145: /* Scroll Lock  */                                      return;
       case 186: /* ;            */ ch = this.applyModifiers(59, event); break;
-      case 187: /* =            */ ch = this.applyModifiers(61, event); break;
+      //case 187: /* =            */ ch = this.applyModifiers(61, event); break;
       case 188: /* ,            */ ch = this.applyModifiers(44, event); break;
       case 189: /* -            */ ch = this.applyModifiers(45, event); break;
       case 190: /* .            */ ch = this.applyModifiers(46, event); break;
       case 191: /* /            */ ch = this.applyModifiers(47, event); break;
-      // Conflicts with dead key " on Swiss keyboards
-      //case 192: /* `            */ ch = this.applyModifiers(96, event); break;
-      // Conflicts with dead key " on Swiss keyboards
-      //case 219: /* [            */ ch = this.applyModifiers(91, event); break;
+      case 192: /* `            */ ch = this.applyModifiers(96, event); break;
+      case 219: /* [            */ ch = this.applyModifiers(91, event); break;
       case 220: /* \            */ ch = this.applyModifiers(92, event); break;
-      // Conflicts with dead key ^ and ` on Swiss keaboards
-      //                         ^ and " on French keyboards
-      //case 221: /* ]            */ ch = this.applyModifiers(93, event); break;
+      case 221: /* ]            */ ch = this.applyModifiers(93, event); break;
       case 222: /* '            */ ch = this.applyModifiers(39, event); break;
       default:                                                          return;
       }
@@ -2781,7 +2772,8 @@ VT100.prototype.handleKey = function(event) {
                                         (event.altKey|event.metaKey ? 2 : 0)  +
                                         (event.ctrlKey              ? 4 : 0)) +
                                         part2;
-    } else if (ch.length == 1 && (event.altKey || event.metaKey)) {
+    } else if (ch.length == 1 && (event.altKey || event.metaKey)
+               && !this.disableAlt) {
       ch                              = '\u001B' + ch;
     }
   }
@@ -2868,11 +2860,12 @@ VT100.prototype.fixEvent = function(event) {
     case  55: /* 7 -> & */ u = 55; s =  38; break;
     case  56: /* 8 -> * */ u = 56; s =  42; break;
     case  57: /* 9 -> ( */ u = 57; s =  40; break;
+
     case  59: /* ; -> : */ u = 59; s =  58; break;
     case  61: /* = -> + */ u = 61; s =  43; break;
     case  91: /* [ -> { */ u = 91; s = 123; break;
     case  92: /* \ -> | */ u = 92; s = 124; break;
-    case  93: /* ] -> } */ u = 93; s = 125; break; 
+    case  93: /* ] -> } */ u = 93; s = 125; break;
     case  96: /* ` -> ~ */ u = 96; s = 126; break;
 
     case 109: /* - -> _ */ u = 45; s =  95; break;
@@ -2887,7 +2880,7 @@ VT100.prototype.fixEvent = function(event) {
     case 192: /* ` -> ~ */ u = 96; s = 126; break;
     case 219: /* [ -> { */ u = 91; s = 123; break;
     case 220: /* \ -> | */ u = 92; s = 124; break;
-    case 221: /* ] -> } */ u = 93; s = 125; break; 
+    case 221: /* ] -> } */ u = 93; s = 125; break;
     case 222: /* ' -> " */ u = 39; s =  34; break;
     default:                                break;
     }
@@ -2917,44 +2910,32 @@ VT100.prototype.keyDown = function(event) {
   this.lastKeyDownEvent         = undefined;
   this.lastNormalKeyDownEvent   = event;
 
-  // Swiss keyboard conflicts:
-  // [ 59
-  // ] 192
-  // ' 219 (dead key)
-  // { 220
-  // ~ 221 (dead key)
-  // } 223
-  // French keyoard conflicts:
-  // ~ 50 (dead key)
-  // } 107
   var asciiKey                  =
     event.keyCode ==  32                         ||
     event.keyCode >=  48 && event.keyCode <=  57 ||
     event.keyCode >=  65 && event.keyCode <=  90;
   var alphNumKey                =
     asciiKey                                     ||
-    event.keyCode ==  59 ||
     event.keyCode >=  96 && event.keyCode <= 105 ||
-    event.keyCode == 107 ||
-    event.keyCode == 192 ||
-    event.keyCode >= 219 && event.keyCode <= 221 ||
-    event.keyCode == 223 ||
     event.keyCode == 226;
   var normalKey                 =
     alphNumKey                                   ||
-    event.keyCode ==  58                         || /* FF15 patch */
-    event.keyCode >=  60 && event.keyCode <=  64 || /* FF15 patch */
-    event.keyCode == 106                         ||
+    event.keyCode >=  58 && event.keyCode <=  64 ||
+    event.keyCode == 106 || event.keyCode == 107 ||
     event.keyCode >= 109 && event.keyCode <= 111 ||
-    event.keyCode >= 160 && event.keyCode <= 185 || /* FF15 patch */
-    event.keyCode >= 186 && event.keyCode <= 191 ||
-    event.keyCode == 222                         ||
+    event.keyCode >= 160 && event.keyCode <= 192 ||
+    event.keyCode >= 219 && event.keyCode <= 223 ||
+    event.keyCode == 229 ||
     event.keyCode == 252;
   try {
     if (navigator.appName == 'Konqueror') {
       normalKey                |= event.keyCode < 128;
     }
   } catch (e) {
+  }
+
+  if (this.disableAlt && normalKey) {
+    return true;
   }
 
   // We normally prefer to look at keypress events, as they perform the
@@ -3076,22 +3057,17 @@ VT100.prototype.keyUp = function(event) {
       this.catchModifiersEarly    = true;
       var asciiKey                =
         event.keyCode ==  32                         ||
-        // Conflicts with dead key ~ (code 50) on French keyboards
-        //event.keyCode >=  48 && event.keyCode <=  57 ||
-        event.keyCode >=  48 && event.keyCode <=  49 ||
-        event.keyCode >=  51 && event.keyCode <=  57 ||
+        event.keyCode >=  48 && event.keyCode <=  57 ||
         event.keyCode >=  65 && event.keyCode <=  90;
       var alphNumKey              =
         asciiKey                                     ||
-        event.keyCode ==  50                         ||
         event.keyCode >=  96 && event.keyCode <= 105;
-      // Not used ???
       var normalKey               =
         alphNumKey                                   ||
-        event.keyCode ==  59 || event.keyCode ==  61 ||
+        event.keyCode >=  58 && event.keyCode <=  64 ||
         event.keyCode == 106 || event.keyCode == 107 ||
         event.keyCode >= 109 && event.keyCode <= 111 ||
-        event.keyCode >= 186 && event.keyCode <= 192 ||
+        event.keyCode >= 160 && event.keyCode <= 192 ||
         event.keyCode >= 219 && event.keyCode <= 223 ||
         event.keyCode == 252;
       var fake                    = [ ];
@@ -3276,6 +3252,7 @@ VT100.prototype.lf = function(count) {
       this.scrollRegion(0, this.top + 1,
                         this.terminalWidth, this.bottom - this.top - 1,
                         0, -1, this.color, this.style);
+      offset = undefined;
     } else if (this.cursorY < this.terminalHeight - 1) {
       this.gotoXY(this.cursorX, this.cursorY + 1);
     }
@@ -3602,7 +3579,7 @@ VT100.prototype.sendControlToPrinter = function(ch) {
           break;
         }
         // Fall through
-      case ESgetpars: 
+      case ESgetpars:
         if (ch == 0x3B /*;*/) {
           this.npar++;
           break;
@@ -3719,7 +3696,7 @@ VT100.prototype.csiJ = function(number) {
   default:
     return;
   }
-  this.needWrap = false;
+  needWrap = false;
 };
 
 VT100.prototype.csiK = function(number) {
@@ -3740,7 +3717,7 @@ VT100.prototype.csiK = function(number) {
   default:
     return;
   }
-  this.needWrap = false;
+  needWrap = false;
 };
 
 VT100.prototype.csiL = function(number) {
@@ -3757,7 +3734,7 @@ VT100.prototype.csiL = function(number) {
   this.scrollRegion(0, this.cursorY,
                     this.terminalWidth, this.bottom - this.cursorY - number,
                     0, number, this.color, this.style);
-  this.needWrap = false;
+  needWrap = false;
 };
 
 VT100.prototype.csiM = function(number) {
@@ -3769,12 +3746,12 @@ VT100.prototype.csiM = function(number) {
     number = 1;
   }
   if (number > this.bottom - this.cursorY) {
-    number = this.bottom - this.cursorY;
+    number = bottom - cursorY;
   }
   this.scrollRegion(0, this.cursorY + number,
                     this.terminalWidth, this.bottom - this.cursorY - number,
                     0, -number, this.color, this.style);
-  this.needWrap = false;
+  needWrap = false;
 };
 
 VT100.prototype.csim = function() {
@@ -3835,7 +3812,7 @@ VT100.prototype.csiP = function(number) {
   this.scrollRegion(this.cursorX + number, this.cursorY,
                     this.terminalWidth - this.cursorX - number, 1,
                     -number, 0, this.color, this.style);
-  this.needWrap = false;
+  needWrap = false;
 };
 
 VT100.prototype.csiX = function(number) {
@@ -3848,7 +3825,7 @@ VT100.prototype.csiX = function(number) {
   }
   this.clearRegion(this.cursorX, this.cursorY, number, 1,
                    this.color, this.style);
-  this.needWrap = false;
+  needWrap = false;
 };
 
 VT100.prototype.settermCommand = function() {
@@ -3964,7 +3941,7 @@ VT100.prototype.doControl = function(ch) {
       }
       // Fall through
     case ESdeviceattr:
-    case ESgetpars: 
+    case ESgetpars:
 /*;*/ if (ch == 0x3B) {
         this.npar++;
         break;
@@ -4026,7 +4003,7 @@ VT100.prototype.doControl = function(ch) {
 /*H*/ case 0x48:
 /*f*/ case 0x66: this.gotoXaY(this.par[1] - 1, this.par[0] - 1);        break;
 /*I*/ case 0x49: this.ht(this.par[0] ? this.par[0] : 1);                break;
-/*at*/case 0x40: this.csiAt(this.par[0]);                               break;
+/*@*/ case 0x40: this.csiAt(this.par[0]);                               break;
 /*i*/ case 0x69: this.csii(this.par[0]);                                break;
 /*J*/ case 0x4A: this.csiJ(this.par[0]);                                break;
 /*K*/ case 0x4B: this.csiK(this.par[0]);                                break;
@@ -4090,7 +4067,7 @@ VT100.prototype.doControl = function(ch) {
     case ESpercent:
       this.isEsc              = ESnormal;
       switch (ch) {
-/*at*/case 0x40: this.utfEnabled = false;                               break;
+/*@*/ case 0x40: this.utfEnabled = false;                               break;
 /*G*/ case 0x47:
 /*8*/ case 0x38: this.utfEnabled = true;                                break;
       default:                                                          break;
@@ -4239,7 +4216,7 @@ VT100.prototype.vt100 = function(s) {
        this.utfEnabled && ch >= 128 ||
        !(this.dispCtrl ? this.ctrlAlways : this.ctrlAction)[ch & 0x1F]) &&
       (ch != 0x7F || this.dispCtrl);
-    
+
     if (isNormalCharacter && this.isEsc == ESnormal) {
       if (ch < 256) {
         ch                = this.translate[this.toggleMeta ? (ch | 0x80) : ch];
@@ -4444,4 +4421,3 @@ VT100.prototype.ctrlAlways = [
   false, false, false, false, false, false, false, false,
   false, false, false, true,  false, false, false, false
 ];
-
