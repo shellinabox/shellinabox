@@ -115,7 +115,7 @@ struct HttpHandler {
   int (*websocketHandler)(struct HttpConnection *, void *, int,
                           const char *, int);
   void *arg, *streamingArg;
-  
+
 };
 
 struct HttpConnection *newHttpConnection(struct Server *server, int fd,

@@ -181,7 +181,7 @@ static int serverCollectFullPayload(struct HttpConnection *http,
     free(payload);
   }
   return rc;
-  
+
 }
 
 static int serverCollectHandler(struct HttpConnection *http, void *handler_) {

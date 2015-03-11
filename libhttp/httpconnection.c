@@ -1637,7 +1637,7 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
           }
         }
       }
-  
+
       // If the callback only provided partial data, refill the outgoing
       // buffer whenever it runs low.
       if (http->isPartialReply && (!http->msg || http->msgLength <= 0)) {
@@ -1664,7 +1664,7 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
       http->msg                      = NULL;
       http->msgLength                = 0;
     }
-  
+
     if ((!(*events || http->isSuspended) || timedOut) && http->sslHndl) {
       *events                        = 0;
       serverSetTimeout(connection, 1);
