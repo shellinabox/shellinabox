@@ -11,7 +11,7 @@ noinst_HEADERS       = libhttp/http.h
 dist_doc_DATA        = AUTHORS                                                \
                        COPYING                                                \
                        GPL-2                                                  \
-                       ChangeLog                                              \
+                       CHANGELOG.md                                           \
                        INSTALL                                                \
                        NEWS                                                   \
                        README                                                 \
