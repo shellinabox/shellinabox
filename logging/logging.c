@@ -191,4 +191,3 @@ char *stringPrintfUnchecked(char *buf, const char *fmt, ...)
   return s;
 }
 #endif
-

@@ -880,7 +880,7 @@ Demo.prototype.intrinsic = function() {
     }
     v               = arg1.val().substr(arg1.val().length - v);
     value           = new this.Value(TYPE_STRING, v, v);
-    break;   
+    break;
   case 'STR$':
     value           = new this.Value(TYPE_STRING, arg1.toString(),
                                      arg1.toString());
@@ -909,7 +909,7 @@ Demo.prototype.intrinsic = function() {
       v             = String.fromCharCode(arg1.val());
       value         = new this.Value(TYPE_STRING, v, v);
       break;
-    case 'SPC': 
+    case 'SPC':
       if (arg1.val() < 0) {
         return this.error('Range error');
       }
@@ -1183,4 +1183,3 @@ Demo.prototype.Value.prototype.val = function() {
 Demo.prototype.Value.prototype.toString = function() {
   return this.s;
 };
-

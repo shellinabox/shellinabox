@@ -8,7 +8,7 @@
 # Short-Description: Shell In A Box Daemon
 # Description:       Daemon for publishing a login shell at
 #                    http://localhost:SHELLINABOX_PORT
-#		     where default port number is 4200. 
+#		     where default port number is 4200.
 ### END INIT INFO
 
 # Authors: Markus Gutschke <markus@shellinabox.com>, Marc Singer <elf@buici.com>

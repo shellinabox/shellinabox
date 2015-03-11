@@ -357,7 +357,7 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
       }
     }
   }
-  
+
 };
 
 ShellInABox.prototype.about = function() {
@@ -373,4 +373,3 @@ ShellInABox.prototype.about = function() {
          "Eric Young\n(eay@cryptsoft.com)" :
          ""));
 };
-

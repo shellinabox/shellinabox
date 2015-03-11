@@ -1,4 +1,3 @@
 - Check if there is any way that we could fall back on gnutls if openssl is
   unavailable
 - Package for distributions other than Debian
-

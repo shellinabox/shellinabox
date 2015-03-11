@@ -1,9 +1,9 @@
-#vt100 a { 
+#vt100 a {
   text-decoration:      none;
   color:                inherit;
 }
 
-#vt100 a:hover { 
+#vt100 a:hover {
   text-decoration:      underline;
 }
 
@@ -12,7 +12,7 @@
   z-index:              2;
 }
 
-#vt100 #reconnect input { 
+#vt100 #reconnect input {
   padding:              1ex;
   font-weight:          bold;
   font-size:            x-large;
@@ -29,7 +29,7 @@
   z-index:              2;
 }
 
-#vt100 pre { 
+#vt100 pre {
   margin:               0px;
 }
 
@@ -44,11 +44,11 @@
   padding:              1px;
 }
 
-#vt100 #console, #vt100 #alt_console, #vt100 #cursor, #vt100 #lineheight, #vt100 .hidden pre { 
+#vt100 #console, #vt100 #alt_console, #vt100 #cursor, #vt100 #lineheight, #vt100 .hidden pre {
   font-family:          "DejaVu Sans Mono", "Everson Mono", FreeMono, "Andale Mono", monospace;
 }
 
-#vt100 #lineheight { 
+#vt100 #lineheight {
   position:             absolute;
   visibility:           hidden;
 }
@@ -75,7 +75,7 @@
   margin:               -1px;
 }
 
-#vt100 #padding { 
+#vt100 #padding {
   visibility:           hidden;
   width:                1px;
   height:               0px;
@@ -90,7 +90,7 @@
   height:               0px;
 }
 
-#vt100 #menu { 
+#vt100 #menu {
   overflow:             visible;
   position:             absolute;
   z-index:              3;
@@ -103,14 +103,14 @@
   position:             absolute;
 }
 
-#vt100 #menu .popup ul { 
+#vt100 #menu .popup ul {
   list-style-type:      none;
   padding:              0px;
   margin:               0px;
   min-width:            10em;
 }
 
-#vt100 #menu .popup li { 
+#vt100 #menu .popup li {
   padding:              3px 0.5ex 3px 0.5ex;
 }
 
@@ -123,11 +123,11 @@
   color:                #AAAAAA;
 }
 
-#vt100 #menu .popup hr { 
+#vt100 #menu .popup hr {
   margin:               0.5ex 0px 0.5ex 0px;
 }
 
-#vt100 #menu img { 
+#vt100 #menu img {
   margin-right:         0.5ex;
   width:                1ex;
   height:               1ex;
@@ -136,7 +136,7 @@
 #vt100 #scrollable.inverted { color:            #ffffff;
                               background-color: #000000; }
 
-#vt100 #kbd_button { 
+#vt100 #kbd_button {
   float:                left;
   position:             fixed;
   z-index:              0;
@@ -198,7 +198,7 @@
   visibility:           hidden;
 }
 
-#vt100 #keyboard .shifted { 
+#vt100 #keyboard .shifted {
   display:              none;
 }
 
@@ -257,15 +257,15 @@
     display:            none;
   }
 
-  #vt100 #reconnect, #vt100 #cursor, #vt100 #menu, #vt100 #kbd_button, #vt100 #keyboard { 
+  #vt100 #reconnect, #vt100 #cursor, #vt100 #menu, #vt100 #kbd_button, #vt100 #keyboard {
     visibility:         hidden;
   }
 
-  #vt100 #scrollable { 
+  #vt100 #scrollable {
     overflow:           hidden;
   }
 
-  #vt100 #console, #vt100 #alt_console { 
+  #vt100 #console, #vt100 #alt_console {
     overflow:           hidden;
     width:              1000000ex;
   }

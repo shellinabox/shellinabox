@@ -29,4 +29,3 @@ some tips on getting things working:
   Make sure you assign the correct SELinux labels to this file when copying
   it into "/etc/pam.d":
     cp -Z system_u:object_r:etc_t:s0 etc-pam.d-shellinabox-example /etc/pam.d/
-

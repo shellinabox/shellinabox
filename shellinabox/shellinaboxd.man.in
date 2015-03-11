@@ -199,7 +199,7 @@ In order to be useful as a CGI script, the
 .B shellinaboxd
 binary probably will have to be made
 .BR setuid-root .
-This is currently a discouraged configuration. Use with care. 
+This is currently a discouraged configuration. Use with care.
 .TP
 \fB-d\fP\ |\ \fB--debug\fP
 Enables debugging mode, resulting in lots of log messages on
@@ -292,7 +292,7 @@ mode, anything that looks like a hostname, URL or e-mail address is
 recognized, even if not preceded by a protocol.
 .TP
 \fB--localhost-only\fP
-Normally, 
+Normally,
 .B shellinaboxd
 listens on all available network interfaces. When operating behind a
 reverse-proxy that is not always desirable. This command line option
@@ -756,7 +756,7 @@ the daemon with \fBsudo service shellinabox restart\fP.
 .TP
 .I /etc/shellinabox
 This directory contains style sheets that will be used for the
-.B --user-css 
+.B --user-css
 command line option, when running
 .B shellinaboxd
 as a system-wide service.

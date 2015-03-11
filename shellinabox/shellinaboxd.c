@@ -243,7 +243,7 @@ static int completePendingRequest(struct Session *session,
         data                    = jsonEscape(buf, len);
       }
     }
-    
+
     char *json                  = stringPrintf(NULL, "{"
                                                "\"session\":\"%s\","
                                                "\"data\":\"%s\""
