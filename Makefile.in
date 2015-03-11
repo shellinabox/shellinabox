@@ -42,7 +42,7 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(dist_doc_DATA) \
 	$(noinst_HEADERS) $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure AUTHORS COPYING \
-	ChangeLog INSTALL NEWS TODO config.guess config.sub depcomp \
+	CHANGELOG.md INSTALL NEWS TODO config.guess config.sub depcomp \
 	install-sh ltmain.sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -261,7 +261,7 @@ noinst_HEADERS = libhttp/http.h
 dist_doc_DATA = AUTHORS                                                \
                        COPYING                                                \
                        GPL-2                                                  \
-                       ChangeLog                                              \
+                       CHANGELOG.md                                           \
                        INSTALL                                                \
                        NEWS                                                   \
                        README                                                 \
