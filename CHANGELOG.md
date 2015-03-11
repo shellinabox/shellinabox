@@ -1,7 +1,8 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## 2015-03  Luka Krajger, Philip Hughes, Daniel Gröber, Ezra Buehler, Anders Kaseorg, Jonathan Rennison
+## 2015-03
+Contributors: [Luka Krajger](https://github.com/KLuka), [Philip Hughes](https://github.com/Grimthorr), [Daniel Gröber](https://github.com/DanielG), [Ezra Buehler](https://github.com/easybe), [Anders Kaseorg](https://github.com/andersk), [Jonathan Rennison](https://github.com/JGRennison), [Guillaume Martres](https://github.com/smarter)
 
 	- Swap to gzip compression (fixes #262 and #266).
 
