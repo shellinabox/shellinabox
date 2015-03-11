@@ -2752,19 +2752,21 @@ VT100.prototype.handleKey = function(event) {
       case 144: /* Num Lock     */                                      return;
       case 145: /* Scroll Lock  */                                      return;
       case 186: /* ;            */ ch = this.applyModifiers(59, event); break;
-      case 187: /* =            */ ch = this.applyModifiers(61, event); break;
+      // Conflicts with dead keys ` on Danish keyboard
+      //                          ¸ on Slovenian keyboard
+      // case 187: /* =            */ ch = this.applyModifiers(61, event); break;
       case 188: /* ,            */ ch = this.applyModifiers(44, event); break;
       case 189: /* -            */ ch = this.applyModifiers(45, event); break;
       case 190: /* .            */ ch = this.applyModifiers(46, event); break;
       case 191: /* /            */ ch = this.applyModifiers(47, event); break;
       // Conflicts with dead key " on Swiss keyboards
-      //case 192: /* `            */ ch = this.applyModifiers(96, event); break;
+      // case 192: /* `            */ ch = this.applyModifiers(96, event); break;
       // Conflicts with dead key " on Swiss keyboards
-      //case 219: /* [            */ ch = this.applyModifiers(91, event); break;
+      // case 219: /* [            */ ch = this.applyModifiers(91, event); break;
       case 220: /* \            */ ch = this.applyModifiers(92, event); break;
       // Conflicts with dead key ^ and ` on Swiss keaboards
       //                         ^ and " on French keyboards
-      //case 221: /* ]            */ ch = this.applyModifiers(93, event); break;
+      // case 221: /* ]            */ ch = this.applyModifiers(93, event); break;
       case 222: /* '            */ ch = this.applyModifiers(39, event); break;
       default:                                                          return;
       }
@@ -2966,6 +2968,7 @@ VT100.prototype.keyDown = function(event) {
     event.keyCode >= 160 && event.keyCode <= 185 || /* FF15 patch */
     event.keyCode >= 186 && event.keyCode <= 191 ||
     event.keyCode == 222                         ||
+    event.keyCode == 229                         ||
     event.keyCode == 252;
   try {
     if (navigator.appName == 'Konqueror') {
