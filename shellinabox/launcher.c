@@ -1509,13 +1509,13 @@ static void childProcess(struct Service *service, int width, int height,
   // Set initial terminal settings
   struct termios tt = { 0 };
   tcgetattr(0, &tt);
-  cfsetispeed(&tt, 38400);
-  cfsetospeed(&tt, 38400);
   tt.c_iflag                    =  TTYDEF_IFLAG & ~ISTRIP;
   tt.c_oflag                    =  TTYDEF_OFLAG;
   tt.c_lflag                    =  TTYDEF_LFLAG;
   tt.c_cflag                    = (TTYDEF_CFLAG & ~(CS7|PARENB|HUPCL)) | CS8;
   tt.c_cc[VERASE]               = '\x7F';
+  cfsetispeed(&tt, B38400);
+  cfsetospeed(&tt, B38400);
   tcsetattr(0, TCSAFLUSH, &tt);
 
   // Assert root privileges in order to update utmp entry.
