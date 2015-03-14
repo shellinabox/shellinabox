@@ -105,9 +105,8 @@
       window.onbeforeunload = function(e) {
         if (typeof window.shellinabox.session != "undefined") {
           return "Are you sure you want to leave this page?";
-        } else {
-          return null;
         }
+        // Don't use explicit return
       }
 
     --></script>
