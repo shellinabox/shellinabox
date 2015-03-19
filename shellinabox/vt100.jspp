@@ -182,6 +182,8 @@ function VT100(container) {
   this.savedX             = [ ];
   this.savedY             = [ ];
   this.savedAttr          = [ ];
+  this.savedAttrFg        = [ ];
+  this.savedAttrBg        = [ ];
   this.savedUseGMap       = 0;
   this.savedGMap          = [ this.Latin1Map, this.VT100GraphicsMap,
                               this.CodePage437Map, this.DirectToFontMap ];
@@ -216,6 +218,8 @@ VT100.prototype.reset = function(clearHistory) {
   this.color                                         = 'ansi0 bgAnsi15';
   this.style                                         = '';
   this.attr                                          = ATTR_DEFAULT;
+  this.attrFg                                        = false;
+  this.attrBg                                        = false;
   this.useGMap                                       = 0;
   this.GMap                                          = [ this.Latin1Map,
                                                          this.VT100GraphicsMap,
@@ -3359,6 +3363,15 @@ VT100.prototype.updateStyle = function() {
   if (this.attr & ATTR_BLINK) {
     this.style = 'text-decoration: blink;';
   }
+
+  // Extended color mode support (256 colors).
+  if (this.attrFg) {
+    fg         = this.attrFg;
+  }
+  if (this.attrBg) {
+    bg         = this.attrBg;
+  }
+
   this.color   = 'ansi' + fg + ' bgAnsi' + bg;
 };
 
@@ -3370,14 +3383,16 @@ VT100.prototype.setAttrColors = function(attr) {
 };
 
 VT100.prototype.saveCursor = function() {
-  this.savedX[this.currentScreen]     = this.cursorX;
-  this.savedY[this.currentScreen]     = this.cursorY;
-  this.savedAttr[this.currentScreen]  = this.attr;
-  this.savedUseGMap                   = this.useGMap;
+  this.savedX[this.currentScreen]      = this.cursorX;
+  this.savedY[this.currentScreen]      = this.cursorY;
+  this.savedAttr[this.currentScreen]   = this.attr;
+  this.savedAttrFg[this.currentScreen] = this.attrFg;
+  this.savedAttrBg[this.currentScreen] = this.attrBg;
+  this.savedUseGMap                    = this.useGMap;
   for (var i = 0; i < 4; i++) {
-    this.savedGMap[i]                 = this.GMap[i];
+    this.savedGMap[i]                  = this.GMap[i];
   }
-  this.savedValid[this.currentScreen] = true;
+  this.savedValid[this.currentScreen]  = true;
 };
 
 VT100.prototype.restoreCursor = function() {
@@ -3385,6 +3400,8 @@ VT100.prototype.restoreCursor = function() {
     return;
   }
   this.attr      = this.savedAttr[this.currentScreen];
+  this.attrFg    = this.savedAttrFg[this.currentScreen];
+  this.attrBg    = this.savedAttrBg[this.currentScreen];
   this.updateStyle();
   this.useGMap   = this.savedUseGMap;
   for (var i = 0; i < 4; i++) {
@@ -3804,7 +3821,11 @@ VT100.prototype.csiM = function(number) {
 VT100.prototype.csim = function() {
   for (var i = 0; i <= this.npar; i++) {
     switch (this.par[i]) {
-    case 0:  this.attr  = ATTR_DEFAULT;                                break;
+    case 0:
+      this.attr         = ATTR_DEFAULT;
+      this.attrFg       = false;
+      this.attrBg       = false;
+      break;
     case 1:  this.attr  = (this.attr & ~ATTR_DIM)|ATTR_BRIGHT;         break;
     case 2:  this.attr  = (this.attr & ~ATTR_BRIGHT)|ATTR_DIM;         break;
     case 4:  this.attr |= ATTR_UNDERLINE;                              break;
@@ -3830,17 +3851,44 @@ VT100.prototype.csim = function() {
     case 24: this.attr &= ~ ATTR_UNDERLINE;                            break;
     case 25: this.attr &= ~ ATTR_BLINK;                                break;
     case 27: this.attr &= ~ ATTR_REVERSE;                              break;
-    case 38: this.attr  = (this.attr & ~(ATTR_DIM|ATTR_BRIGHT|0x0F))|
-                          ATTR_UNDERLINE;                              break;
-    case 39: this.attr &= ~(ATTR_DIM|ATTR_BRIGHT|ATTR_UNDERLINE|0x0F); break;
-    case 49: this.attr |= 0xF0;                                        break;
+    case 38:
+      if (this.npar >= (i+2) && this.par[i+1] == 5) {
+        // Foreground color for extended color mode (256 colors). Escape code is formated
+        // as: ESC 38; 5; 0-255. Last parameter is color code in range [0-255]. This is
+        // not VT100 standard.
+        this.attrFg     = (this.par[i+2] >= 0 && this.par[i+2] <= 255) ? this.par[i+2] : null;
+        i              += 2;
+      } else {
+        // Default VT100 behaviour.
+        this.attr       = (this.attr & ~(ATTR_DIM|ATTR_BRIGHT|0x0F))|ATTR_UNDERLINE;
+      }
+      break;
+    case 39:
+      this.attr        &= ~(ATTR_DIM|ATTR_BRIGHT|ATTR_UNDERLINE|0x0F);
+      this.attrFg       = false;
+      break;
+    case 48:
+      if (this.npar >= (i+2) && this.par[i+1] == 5) {
+        // Background color for extended color mode (256 colors). Escape code is formated
+        // as: ESC 48; 5; 0-255. Last parameter is color code in range [0-255]. This is
+        // not VT100 standard.
+        this.attrBg     = (this.par[i+2] >= 0 && this.par[i+2] <= 255) ? this.par[i+2] : null;
+        i              += 2;
+      }
+      break;
+    case 49:
+      this.attr        |= 0xF0;
+      this.attrBg       = false;
+      break;
     default:
       if (this.par[i] >= 30 && this.par[i] <= 37) {
           var fg        = this.par[i] - 30;
           this.attr     = (this.attr & ~0x0F) | fg;
+          this.attrFg   = false;
       } else if (this.par[i] >= 40 && this.par[i] <= 47) {
           var bg        = this.par[i] - 40;
           this.attr     = (this.attr & ~0xF0) | (bg << 4);
+          this.attrBg   = false;
       }
       break;
     }
