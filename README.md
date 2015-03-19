@@ -2,7 +2,7 @@
 shellinabox
 ===========
 
-This is unofficial fork of project **shellinabox**. Fork was created because
+This is unofficial fork of project **Shell In A Box**. Fork was created because
 original project is not maintained anymore and we cannot contact original
 repository owners.
 
@@ -27,6 +27,7 @@ browser plugins.
 
 More information:
 
+* [Manual page](https://github.com/shellinabox/shellinabox/wiki/shellinaboxd_man)
 * [Official site](https://code.google.com/p/shellinabox)
 * [Official wiki](https://code.google.com/p/shellinabox/wiki/shellinaboxd_man)
 
@@ -34,7 +35,7 @@ More information:
 Build
 -----------------
 
-For building **shellianbox** from source on Debian based systems use commands listed
+For building **shellinabox** from source on Debian based systems use commands listed
 below. This will create executable file `shellinaboxd` in project directory.
 
 1. Install dependencies
@@ -61,6 +62,8 @@ below. This will create executable file `shellinaboxd` in project directory.
     ./configure && make
    ```
 
+#### Debian package
+
 For building and installing `.deb` packages you can use commands listed bellow.
 
 1. Build package
@@ -72,7 +75,7 @@ For building and installing `.deb` packages you can use commands listed bellow.
 2. Install package
 
     ```
-    dpkg -i ../shellianbox_{ver}_{arch}.deb
+    dpkg -i ../shellinabox_{ver}_{arch}.deb
     ```
 
 For more information about `.deb` packages please see [INSTALL.Debian](/INSTALL.Debian) file.
