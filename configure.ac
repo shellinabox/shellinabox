@@ -9,7 +9,7 @@ AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
 
 dnl Set up autoconf/automake for building C libraries and binaries with GCC
 CFLAGS="${CFLAGS:--Os}"
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([subdir-objects])
 AM_CONFIG_HEADER(config.h)
 AC_PROG_CC
 AC_LANG_WERROR
@@ -18,6 +18,7 @@ AC_PROG_LIBTOOL
 AC_SUBST(LIBTOOL_DEPS)
 AC_C_CONST
 AC_PROG_GCC_TRADITIONAL
+AC_CONFIG_MACRO_DIR([m4])
 
 dnl Check for header files that do not exist on all platforms
 AC_CHECK_HEADERS([libutil.h pthread.h pty.h strings.h sys/prctl.h sys/uio.h  \

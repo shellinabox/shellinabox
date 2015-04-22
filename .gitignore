@@ -4,6 +4,7 @@
 *~
 .libs
 .deps
+.dirstamp
 autom4te.cache
 config.h
 config.log
@@ -13,6 +14,7 @@ demo/keyboard.png
 demo/vt100.js
 libtool
 Makefile
+m4/
 shellinabox/beep.h
 shellinabox/cgi_root.h
 shellinabox/enabled.h

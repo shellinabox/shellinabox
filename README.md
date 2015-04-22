@@ -65,6 +65,7 @@ below. This will create executable file `shellinaboxd` in project directory.
 #### Debian package
 
 For building and installing `.deb` packages you can use commands listed bellow.
+Note that dependencies from the first step above are also required.
 
 1. Build package
 
