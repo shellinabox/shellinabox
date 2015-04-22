@@ -2956,22 +2956,16 @@ VT100.prototype.keyDown = function(event) {
     event.keyCode >=  65 && event.keyCode <=  90;
   var alphNumKey                =
     asciiKey                                     ||
-    event.keyCode ==  59 ||
+    event.keyCode >=  58 && event.keyCode <=  64 ||
     event.keyCode >=  96 && event.keyCode <= 105 ||
     event.keyCode == 107 ||
-    event.keyCode == 192 ||
-    event.keyCode >= 219 && event.keyCode <= 221 ||
-    event.keyCode == 223 ||
+    event.keyCode >= 160 && event.keyCode <= 192 ||
+    event.keyCode >= 219 && event.keyCode <= 223 ||
     event.keyCode == 226;
   var normalKey                 =
     alphNumKey                                   ||
-    event.keyCode ==  58                         || /* FF15 patch */
-    event.keyCode >=  60 && event.keyCode <=  64 || /* FF15 patch */
     event.keyCode == 106                         ||
     event.keyCode >= 109 && event.keyCode <= 111 ||
-    event.keyCode >= 160 && event.keyCode <= 185 || /* FF15 patch */
-    event.keyCode >= 186 && event.keyCode <= 191 ||
-    event.keyCode == 222                         ||
     event.keyCode == 229                         ||
     event.keyCode == 252;
   try {
