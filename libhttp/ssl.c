@@ -590,7 +590,6 @@ static int sslSetCertificateFromFile(SSL_CTX *context,
   int rc = sslSetCertificateFromFd(context, fd);
   return rc;
 }
-#endif
 
 static SSL_CTX *sslMakeContext(void) {
   SSL_CTX *context;
@@ -617,6 +616,7 @@ static SSL_CTX *sslMakeContext(void) {
   check(SSL_CTX_set_cipher_list(context, "HIGH:MEDIUM:!aNULL:!MD5"));
   return context;
 }
+#endif
 
 #ifdef HAVE_TLSEXT
 static int sslSNICallback(SSL *sslHndl, int *al ATTR_UNUSED,
