@@ -41,7 +41,7 @@ below. This will create executable file `shellinaboxd` in project directory.
 1. Install dependencies
 
    ```
-    apt-get install git dpkg-dev debhelper autotools-dev libssl-dev libpam0g-dev zlib1g-dev libssl1.0.0 libpam0g
+    apt-get install libtool autoconf git dpkg-dev debhelper autotools-dev libssl-dev libpam0g-dev zlib1g-dev libssl1.0.0 libpam0g
    ```
 
 2. Clone source files and move to project directory
