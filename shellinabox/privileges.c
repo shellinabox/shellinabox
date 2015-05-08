@@ -363,8 +363,12 @@ static int getgrnam_r(const char *name, struct group *grp, char *buf,
 #endif
 
 gid_t getGroupId(const char *name) {
+  static const long gr_max = 64 * 1024;
   struct group grbuf, *gr;
+  char *temp;
   char *buf;
+  int ret;
+  int gr_baselen;
   #ifdef _SC_GETGR_R_SIZE_MAX
   int gr_len      = sysconf(_SC_GETGR_R_SIZE_MAX);
   if (gr_len <= 0) {
@@ -373,29 +377,47 @@ gid_t getGroupId(const char *name) {
   #else
   int gr_len      = 4096;
   #endif
+  gr_baselen = gr_len;
   check(buf       = malloc(gr_len));
-  if (getgrnam_r(name, &grbuf, buf, gr_len, &gr) || !gr) {
-    // Maybe, this system does not have a "nogroup" group. Substitute the
-    // group of the "nobody" user.
-    if (!strcmp(name, "nogroup")) {
-      struct passwd pwbuf, *pw;
-      #ifdef _SC_GETPW_R_SIZE_MAX
-      int pw_len  = sysconf(_SC_GETPW_R_SIZE_MAX);
-      if (pw_len <= 0) {
-        pw_len    = 4096;
+  for(;;) {
+    errno = 0;
+    ret = getgrnam_r(name, &grbuf, buf, gr_len, &gr);
+    if(!ret) {
+      if(gr) {
+        break;
+      } else if(!strcmp(name, "nogroup")) {
+        // Maybe, this system does not have a "nogroup" group. Substitute the
+        // group of the "nobody" user.
+        struct passwd pwbuf, *pw;
+        #ifdef _SC_GETPW_R_SIZE_MAX
+        int pw_len  = sysconf(_SC_GETPW_R_SIZE_MAX);
+        if (pw_len <= 0) {
+          pw_len    = 4096;
+        }
+        #else
+        int pw_len  = 4096;
+        #endif
+        if (pw_len > gr_len) {
+          check(buf = realloc(buf, pw_len));
+        }
+        if (!getpwnam_r("nobody", &pwbuf, buf, pw_len, &pw) && pw) {
+          debug("Substituting \"nobody's\" primary group for \"nogroup\"");
+          gid_t gid = pw->pw_gid;
+          free(buf);
+          return gid;
+        }
       }
-      #else
-      int pw_len  = 4096;
-      #endif
-      if (pw_len > gr_len) {
-        check(buf = realloc(buf, pw_len));
+    }
+    if(ret && errno == ERANGE) {
+      if ((gr_len + gr_baselen) < gr_len || (gr_len + gr_baselen) > gr_max) {
+        fatal("Cannot look up group \"%s\": buffer limit reached", name);
+        break;
       }
-      if (!getpwnam_r("nobody", &pwbuf, buf, pw_len, &pw) && pw) {
-        debug("Substituting \"nobody's\" primary group for \"nogroup\"");
-        gid_t gid = pw->pw_gid;
-        free(buf);
-        return gid;
-      }
+      // grow the buffer by 'gr_baselen' each time getgrnam_r fails
+      gr_len += gr_baselen;
+      check(temp = realloc (buf, gr_len));
+      buf = temp;
+      continue;
     }
     fatal("Cannot look up group \"%s\"", name);
   }
