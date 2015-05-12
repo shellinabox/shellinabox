@@ -1,9 +1,13 @@
-Format: http://dep.debian.net/deps/dep5
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: shellinabox
-Source: <https://code.google.com/p/shellinabox/>
+Source: <https://github.com/shellinabox/shellinabox/>
 
 Files: *
 Copyright: Copyright 2008-2012, Markus Gutschke  All rights reserved.
+                     2012, Marc Singer
+                     2015, Luka Krajger, Philip Hughes, Daniel Gröber,
+                           Ezra Buehler, Anders Kaseorg,
+                           Jonathan Rennison, Guillaume Martres
 Upstream-Author: markus@shellinabox.com
 License: GPL-2+
   This program is free software; you can redistribute it and/or modify
