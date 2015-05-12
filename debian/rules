@@ -53,12 +53,5 @@ override_dh_install:
 	   "$(DESTDIR)/etc/shellinabox/options-enabled/README"
 # Shellinabox home directory
 #	mkdir -p "$(DESTDIR)/var/lib/shellinabox"
-# Add Lintian override. ShellInABox has an explicit exemption allowing
-# the linking its GPLv2 code with OpenSSL.
-	mkdir -p "$(DESTDIR)/usr/share/lintian/overrides/"
-	{ echo '# ShellInABox has an explicit exemption allowing the linking';\
-	echo '# of its GPLv2 code with OpenSSL';                              \
-	echo 'shellinabox binary: possible-gpl-code-linked-with-openssl'; }   \
-	   >"$(DESTDIR)/usr/share/lintian/overrides/shellinabox"
 # Now perform the normal debhelper install.
 	dh_install

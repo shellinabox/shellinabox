@@ -1,3 +1,13 @@
+shellinabox (2.15-1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * Bump std version to 3.9.6, no change needed
+  * Bump debhelper compat to 9
+  * move lintian exception in d/shellinabox.lintian
+  * change urls to new GitHub repos
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 12 May 2015 14:06:55 +0200
+
 shellinabox (2.14-1) unstable; urgency=low
 
   * Revised install target of debian/rules.

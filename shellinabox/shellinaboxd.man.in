@@ -511,7 +511,7 @@ choice can be removed from the context menu. The user can still make this
 choice by directly going to the appropriate URL.
 .TP
 \fB-q\fP\ |\ \fB--quiet\fP
-Surpresses all messages to
+Suppresses all messages to
 .IR stderr .
 This option is mutually exclusive with
 .B --debug

@@ -1,2 +1,2 @@
 version=3
-https://code.google.com/p/shellinabox/downloads/detail?name=shellinabox-(.+).tar.gz
+https://github.com/shellinabox/shellinabox/tags .*/v?(\d\S*)\.tar\.gz

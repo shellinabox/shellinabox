@@ -1,0 +1,3 @@
+# ShellInABox has an explicit exemption allowing the linking
+# of its GPLv2 code with OpenSSL
+shellinabox binary: possible-gpl-code-linked-with-openssl
