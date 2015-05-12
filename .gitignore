@@ -6,9 +6,12 @@
 .deps
 .dirstamp
 autom4te.cache
+config.guess
 config.h
 config.log
 config.status
+config.sub
+configure
 demo/demo.js
 demo/keyboard.png
 demo/vt100.js
