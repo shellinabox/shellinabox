@@ -329,7 +329,7 @@ VT100.prototype.getUserSettings = function() {
       this.disableAlt       = settings.charAt(5) != '0';
       if (typeof userCSSList != 'undefined') {
         for (var i = 0; i < userCSSList.length; ++i) {
-          userCSSList[i][2] = settings.charAt(i + 5) != '0';
+          userCSSList[i][2] = settings.charAt(i + 6) != '0';
         }
       }
     }
@@ -370,18 +370,10 @@ VT100.prototype.initializeUserCSSStyles = function() {
 
         // Add user style sheet to document
         var style                        = document.createElement('link');
-        var id                           = document.createAttribute('id');
-        id.nodeValue                     = 'usercss-' + i;
-        style.setAttributeNode(id);
-        var rel                          = document.createAttribute('rel');
-        rel.nodeValue                    = 'stylesheet';
-        style.setAttributeNode(rel);
-        var href                         = document.createAttribute('href');
-        href.nodeValue                   = 'usercss-' + i + '.css';
-        style.setAttributeNode(href);
-        var type                         = document.createAttribute('type');
-        type.nodeValue                   = 'text/css';
-        style.setAttributeNode(type);
+        style.setAttribute('id',           'usercss-' + i);
+        style.setAttribute('href',         'usercss-' + i + '.css');
+        style.setAttribute('rel',          'stylesheet');
+        style.setAttribute('type',         'text/css');
         document.getElementsByTagName('head')[0].appendChild(style);
         style.disabled                   = !enabled;
       }
