@@ -3,7 +3,7 @@ Section: web
 Priority: optional
 Maintainer: Marc Singer <elf@debian.org>
 Build-Depends: debhelper (>= 9), autotools-dev, binutils,
- libssl-dev, libpam0g-dev, zlib1g-dev
+ libssl-dev, libpam0g-dev, zlib1g-dev, dh-autoreconf
 Standards-Version: 3.9.6
 Homepage: http://shellinabox.com
 Vcs-Git: https://github.com/shellinabox/shellinabox/
