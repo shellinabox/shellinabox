@@ -21,11 +21,14 @@ demo/print-styles.css
 demo/styles.css
 demo/usercss-*.css
 demo/vt100.js
+depcomp
+INSTALL
 install-sh
 libtool
 ltmain.sh
 Makefile
 Makefile.in
+missing
 m4/
 shellinabox/beep.h
 shellinabox/cgi_root.h
