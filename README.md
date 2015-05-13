@@ -2,6 +2,8 @@
 shellinabox
 ===========
 
+[![Build Status](https://drone.io/github.com/shellinabox/shellinabox/status.png)](https://drone.io/github.com/shellinabox/shellinabox/latest)
+
 This is unofficial fork of project **Shell In A Box**. Fork was created because
 original project is not maintained anymore and we cannot contact original
 repository owners.
