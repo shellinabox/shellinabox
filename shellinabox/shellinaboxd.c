@@ -42,7 +42,7 @@
 //
 //
 // The most up-to-date version of this program is always available from
-// http://shellinabox.com
+// http://shellinabox.com  
 
 #define _GNU_SOURCE
 #include "config.h"
