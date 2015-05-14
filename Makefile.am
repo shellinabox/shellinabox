@@ -254,8 +254,10 @@ clean-local:
 	        shellinabox/keyboard-layout.h				      \
 	        shellinabox/print-styles.h  				      \
 	        shellinabox/root_page.h     				      \
+	        shellinabox/shell_in_a_box.js				      \
 	        shellinabox/shell_in_a_box.h				      \
 	        shellinabox/styles.h                                          \
+	        shellinabox/vt100.js                                          \
 	        shellinabox/vt100.h
 
 .css.h:
@@ -321,7 +323,7 @@ clean-local:
 	             -e t                                                     \
 	             -e d "$<"`"                                              \
 	     -e "s/^#/\/\/ #/"                                                \
-	     -e "s/VERSION/\"@VERSION@ (revision @VCS_REVISION@)\"/g"         \
+	     -e "s/VERSION/\"@VERSION@ @VCS_REVISION@\"/g"                    \
 	     "$<" >"$@"
 
 .js.h:

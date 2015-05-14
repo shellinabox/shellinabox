@@ -1117,7 +1117,7 @@ static void parseArgs(int argc, char * const argv[]) {
       logSetLogLevel(verbosity);
     } else if (!idx--) {
       // Version
-      message("ShellInABox version " VERSION " (revision " VCS_REVISION ")");
+      message("ShellInABox version " VERSION VCS_REVISION);
       exit(0);
     }
   }

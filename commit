@@ -1,5 +1,10 @@
 #!/bin/bash -e
 
+echo "This script would only work on a Subversion repository"
+echo "and is only kept for historical purpose... for now."
+exit 1
+
+
 # The script ensures that all commands succeed unless an error occurred. If it
 # does though, the shell terminates the script and our exit handler runs.
 trap 'tput bel || :; echo Failed! >&2' EXIT
