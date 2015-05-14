@@ -36,7 +36,7 @@ override_dh_install:
 	mkdir -p "$(DESTDIR)/etc/shellinabox/options-available"
 	mkdir -p "$(DESTDIR)/etc/shellinabox/options-enabled"
 	for i in \
-		"00+Black on White" \
+		"00+Black On White" \
 		"00_White On Black" \
 		"01_Monochrome" \
 		"01+Color Terminal"; do \
