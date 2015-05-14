@@ -375,7 +375,23 @@ VT100.prototype.initializeUserCSSStyles = function() {
         style.setAttribute('rel',          'stylesheet');
         style.setAttribute('type',         'text/css');
         document.getElementsByTagName('head')[0].appendChild(style);
-        style.disabled                   = !enabled;
+
+        // If stylesheet needs to be disabled we need to do that from onload
+        // event, otherwise 'disabled' attribute will be ignored.
+        if (!enabled) {
+          if ('onload' in style) {
+            style.onload                     = function(style) {
+              return function () {
+                style.disabled               = true;
+              }
+            }(style);
+          } else {
+            // If onload event is not supported we will try to do it the old
+            // way. This also works sometimes, mosty in cases when browser
+            // already has cached version of stylesheet.
+            style.disabled                   = true;
+          }
+        }
       }
 
       // Add entry to menu
