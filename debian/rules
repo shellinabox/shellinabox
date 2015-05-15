@@ -1,10 +1,5 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
-# Sample debian/rules that uses debhelper.
-# This file was originally written by Joey Hess and Craig Small.
-# As a special exception, when this file is copied by dh-make into a
-# dh-make output file, you may use that output file without restriction.
-# This special exception was added by Craig Small in version 0.37 of dh-make.
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
@@ -20,38 +15,19 @@
 override_dh_auto_configure:
 	dh_auto_configure -- --disable-runtime-loading
 
-# elf-2012.03.24: This work should be done in the Makefile install
-#		  target instead of debian/rules.
-DESTDIR=$(CURDIR)/debian/tmp
+AVAILABLE=debian/shellinabox/etc/shellinabox/options-available
+ENABLED=debian/shellinabox/etc/shellinabox/options-enabled
 override_dh_install:
-	dh_testdir
-	dh_testroot
-	dh_prep
-	dh_installdirs
-# We need to install some files for the benefit of Debian that aren't
-# going into the program instal target.  So, we install into
-# debian/tmp the things that need to be included in the package.
-	$(MAKE) install DESTDIR=$(DESTDIR)
-# Set up system-wide user CSS style options
-	mkdir -p "$(DESTDIR)/etc/shellinabox/options-available"
-	mkdir -p "$(DESTDIR)/etc/shellinabox/options-enabled"
-	for i in \
-		"00+Black On White" \
-		"00_White On Black" \
-		"01_Monochrome" \
-		"01+Color Terminal"; do \
-	  cp "$(DESTDIR)/usr/share/doc/shellinabox/$$(echo "$$i"|	\
-		sed -e 's/[0-9]*[_+]\([^ ]*\).*/\1/'| 			\
-		tr A-Z a-z)"*.css                     			\
-	     "$(DESTDIR)/etc/shellinabox/options-available/$$i.css";	\
-	done
-	cd "$(DESTDIR)/etc/shellinabox/options-enabled" \
-	  && ln -s ../options-available/*.css .
-	cp "$(CURDIR)/debian/README.available"                                \
-	   "$(DESTDIR)/etc/shellinabox/options-available/README"
-	cp "$(CURDIR)/debian/README.enabled"                                  \
-	   "$(DESTDIR)/etc/shellinabox/options-enabled/README"
-# Shellinabox home directory
-#	mkdir -p "$(DESTDIR)/var/lib/shellinabox"
-# Now perform the normal debhelper install.
 	dh_install
+	install -D -m644 shellinabox/black-on-white.css "$(AVAILABLE)/00+Black on White.css"
+	install -D -m644 shellinabox/white-on-black.css "$(AVAILABLE)/00_White On Black.css"
+	install -D -m644 shellinabox/color.css          "$(AVAILABLE)/01+Color Terminal.css"
+	install -D -m644 shellinabox/monochrome.css     "$(AVAILABLE)/01_Monochrome.css"
+	install -D -m644 debian/README.available        "$(AVAILABLE)/README"
+	install -D -m644 debian/README.enabled          "$(ENABLED)/README"
+	cd "$(ENABLED)" && ln -s ../options-available/*.css .
+
+	# info duplicated in debian/copyright
+	# and /usr/share/common-licenses/GPL-2
+	rm debian/shellinabox/usr/share/doc/shellinabox/COPYING
+	rm debian/shellinabox/usr/share/doc/shellinabox/GPL-2

@@ -12,17 +12,12 @@ noinst_HEADERS       = libhttp/http.h
 dist_doc_DATA        = AUTHORS                                                \
                        COPYING                                                \
                        GPL-2                                                  \
-                       CHANGELOG.md                                           \
-                       INSTALL                                                \
-                       NEWS                                                   \
-                       README                                                 \
-                       TODO                                                   \
-                       shellinabox/white-on-black.css                         \
-                       shellinabox/black-on-white.css                         \
-                       shellinabox/monochrome.css                             \
-                       shellinabox/color.css
+                       NEWS
 EXTRA_DIST           = INSTALL.Debian                                         \
                        README.Fedora                                          \
+                       INSTALL                                                \
+                       README                                                 \
+                       TODO                                                   \
                        demo/beep.wav                                          \
                        demo/favicon.ico                                       \
                        demo/demo.html                                         \
@@ -44,6 +39,10 @@ EXTRA_DIST           = INSTALL.Debian                                         \
                        shellinabox/shell_in_a_box.js                          \
                        shellinabox/vt100.js                                   \
                        shellinabox/cgi-mode-example.sh                        \
+                       shellinabox/white-on-black.css                         \
+                       shellinabox/black-on-white.css                         \
+                       shellinabox/monochrome.css                             \
+                       shellinabox/color.css                                  \
                        debian/README                                          \
                        debian/README.available                                \
                        debian/README.enabled                                  \
