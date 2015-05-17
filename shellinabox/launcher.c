@@ -523,8 +523,12 @@ int launchChild(int service, struct Session *session, const char *url) {
   request->terminate   = -1;
   request->width       = session->width;
   request->height      = session->height;
-  strncat(request->peerName, httpGetPeerName(session->http),
-          sizeof(request->peerName) - 1);
+  const char *peerName = httpGetPeerName(session->http);
+  strncat(request->peerName, peerName, sizeof(request->peerName) - 1);
+  const char *realIP   = httpGetRealIP(session->http);
+  if (realIP && *realIP) {
+    strncat(request->realIP, realIP, sizeof(request->realIP) - 1);
+  }
   request->urlLength   = strlen(u);
   memcpy(&request->url, u, request->urlLength);
   free(u);
@@ -597,7 +601,7 @@ struct Utmp {
 static HashMap *childProcesses;
 
 void initUtmp(struct Utmp *utmp, int useLogin, const char *ptyPath,
-              const char *peerName) {
+              const char *peerName, const char *realIP) {
   memset(utmp, 0, sizeof(struct Utmp));
   utmp->pty                 = -1;
   utmp->useLogin            = useLogin;
@@ -609,7 +613,11 @@ void initUtmp(struct Utmp *utmp, int useLogin, const char *ptyPath,
   strncat(&utmp->utmpx.ut_line[0], ptyPath + 5,   sizeof(utmp->utmpx.ut_line) - 1);
   strncat(&utmp->utmpx.ut_id[0],   ptyPath + 8,   sizeof(utmp->utmpx.ut_id) - 1);
   strncat(&utmp->utmpx.ut_user[0], "SHELLINABOX", sizeof(utmp->utmpx.ut_user) - 1);
-  strncat(&utmp->utmpx.ut_host[0], peerName,      sizeof(utmp->utmpx.ut_host) - 1);
+  char remoteHost[256];
+  snprintf(remoteHost, 256,
+           (*realIP) ? "%s, %s" : "%s%s", peerName,
+           (*realIP) ? realIP : "");
+  strncat(&utmp->utmpx.ut_host[0], remoteHost,    sizeof(utmp->utmpx.ut_host) - 1);
   struct timeval tv;
   check(!gettimeofday(&tv, NULL));
   utmp->utmpx.ut_tv.tv_sec  = tv.tv_sec;
@@ -618,10 +626,10 @@ void initUtmp(struct Utmp *utmp, int useLogin, const char *ptyPath,
 }
 
 struct Utmp *newUtmp(int useLogin, const char *ptyPath,
-                     const char *peerName) {
+                     const char *peerName, const char *realIP) {
   struct Utmp *utmp;
   check(utmp = malloc(sizeof(struct Utmp)));
-  initUtmp(utmp, useLogin, ptyPath, peerName);
+  initUtmp(utmp, useLogin, ptyPath, peerName, realIP);
   return utmp;
 }
 
@@ -776,7 +784,7 @@ static int ptsname_r(int fd, char *buf, size_t buflen) {
 #endif
 
 static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
-                   const char *peerName) {
+                   const char *peerName, const char *realIP) {
   int slave;
   #ifdef HAVE_OPENPTY
   char* ptyPath = NULL;
@@ -857,7 +865,7 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
   #endif
 
   // Fill in utmp entry
-  *utmp                     = newUtmp(useLogin, ptyPath, peerName);
+  *utmp                     = newUtmp(useLogin, ptyPath, peerName, realIP);
 
   // Now, fork off the child process
   pid_t pid;
@@ -1250,7 +1258,8 @@ static void destroyVariableHashEntry(void *arg ATTR_UNUSED, char *key,
 
 static void execService(int width ATTR_UNUSED, int height ATTR_UNUSED,
                         struct Service *service, const char *peerName,
-                        char **environment, const char *url) {
+                        const char *realIP, char **environment,
+                        const char *url) {
   UNUSED(width);
   UNUSED(height);
 
@@ -1286,6 +1295,9 @@ static void execService(int width ATTR_UNUSED, int height ATTR_UNUSED,
   addToHashMap(vars, key, value);
   check(key                   = strdup("peer"));
   check(value                 = strdup(peerName));
+  addToHashMap(vars, key, value);
+  check(key                   = strdup("realip"));
+  check(value                 = strdup(realIP));
   addToHashMap(vars, key, value);
   check(key                   = strdup("uid"));
   addToHashMap(vars, key, stringPrintf(NULL, "%d", service->uid));
@@ -1476,7 +1488,7 @@ void setWindowSize(int pty, int width, int height) {
 }
 
 static void childProcess(struct Service *service, int width, int height,
-                         struct Utmp *utmp, const char *peerName,
+                         struct Utmp *utmp, const char *peerName, const char *realIP,
                          const char *url) {
   // Set initial window size
   setWindowSize(0, width, height);
@@ -1504,6 +1516,18 @@ static void childProcess(struct Service *service, int width, int height,
                                                legalEnv[i], value);
     }
   }
+
+  // Add useful environment variables that can be used in custom client scripts
+  // or programs.
+  numEnvVars                   += 3;
+  check(environment             = realloc(environment,
+                                          (numEnvVars + 1)*sizeof(char *)));
+  environment[numEnvVars-3]     = stringPrintf(NULL, "SHELLINABOX_URL=%s",
+                                               url);
+  environment[numEnvVars-2]     = stringPrintf(NULL, "SHELLINABOX_PEERNAME=%s",
+                                               peerName);
+  environment[numEnvVars-1]     = stringPrintf(NULL, "SHELLINABOX_REALIP=%s",
+                                               realIP);
   environment[numEnvVars]       = NULL;
 
   // Set initial terminal settings
@@ -1603,12 +1627,20 @@ static void childProcess(struct Service *service, int width, int height,
 
   // Finally, launch the child process.
   if (service->useLogin == 1) {
-    execle("/bin/login", "login", "-p", "-h", peerName,
+    // At login service launch, we try to pass real IP in '-h' parameter. Real
+    // IP is provided in HTTP header field 'X-Real-IP', if ShellInABox is used
+    // behind properly configured HTTP proxy.
+    char remoteHost[256];
+    snprintf(remoteHost, 256,
+             (*realIP) ? "%s, %s" : "%s%s", peerName,
+             (*realIP) ? realIP : "");
+    execle("/bin/login", "login", "-p", "-h", remoteHost,
            (void *)0, environment);
-    execle("/usr/bin/login", "login", "-p", "-h", peerName,
+    execle("/usr/bin/login", "login", "-p", "-h", remoteHost,
            (void *)0, environment);
   } else {
-    execService(width, height, service, peerName, environment, url);
+    // Launch user provied service
+    execService(width, height, service, peerName, realIP, environment, url);
   }
   _exit(1);
 }
@@ -1666,9 +1698,10 @@ static void launcherDaemon(int fd) {
         if (kill(request.terminate, SIGTERM) == 0) {
           debug("Terminating child %d (kill)", request.terminate);
         } else {
-          debug("Terminating child failed [%s]", strerror(errno));
+          debug("Terminating child %d failed [%s]", request.terminate,
+                strerror(errno));
         }
-	  }
+      }
       continue;
     }
 
@@ -1696,10 +1729,20 @@ static void launcherDaemon(int fd) {
     check(request.service >= 0);
     check(request.service < numServices);
 
-    // Sanitize the host name, so that we do not pass any unexpected characters
-    // to our child process.
+    // Sanitize peer name and real IP, so that we do not pass any unexpected
+    // characters to our child process.
     request.peerName[sizeof(request.peerName)-1] = '\000';
     for (char *s = request.peerName; *s; s++) {
+      if (!((*s >= '0' && *s <= '9') ||
+            (*s >= 'A' && *s <= 'Z') ||
+            (*s >= 'a' && *s <= 'z') ||
+             *s == '.' || *s == '-')) {
+        *s                    = '-';
+      }
+    }
+
+    request.realIP[sizeof(request.realIP)-1] = '\000';
+    for (char *s = request.realIP; *s; s++) {
       if (!((*s >= '0' && *s <= '9') ||
             (*s >= 'A' && *s <= 'Z') ||
             (*s >= 'a' && *s <= 'z') ||
@@ -1713,9 +1756,11 @@ static void launcherDaemon(int fd) {
     struct Utmp *utmp;
     if ((pid                  = forkPty(&pty,
                                         services[request.service]->useLogin,
-                                        &utmp, request.peerName)) == 0) {
+                                        &utmp,
+                                        request.peerName,
+                                        request.realIP)) == 0) {
       childProcess(services[request.service], request.width, request.height,
-                   utmp, request.peerName, url);
+                   utmp, request.peerName, request.realIP, url);
       free(url);
       _exit(1);
     } else {

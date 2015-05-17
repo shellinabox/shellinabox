@@ -56,6 +56,7 @@ struct LaunchRequest {
   int   width, height;
   pid_t terminate;
   char  peerName[128];
+  char  realIP[128];
   int   urlLength;
   char  url[0];
 };
