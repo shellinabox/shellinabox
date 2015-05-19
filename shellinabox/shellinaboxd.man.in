@@ -497,6 +497,10 @@ to saying
 or
 .BR --service=/:SSH ,
 respectively.
+
+Please note that for SSH service to work properly, we need a running ssh server on
+local system with enabled password authentication.
+
 .RE
 #ifdef HAVE_OPENSSL
 .TP

@@ -163,7 +163,7 @@ void initService(struct Service *service, const char *arg) {
 //          feature, we cannot be sure that it is available on the
 //          target server.  Removing it for the sake of Centos.
 //          "-oVisualHostKey=no"
-	  " -oLogLevel=QUIET %%s@%s", host);
+          " -oLogLevel=FATAL %%s@%s", host);
     free(host);
   } else {
     service->useLogin                       = 0;
