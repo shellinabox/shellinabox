@@ -127,6 +127,7 @@ Server *httpGetServer(const HttpConnection *http);
 ServerConnection *httpGetServerConnection(const HttpConnection *);
 int httpGetFd(const HttpConnection *http);
 const char *httpGetPeerName(const HttpConnection *http);
+const char *httpGetRealIP(const HttpConnection *http);
 const char *httpGetMethod(const HttpConnection *http);
 const char *httpGetVersion(const HttpConnection *http);
 const HashMap *httpGetHeaders(const HttpConnection *http);

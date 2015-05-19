@@ -1889,6 +1889,10 @@ const char *httpGetPeerName(const struct HttpConnection *http) {
   return http->peerName;
 }
 
+const char *httpGetRealIP(const struct HttpConnection *http) {
+  return getFromHashMap(&http->header, "x-real-ip");
+}
+
 const char *httpGetMethod(const struct HttpConnection *http) {
   return http->method;
 }

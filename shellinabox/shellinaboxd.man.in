@@ -449,6 +449,9 @@ number of rows.
 .B ${peer}
 name of remote peer.
 .TP
+.B ${realip}
+value of HTTP header field 'X-Real-IP'.
+.TP
 .B ${uid}
 numeric user id.
 .TP
@@ -458,11 +461,14 @@ the URL that serves the terminal session.
 .B ${user}
 user name.
 .P
-Other than the default environment variables of
+Other than the environment variables of
 .BR $TERM ,
-.B $COLUMNS
+.B $COLUMNS,
+.B $LINES,
+.B $SHELLINABOX_PEERNAME,
+.B $SHELLINABOX_REALIP
 and
-.BR $LINES ,
+.BR $SHELLINABOX_URL,
 services can have environment variables passed to them, by preceding
 the <cmdline> with space separated variable assignments of the form
 .IR KEY = VALUE .

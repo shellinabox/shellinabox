@@ -800,6 +800,7 @@ static void usage(void) {
           "  ${home}    - home directory\n"
           "  ${lines}   - number of rows\n"
           "  ${peer}    - name of remote peer\n"
+          "  ${realip}  - value of HTTP header field 'X-Real-IP'\n"
           "  ${uid}     - user id\n"
           "  ${url}     - the URL that serves the terminal session\n"
           "  ${user}    - user name\n"
