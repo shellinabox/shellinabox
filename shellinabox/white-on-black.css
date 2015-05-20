@@ -13,10 +13,18 @@
   background-color: #ffffff;
 }
 
-#vt100 .ansi15 {
+#vt100 .ansiDef {
+  color:            #ffffff;
+}
+
+#vt100 .bgAnsiDef {
+  background-color: #000000;
+}
+
+#vt100 #scrollable.inverted .ansiDef {
   color:            #000000;
 }
 
-#vt100 .bgAnsi0 {
+#vt100 #scrollable.inverted .bgAnsiDef {
   background-color: #ffffff;
 }

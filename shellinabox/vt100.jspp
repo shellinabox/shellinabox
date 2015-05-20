@@ -84,12 +84,14 @@
 #define ESss2          18
 #define ESss3          19
 
-#define ATTR_DEFAULT   0x00F0
+#define ATTR_DEFAULT   0x60F0
 #define ATTR_REVERSE   0x0100
 #define ATTR_UNDERLINE 0x0200
 #define ATTR_DIM       0x0400
 #define ATTR_BRIGHT    0x0800
 #define ATTR_BLINK     0x1000
+#define ATTR_DEF_FG    0x2000
+#define ATTR_DEF_BG    0x4000
 
 #define MOUSE_DOWN     0
 #define MOUSE_UP       1
@@ -215,7 +217,7 @@ VT100.prototype.reset = function(clearHistory) {
   this.utfEnabled                                    = this.utfPreferred;
   this.utfCount                                      = 0;
   this.utfChar                                       = 0;
-  this.color                                         = 'ansi0 bgAnsi15';
+  this.color                                         = 'ansiDef bgAnsiDef';
   this.style                                         = '';
   this.attr                                          = ATTR_DEFAULT;
   this.attrFg                                        = false;
@@ -1534,13 +1536,13 @@ VT100.prototype.insertBlankLine = function(y, color, style) {
   // not add any missing lines in between. It is the caller's responsibility
   // to do so.
   if (!color) {
-    color                = 'ansi0 bgAnsi15';
+    color                = 'ansiDef bgAnsiDef';
   }
   if (!style) {
     style                = '';
   }
   var line;
-  if (color != 'ansi0 bgAnsi15' && !style) {
+  if (color != 'ansiDef bgAnsiDef' && !style) {
     line                 = document.createElement('pre');
     this.setTextContent(line, '\n');
   } else {
@@ -1631,7 +1633,7 @@ VT100.prototype.truncateLines = function(width) {
       // Prune white space from the end of the current line
       var span       = line.lastChild;
       while (span &&
-             span.className == 'ansi0 bgAnsi15' &&
+             span.className == 'ansiDef bgAnsiDef' &&
              !span.style.cssText.length) {
         // Scan backwards looking for first non-space character
         var s         = this.getTextContent(span);
@@ -1665,7 +1667,7 @@ VT100.prototype.truncateLines = function(width) {
 
 VT100.prototype.putString = function(x, y, text, color, style) {
   if (!color) {
-    color                           = 'ansi0 bgAnsi15';
+    color                           = 'ansiDef bgAnsiDef';
   }
   if (!style) {
     style                           = '';
@@ -1726,12 +1728,12 @@ VT100.prototype.putString = function(x, y, text, color, style) {
       var oldColor                  = span.className;
       var oldStyle                  = span.style.cssText;
       if (xPos + s.length < x) {
-        if (oldColor != 'ansi0 bgAnsi15' || oldStyle != '') {
+        if (oldColor != 'ansiDef bgAnsiDef' || oldStyle != '') {
           span                      = document.createElement('span');
           line.appendChild(span);
-          span.className            = 'ansi0 bgAnsi15';
+          span.className            = 'ansiDef bgAnsiDef';
           span.style.cssText        = '';
-          oldColor                  = 'ansi0 bgAnsi15';
+          oldColor                  = 'ansiDef bgAnsiDef';
           oldStyle                  = '';
           xPos                     += s.length;
           s                         = '';
@@ -1899,7 +1901,7 @@ VT100.prototype.putString = function(x, y, text, color, style) {
     // Prune white space from the end of the current line
     span                            = line.lastChild;
     while (span &&
-           span.className == 'ansi0 bgAnsi15' &&
+           span.className == 'ansiDef bgAnsiDef' &&
            !span.style.cssText.length) {
       // Scan backwards looking for first non-space character
       s                             = this.getTextContent(span);
@@ -2090,7 +2092,7 @@ VT100.prototype.clearRegion = function(x, y, w, h, color, style) {
   // child nodes.
   if (!this.numScrollbackLines &&
       w == this.terminalWidth && h == this.terminalHeight &&
-      (color == undefined || color == 'ansi0 bgAnsi15') && !style) {
+      (color == undefined || color == 'ansiDef bgAnsiDef') && !style) {
     var console = this.console[this.currentScreen];
     while (console.lastChild) {
       console.removeChild(console.lastChild);
@@ -2152,7 +2154,7 @@ VT100.prototype.copyLineSegment = function(dX, dY, sX, sY, w) {
     if (className[i]) {
       color                           = className[i];
     } else {
-      color                           = 'ansi0 bgAnsi15';
+      color                           = 'ansiDef bgAnsiDef';
     }
     this.putString(dX, dY - this.numScrollbackLines, text[i], color, style[i]);
     dX                               += text[i].length;
@@ -3366,6 +3368,14 @@ VT100.prototype.updateStyle = function() {
     this.style = 'text-decoration: blink;';
   }
 
+  // Default colors
+  if (this.attr & ATTR_DEF_FG) {
+    fg         = 'Def';
+  }
+  if (this.attr & ATTR_DEF_BG) {
+    bg         = 'Def';
+  }
+
   // Extended color mode support (256 colors).
   if (this.attrFg) {
     fg         = this.attrFg;
@@ -3862,11 +3872,11 @@ VT100.prototype.csim = function() {
         i              += 2;
       } else {
         // Default VT100 behaviour.
-        this.attr       = (this.attr & ~(ATTR_DIM|ATTR_BRIGHT|0x0F))|ATTR_UNDERLINE;
+        this.attr       = (this.attr & ~(ATTR_DIM|ATTR_BRIGHT|0x0F))|ATTR_UNDERLINE | ATTR_DEF_FG;
       }
       break;
     case 39:
-      this.attr        &= ~(ATTR_DIM|ATTR_BRIGHT|ATTR_UNDERLINE|0x0F);
+      this.attr         = (this.attr & ~(ATTR_DIM|ATTR_BRIGHT|ATTR_UNDERLINE|0x0F)) | ATTR_DEF_FG;
       this.attrFg       = false;
       break;
     case 48:
@@ -3879,17 +3889,17 @@ VT100.prototype.csim = function() {
       }
       break;
     case 49:
-      this.attr        |= 0xF0;
+      this.attr        |= (0xF0|ATTR_DEF_BG);
       this.attrBg       = false;
       break;
     default:
       if (this.par[i] >= 30 && this.par[i] <= 37) {
           var fg        = this.par[i] - 30;
-          this.attr     = (this.attr & ~0x0F) | fg;
+          this.attr     = ((this.attr & ~0x0F) | fg) & ~(ATTR_DEF_FG);
           this.attrFg   = false;
       } else if (this.par[i] >= 40 && this.par[i] <= 47) {
           var bg        = this.par[i] - 40;
-          this.attr     = (this.attr & ~0xF0) | (bg << 4);
+          this.attr     = ((this.attr & ~0xF0) | (bg << 4)) & ~(ATTR_DEF_BG);
           this.attrBg   = false;
       }
       break;
@@ -4518,3 +4528,5 @@ VT100.prototype.ctrlAlways = [
   false, false, false, false, false, false, false, false,
   false, false, false, true,  false, false, false, false
 ];
+
+/* vim: set filetype=javascript : */

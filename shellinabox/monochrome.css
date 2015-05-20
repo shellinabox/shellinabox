@@ -1,5 +1,7 @@
 /* SYSTEM colors */
-#vt100 .ansi0     {                            }
+#vt100 .ansiDef   { color:            inherit; }
+
+#vt100 .ansi0     { color:            inherit; }
 #vt100 .ansi1     { color:            inherit; }
 #vt100 .ansi2     { color:            inherit; }
 #vt100 .ansi3     { color:            inherit; }
@@ -14,7 +16,7 @@
 #vt100 .ansi12    { color:            inherit; }
 #vt100 .ansi13    { color:            inherit; }
 #vt100 .ansi14    { color:            inherit; }
-#vt100 .ansi15    {                            }
+#vt100 .ansi15    { color:            inherit; }
 
 /* XTERM colors - 256 color mode */
 #vt100 .ansi16    { color:            inherit; }
@@ -259,7 +261,9 @@
 #vt100 .ansi255   { color:            inherit; }
 
 /* SYSTEM colors */
-#vt100 .bgAnsi0   {                                }
+#vt100 .bgAnsiDef { background-color: transparent; }
+
+#vt100 .bgAnsi0   { background-color: transparent; }
 #vt100 .bgAnsi1   { background-color: transparent; }
 #vt100 .bgAnsi2   { background-color: transparent; }
 #vt100 .bgAnsi3   { background-color: transparent; }
@@ -274,7 +278,7 @@
 #vt100 .bgAnsi12  { background-color: transparent; }
 #vt100 .bgAnsi13  { background-color: transparent; }
 #vt100 .bgAnsi14  { background-color: transparent; }
-#vt100 .bgAnsi15  {                                }
+#vt100 .bgAnsi15  { background-color: transparent; }
 
 /* XTERM colors - 256 color mode */
 #vt100 .bgAnsi16  { background-color: transparent; }
