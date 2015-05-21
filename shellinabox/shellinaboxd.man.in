@@ -499,7 +499,8 @@ or
 respectively.
 
 Please note that for SSH service to work properly, we need a running ssh server on
-local system with enabled password authentication.
+local system with enabled password authentication. If we are using <host> parameter,
+same conditions must be true on that remote system.
 
 .RE
 #ifdef HAVE_OPENSSL
