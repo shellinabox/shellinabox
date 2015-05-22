@@ -67,7 +67,10 @@
 }
 
 #vt100 #cursor.dim {
-  visibility:           hidden;
+  background-color:     white;
+  opacity:              0.2;
+  -moz-opacity:         0.2;
+  filter:               alpha(opacity=20);
 }
 
 #vt100 #cursor.inactive {

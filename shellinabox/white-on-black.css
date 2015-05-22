@@ -3,6 +3,13 @@
   color:            black;
 }
 
+#vt100 #cursor.dim {
+  background-color: black;
+  opacity:          0.2;
+  -moz-opacity:     0.2;
+  filter:           alpha(opacity=20);
+}
+
 #vt100 #scrollable {
   color:            #ffffff;
   background-color: #000000;
