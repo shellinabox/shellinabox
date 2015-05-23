@@ -1,7 +1,9 @@
 /* DEFINES_COLORS */
 
 /* SYSTEM colors */
-#vt100 .ansi0     {                            }
+#vt100 .ansiDef   {                            }
+
+#vt100 .ansi0     { color:            #000000; }
 #vt100 .ansi1     { color:            #cd0000; }
 #vt100 .ansi2     { color:            #00cd00; }
 #vt100 .ansi3     { color:            #cdcd00; }
@@ -261,6 +263,8 @@
 #vt100 .ansi255   { color:            #eeeeee; }
 
 /* SYSTEM colors */
+#vt100 .bgAnsiDef {                            }
+
 #vt100 .bgAnsi0   { background-color: #000000; }
 #vt100 .bgAnsi1   { background-color: #cd0000; }
 #vt100 .bgAnsi2   { background-color: #00cd00; }
@@ -276,7 +280,7 @@
 #vt100 .bgAnsi12  { background-color: #5c5cff; }
 #vt100 .bgAnsi13  { background-color: #ff00ff; }
 #vt100 .bgAnsi14  { background-color: #00ffff; }
-#vt100 .bgAnsi15  {                            }
+#vt100 .bgAnsi15  { background-color: #ffffff; }
 
 /* XTERM colors - 256 color mode */
 #vt100 .bgAnsi16  { background-color: #000000; }

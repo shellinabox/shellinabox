@@ -373,3 +373,5 @@ ShellInABox.prototype.about = function() {
          "Eric Young\n(eay@cryptsoft.com)" :
          ""));
 };
+
+/* vim: set filetype=javascript : */

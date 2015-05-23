@@ -3,6 +3,13 @@
   color:            black;
 }
 
+#vt100 #cursor.dim {
+  background-color: black;
+  opacity:          0.2;
+  -moz-opacity:     0.2;
+  filter:           alpha(opacity=20);
+}
+
 #vt100 #scrollable {
   color:            #ffffff;
   background-color: #000000;
@@ -13,10 +20,18 @@
   background-color: #ffffff;
 }
 
-#vt100 .ansi15 {
+#vt100 .ansiDef {
+  color:            #ffffff;
+}
+
+#vt100 .bgAnsiDef {
+  background-color: #000000;
+}
+
+#vt100 #scrollable.inverted .ansiDef {
   color:            #000000;
 }
 
-#vt100 .bgAnsi0 {
+#vt100 #scrollable.inverted .bgAnsiDef {
   background-color: #ffffff;
 }
