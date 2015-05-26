@@ -83,4 +83,6 @@ const char *urlGetAnchor(struct URL *url);
 const char *urlGetURL(struct URL *url);
 const struct HashMap *urlGetArgs(struct URL *url);
 
+struct HashMap *urlParseQuery(const char *buf, int len);
+
 #endif /* URL_H__ */

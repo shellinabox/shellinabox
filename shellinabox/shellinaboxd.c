@@ -345,28 +345,29 @@ static int dataHandler(HttpConnection *http, struct Service *service,
   if (!buf) {
     // Somebody unexpectedly closed our http connection (e.g. because of a
     // timeout). This is the last notification that we will get.
-    deleteURL(url);
     iterateOverSessions(invalidatePendingHttpSession, http);
     return HTTP_DONE;
   }
 
   // Find an existing session, or create the record for a new one
-  int isNew;
-  struct Session *session = findCGISession(&isNew, http, url, cgiSessionKey);
+  const HashMap *args     = urlGetArgs(url);
+  const char *sessionKey  = getFromHashMap(args, "session");
+
+  int sessionIsNew;
+  struct Session *session = findSession(sessionKey, cgiSessionKey, &sessionIsNew, http);
   if (session == NULL) {
     httpSendReply(http, 400, "Bad Request", NO_MSG);
     return HTTP_DONE;
   }
 
   // Sanity check
-  if (!isNew && strcmp(session->peerName, httpGetPeerName(http))) {
+  if (!sessionIsNew && strcmp(session->peerName, httpGetPeerName(http))) {
     error("Peername changed from %s to %s",
           session->peerName, httpGetPeerName(http));
     httpSendReply(http, 400, "Bad Request", NO_MSG);
     return HTTP_DONE;
   }
 
-  const HashMap *args     = urlGetArgs(session->url);
   int oldWidth            = session->width;
   int oldHeight           = session->height;
   const char *width       = getFromHashMap(args, "width");
@@ -381,7 +382,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
   }
 
   // Create a new session, if the client did not provide an existing one
-  if (isNew) {
+  if (sessionIsNew) {
     if (keys) {
     bad_new_session:
       abandonSession(session);
@@ -456,7 +457,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
   session->connection     = serverGetConnection(session->server,
                                                 session->connection,
                                                 session->pty);
-  if (session->buffered || isNew) {
+  if (session->buffered || sessionIsNew) {
     if (completePendingRequest(session, "", 0, MAX_RESPONSE) &&
         session->connection) {
       // Reset the timeout, as we just received a new request.
@@ -636,7 +637,9 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
         !strncasecmp(contentType, "application/x-www-form-urlencoded", 33)) {
       // XMLHttpRequest carrying data between the AJAX application and the
       // client session.
-      return dataHandler(http, arg, buf, len, url);
+      int status          = dataHandler(http, arg, buf, len, url);
+      deleteURL(url);
+      return status;
     }
     UNUSED(rootPageSize);
     char *html            = stringPrintf(NULL, rootPageStart,

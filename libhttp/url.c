@@ -113,7 +113,7 @@ static char *urlMakeString(const char *buf, int len) {
   }
 }
 
-static void urlParseQueryString(struct URL *url, const char *query, int len) {
+static void urlParseQueryString(struct HashMap *hashmap, const char *query, int len) {
   const char *key   = query;
   const char *value = NULL;
   for (const char *ampersand = query; len-- >= 0; ampersand++) {
@@ -131,7 +131,7 @@ static void urlParseQueryString(struct URL *url, const char *query, int len) {
           v         = urlMakeString(value, vl);
           urlUnescape(v);
         }
-        addToHashMap(&url->args, k, v);
+        addToHashMap(hashmap, k, v);
       }
       key           = ampersand + 1;
       value         = NULL;
@@ -275,7 +275,7 @@ static void urlParsePostBody(struct URL *url,
   const char *ctHeader     = getFromHashMap(&http->header, "content-type");
   urlParseHeaderLine(&contentType, ctHeader, ctHeader ? strlen(ctHeader) : 0);
   if (getRefFromHashMap(&contentType, "application/x-www-form-urlencoded")) {
-    urlParseQueryString(url, buf, len);
+    urlParseQueryString(&url->args, buf, len);
   } else if (getRefFromHashMap(&contentType, "multipart/form-data")) {
     const char *boundary   = getFromHashMap(&contentType, "boundary");
     if (boundary && *boundary) {
@@ -346,7 +346,7 @@ void initURL(struct URL *url, const struct HttpConnection *http,
   url->url                   = NULL;
   initHashMap(&url->args, urlDestroyHashMapEntry, NULL);
   if (!strcmp(http->method, "GET")) {
-    urlParseQueryString(url, url->query, strlen(url->query));
+    urlParseQueryString(&url->args, url->query, strlen(url->query));
   } else if (!strcmp(http->method, "POST")) {
     urlParsePostBody(url, http, buf, len);
   }
@@ -427,4 +427,10 @@ const char *urlGetURL(struct URL *url) {
 
 const struct HashMap *urlGetArgs(struct URL *url) {
   return &url->args;
+}
+
+struct HashMap *urlParseQuery(const char *buf, int len) {
+  struct HashMap *hashmap = newHashMap(urlDestroyHashMapEntry, NULL);
+  urlParseQueryString(hashmap, buf, len);
+  return hashmap;
 }

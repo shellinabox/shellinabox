@@ -56,7 +56,6 @@ struct Session {
   ServerConnection *connection;
   const char       *peerName;
   HttpConnection   *http;
-  URL              *url;
   int              done;
   int              pty;
   int              width;
@@ -70,8 +69,8 @@ struct Session {
 void addToGraveyard(struct Session *session);
 void checkGraveyard(void);
 void initSession(struct Session *session, const char *sessionKey,
-                 Server *server, URL *url, const char *peerName);
-struct Session *newSession(const char *sessionKey, Server *server, URL *url,
+                 Server *server, const char *peerName);
+struct Session *newSession(const char *sessionKey, Server *server,
                            const char *peerName);
 void destroySession(struct Session *session);
 void deleteSession(struct Session *session);
@@ -79,9 +78,8 @@ void abandonSession(struct Session *session);
 char *newSessionKey(void);
 void finishSession(struct Session *session);
 void finishAllSessions(void);
-struct Session *findCGISession(int *isNew, HttpConnection *http, URL *url,
-                               const char *cgiSessionKey);
-struct Session *findSession(int *isNew, HttpConnection *http, URL *url);
+struct Session *findSession(const char *sessionKey, const char *cgiSessionKey,
+                            int *sessionIsNew, HttpConnection *http);
 void iterateOverSessions(int (*fnc)(void *, const char *, char **), void *arg);
 int  numSessions(void);
 
