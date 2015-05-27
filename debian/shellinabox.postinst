@@ -29,6 +29,16 @@ case "$1" in
 	# can write the certificate even when the daemon has given-up
 	# root privileges.
 #      chown shellinabox:shellinabox /var/lib/shellinabox
+
+      # new install, enable all options
+      if [ -z "$2" ]; then
+         (cd /etc/shellinabox/options-enabled; ln -s ../options-available/*.css .)
+      # upgrade from <= v2.14, re-enable saved options
+      elif [ -d /etc/shellinabox/options-enabled-save ]; then
+         mv /etc/shellinabox/options-enabled-save/*.css /etc/shellinabox/options-enabled
+         rm -r /etc/shellinabox/options-enabled-save
+      fi
+      # future upgrades: no-op
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

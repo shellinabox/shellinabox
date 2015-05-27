@@ -6,6 +6,7 @@ shellinabox (2.15-1) UNRELEASED; urgency=medium
   * move lintian exception in d/shellinabox.lintian
   * change urls to new GitHub repos
   * Closing release coordination metabug (Closes: #785181)
+  * keep user preferences on upgrade (Closes: #786441)
 
  -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 12 May 2015 14:06:55 +0200
 
