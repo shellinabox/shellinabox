@@ -10,10 +10,13 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
+#DEBHELPER#
+
 case "$1" in
     upgrade)
 	# save old configuration
 	test -d /etc/shellinabox/options-enabled || exit 0
+	ls /etc/shellinabox/options-enabled/*.css > /dev/null 2>&1 || exit 0
 	if dpkg --compare-versions "$2" le "2.14-1"; then
 		mkdir -p /etc/shellinabox/options-enabled-save
 		cp -a /etc/shellinabox/options-enabled/*.css /etc/shellinabox/options-enabled-save
@@ -28,5 +31,3 @@ case "$1" in
         exit 1
     ;;
 esac
-
-#DEBHELPER#
