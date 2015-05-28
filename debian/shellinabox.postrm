@@ -33,6 +33,7 @@ case "$1" in
         deluser  --quiet --system shellinabox > /dev/null || true
         delgroup --quiet --system shellinabox > /dev/null || true
 	[ ! -d "$d" ] || rmdir "$d" || true    # deluser can't do this for /var
+	rm -rf "/etc/shellinabox/options-enabled"
 	exit 0
     ;;
 esac
