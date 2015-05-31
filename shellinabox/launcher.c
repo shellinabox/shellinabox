@@ -273,33 +273,29 @@ static int read_string(int echo, const char *prompt, char **retstr) {
     term_tmp.c_lflag    &= ~ECHO;
   }
   int nc;
-  for (;;) {
-    tcsetattr(0, TCSAFLUSH, &term_tmp);
-    fprintf(stderr, "%s", prompt);
-    char *line;
-    const int lineLength = 512;
-    check(line           = calloc(1, lineLength));
-    nc                   = read(0, line, lineLength - 1);
-    tcsetattr(0, TCSADRAIN, &term_before);
-    if (!echo) {
+  tcsetattr(0, TCSAFLUSH, &term_tmp);
+  fprintf(stderr, "%s", prompt);
+  char *line;
+  const int lineLength = 512;
+  check(line           = calloc(1, lineLength));
+  nc                   = read(0, line, lineLength - 1);
+  tcsetattr(0, TCSADRAIN, &term_before);
+  if (!echo) {
+    fprintf(stderr, "\n");
+  }
+  if (nc > 0) {
+    if (line[nc-1] == '\n') {
+      nc--;
+    } else if (echo) {
       fprintf(stderr, "\n");
     }
-    if (nc > 0) {
-      if (line[nc-1] == '\n') {
-        nc--;
-      } else if (echo) {
-        fprintf(stderr, "\n");
-      }
-      line[nc]           = '\000';
-      check(*retstr      = line);
-      break;
-    } else {
-      memset(line, 0, lineLength);
-      free(line);
-      if (echo) {
-        fprintf(stderr, "\n");
-      }
-      break;
+    line[nc]           = '\000';
+    check(*retstr      = line);
+  } else {
+    memset(line, 0, lineLength);
+    free(line);
+    if (echo) {
+      fprintf(stderr, "\n");
     }
   }
   tcsetattr(0, TCSADRAIN, &term_before);
@@ -711,6 +707,7 @@ void closeAllFds(int *exceptFds, int num) {
   // Close all file handles. If possible, scan through "/proc/self/fd" as
   // that is faster than calling close() on all possible file handles.
   int nullFd  = open("/dev/null", O_RDWR);
+  check(nullFd > 2);
   DIR *dir    = opendir("/proc/self/fd");
   if (dir == 0) {
     for (int i = sysconf(_SC_OPEN_MAX); --i > 0; ) {
@@ -805,7 +802,7 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
     size_t length = 32;
     char* path = NULL;
     while (path == NULL) {
-      path = malloc (length);
+      check(path = malloc(length));
       *path = 0;
       if (ptsname_r (*pty, path, length)) {
         if (errno == ERANGE) {
@@ -913,7 +910,7 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
     (*utmp)->utmpx.ut_pid   = pid;
 #endif
     (*utmp)->pty            = *pty;
-    fcntl(*pty, F_SETFL, O_NONBLOCK|O_RDWR);
+    check(!fcntl(*pty, F_SETFL, O_NONBLOCK | O_RDWR));
     NOINTR(close(slave));
     return pid;
   }
@@ -1449,7 +1446,6 @@ static void execService(int width ATTR_UNUSED, int height ATTR_UNUSED,
 
   extern char **environ;
   environ                     = environment;
-  char *cmd                   = strdup(argv[0]);
   char *slash                 = strrchr(argv[0], '/');
   if (slash) {
     memmove(argv[0], slash + 1, strlen(slash));
@@ -1461,7 +1457,12 @@ static void execService(int width ATTR_UNUSED, int height ATTR_UNUSED,
     argv[0][0]                = '-';
     argv[0][len + 1]          = '\000';
   }
-  execvp(cmd, argv);
+  char *cmd;
+  check(cmd                   = strdup(argv[0]));
+  if (execvp(cmd, argv) < 0) {
+    free(argv);
+    free(cmd);
+  }
 }
 
 void setWindowSize(int pty, int width, int height) {

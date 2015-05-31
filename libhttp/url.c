@@ -346,6 +346,7 @@ void initURL(struct URL *url, const struct HttpConnection *http,
   url->url                   = NULL;
   initHashMap(&url->args, urlDestroyHashMapEntry, NULL);
   if (!strcmp(http->method, "GET")) {
+    check(url->query);
     urlParseQueryString(&url->args, url->query, strlen(url->query));
   } else if (!strcmp(http->method, "POST")) {
     urlParsePostBody(url, http, buf, len);

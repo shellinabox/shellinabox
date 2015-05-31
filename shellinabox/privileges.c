@@ -103,7 +103,7 @@ static void removeGroupPrivileges(int showError) {
 
   if (runAsGroup >= 0) {
     uid_t ru, eu, su;
-    getresuid(&ru, &eu, &su);
+    check(!getresuid(&ru, &eu, &su));
 
     // Try to switch the user-provided group.
     if ((ru && runAsGroup != (int)rg) ||

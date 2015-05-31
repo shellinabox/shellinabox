@@ -338,7 +338,7 @@ void destroyServer(struct Server *server) {
   if (server) {
     if (server->serverFd >= 0) {
       info("Shutting down server");
-      close(server->serverFd);
+      NOINTR(close(server->serverFd));
     }
     for (int i = 0; i < server->numConnections; i++) {
       server->connections[i].destroyConnection(server->connections[i].arg);

@@ -368,33 +368,37 @@ int serverSupportsSSL(void) {
 #if defined(HAVE_OPENSSL)
 static void sslGenerateCertificate(const char *certificate,
                                    const char *serverName) {
- debug("Auto-generating missing certificate \"%s\" for \"%s\"",
-       certificate, serverName);
+  debug("Auto-generating missing certificate \"%s\" for \"%s\"",
+        certificate, serverName);
 
-  pid_t pid = fork();
+  pid_t pid       = fork();
   if (pid == -1) {
     warn("Failed to generate self-signed certificate \"%s\"", certificate);
   } else if (pid == 0) {
-    int fd = NOINTR(open("/dev/null", O_RDONLY));
+    int fd        = NOINTR(open("/dev/null", O_RDONLY));
     check(fd != -1);
     check(NOINTR(dup2(fd, STDERR_FILENO)) == STDERR_FILENO);
     check(NOINTR(close(fd)) == 0);
-    fd = NOINTR(open("/dev/null", O_WRONLY));
+    fd            = NOINTR(open("/dev/null", O_WRONLY));
     check(fd != -1);
     check(NOINTR(dup2(fd, STDIN_FILENO)) == STDIN_FILENO);
     check(NOINTR(close(fd)) == 0);
     umask(077);
     check(setenv("PATH", "/usr/bin:/usr/sbin", 1) == 0);
-    execlp("openssl", "openssl", "req", "-x509", "-nodes", "-days", "7300",
-           "-newkey", "rsa:2048", "-keyout", certificate, "-out", certificate,
-           "-subj", stringPrintf(NULL, "/CN=%s/", serverName),
-           (char *)NULL);
-    check(0);
+    char *subject;
+    check(subject = stringPrintf(NULL, "/CN=%s/", serverName));
+    if (execlp("openssl", "openssl", "req", "-x509", "-nodes", "-days", "7300",
+               "-newkey", "rsa:2048", "-keyout", certificate, "-out", certificate,
+               "-subj", subject, (char *)NULL) < 0) {
+      warn("Failed to generate self-signed certificate \"%s\"", certificate);
+      free(subject);
+    }
   } else {
     int status;
     check(NOINTR(waitpid(pid, &status, 0)) == pid);
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
       warn("Failed to generate self-signed certificate \"%s\"", certificate);
+    }
   }
 }
 

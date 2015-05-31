@@ -183,18 +183,13 @@ static ssize_t httpWrite(struct HttpConnection *http, const char *buf,
 
 static int httpShutdown(struct HttpConnection *http, int how) {
   if (http->sslHndl) {
-    int rc        = 0;
     if (how != SHUT_RD) {
       dcheck(!ERR_peek_error());
       for (int i = 0; i < 10; i++) {
         sslBlockSigPipe();
-        rc        = SSL_shutdown(http->sslHndl);
+        int rc    = SSL_shutdown(http->sslHndl);
         int sPipe = sslUnblockSigPipe();
-        if (rc > 0) {
-          rc      = 0;
-          break;
-        } else {
-          rc      = -1;
+        if (rc < 1) {
           // Retry a few times in order to prefer a clean bidirectional
           // shutdown. But don't bother if the other side already closed
           // the connection.
@@ -1776,6 +1771,7 @@ void httpSendReply(struct HttpConnection *http, int code,
     response     = stringPrintf(response, "%s", body);
   }
   free(body);
+  check(response);
   httpTransfer(http, response, strlen(response));
   if (code != 200 || isHead) {
     httpCloseRead(http);

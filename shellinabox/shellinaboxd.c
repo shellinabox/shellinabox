@@ -503,6 +503,9 @@ static void serveStaticFile(HttpConnection *http, const char *contentType,
       if (!memcmp(ptr, "[if ", 4)) {
         char *bracket            = memchr(ptr + 4, ']', eol - ptr - 4);
         if (bracket != NULL && bracket > ptr + 4) {
+          if (tag != NULL) {
+            free(tag);
+          }
           check(tag              = malloc(bracket - ptr - 3));
           memcpy(tag, ptr + 4, bracket - ptr - 4);
           tag[bracket - ptr - 4] = '\000';
@@ -944,7 +947,7 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Only one certificate file handle can be provided");
       }
       if (!optarg || *optarg < '0' || *optarg > '9') {
-        fatal("\"--cert-fd\" expects a valid file handle");
+        fatal("Option \"--cert-fd\" expects a valid file handle.");
       }
       int tmpFd            = strtoint(optarg, 3, INT_MAX);
       certificateFd        = dup(tmpFd);
@@ -956,7 +959,7 @@ static void parseArgs(int argc, char * const argv[]) {
       // CSS
       struct stat st;
       if (!optarg || !*optarg || stat(optarg, &st) || !S_ISREG(st.st_mode)) {
-        fatal("\"--css\" expects a file name");
+        fatal("Option \"--css\" expects a file name.");
       }
       FILE *css            = fopen(optarg, "r");
       if (!css) {
@@ -1003,6 +1006,9 @@ static void parseArgs(int argc, char * const argv[]) {
       logSetLogLevel(verbosity);
     } else if (!idx--) {
       // Static file
+      if (!optarg || !*optarg) {
+	    fatal("Option \"--static-file\" expects an argument.");
+      }
       char *ptr, *path, *file;
       if ((ptr             = strchr(optarg, ':')) == NULL) {
         fatal("Syntax error in static-file definition \"%s\".", optarg);
@@ -1021,11 +1027,14 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Duplicate --group option.");
       }
       if (!optarg || !*optarg) {
-        fatal("\"--group\" expects a group name.");
+        fatal("Option \"--group\" expects a group name.");
       }
       runAsGroup           = parseGroupArg(optarg, NULL);
     } else if (!idx--) {
       // Linkify
+      if (!optarg || !*optarg) {
+        fatal("Option \"--linkify\" expects an argument.");
+      }
       if (!strcmp(optarg, "none")) {
         linkifyURLs        = 0;
       } else if (!strcmp(optarg, "normal")) {
@@ -1066,11 +1075,14 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Cannot specifiy a port for CGI operation");
       }
       if (!optarg || *optarg < '0' || *optarg > '9') {
-        fatal("\"--port\" expects a port number.");
+        fatal("Option \"--port\" expects a port number.");
       }
       port = strtoint(optarg, 1, 65535);
     } else if (!idx--) {
       // Service
+      if (!optarg || !*optarg) {
+        fatal("Option \"--service\" expects an argument.");
+      }
       struct Service *service;
       service              = newService(optarg);
       if (getRefFromHashMap(serviceTable, service->path)) {
@@ -1103,13 +1115,13 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("Duplicate --user option.");
       }
       if (!optarg || !*optarg) {
-        fatal("\"--user\" expects a user name.");
+        fatal("Option \"--user\" expects a user name.");
       }
       runAsUser            = parseUserArg(optarg, NULL);
     } else if (!idx--) {
       // User CSS
       if (!optarg || !*optarg) {
-        fatal("\"--user-css\" expects a list of styles sheets and labels");
+        fatal("Option \"--user-css\" expects a list of styles sheets and labels");
       }
       parseUserCSS(&userCSSList, optarg);
     } else if (!idx--) {
