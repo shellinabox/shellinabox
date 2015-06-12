@@ -2,9 +2,9 @@
 shellinabox
 ===========
 
+[![Build Status](https://drone.io/github.com/shellinabox/shellinabox/status.png)](https://drone.io/github.com/shellinabox/shellinabox/latest)
 [![Join the chat at https://gitter.im/shellinabox/shellinabox](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/shellinabox/shellinabox?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Build Status](https://drone.io/github.com/shellinabox/shellinabox/status.png)](https://drone.io/github.com/shellinabox/shellinabox/latest)
 
 This is unofficial fork of project **Shell In A Box**. Fork was created because
 original project is not maintained anymore and we cannot contact original
@@ -96,5 +96,12 @@ Issues
 
 All reported issues were imported from [Google Code Project Issues](https://code.google.com/p/shellinabox/issues/list).
 You can report new issues here, but first please try to reproduce them with package
-created from our sources.
+created from our sources. In new issue report please include following things:
 
+* Name and version of your operating system
+* Name and version of your browser
+* Version of shellinabox
+* Steps to reproduce the problem
+
+Also feel free to post any questions or comments in [shellianbox chat room](https://gitter.im/shellinabox/shellinabox)
+on Gitter.

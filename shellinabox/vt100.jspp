@@ -987,12 +987,16 @@ VT100.prototype.initializeElements = function(container) {
     x                         += parent.offsetLeft;
     y                         += parent.offsetTop;
   }
+  // When zoom functionality is used, some browsers report container offsetWidth
+  // wrong by one pixel. This is the reason why widthDiff can be 0 or -1 pixel,
+  // and in this case variable isEmbedded is not set to true.
+  var widthDiff                = ((window.innerWidth ||
+                                   document.documentElement.clientWidth ||
+                                   document.body.clientWidth) - marginRight)
+                                 - (x + this.container.offsetWidth);
   this.isEmbedded              = marginTop != y ||
                                  marginLeft != x ||
-                                 (window.innerWidth ||
-                                  document.documentElement.clientWidth ||
-                                  document.body.clientWidth) -
-                                 marginRight != x + this.container.offsetWidth;
+                                 (widthDiff != 0 && widthDiff != -1);
   if (!this.isEmbedded) {
     // Some browsers generate resize events when the terminal is first
     // shown. Disable showing the size indicator until a little bit after
