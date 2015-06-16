@@ -1,0 +1,165 @@
+<!DOCTYPE HTML>
+<!--
+
+	Example page with embedded Shell In A Box.
+
+	On this page we can see how Shell In A Box can be embedded in another page and
+	how can we comunicate with it. For communication with Shell In A Box we need to set
+	'-m' (messages-origin) command line option with appropriate message origin.
+
+	Example:
+
+		shellinaboxd -p 4200 -m 'https://192.168.1.150:4200'
+
+	Shell In A Box accepts messages formated as JSON strings with 'type' and 'data'
+	fields. Messages with same formate can be passed back to parent (this) window.
+
+	Example:
+
+		var message = JSON.stringify({
+			type = "type",
+			data = "data"
+		});
+
+	Messages are passed with function postMessage() and are received in "message"
+	events.
+
+	Following types of message can be sent to shellinabox:
+
+		input	- writes content of data field to terminal
+		output	- enables passing of output to parent window (data field must be set
+				  to enable, disable or toggle)
+		session	- request sessions status
+
+	Following types of messages can be received from shellinabox:
+
+		output	- data field contains terminal output (of last request)
+		session - data field contains session status (active or closed)
+
+	Please note that message passing and JSON operations are only supported on moderen
+	browsers.
+
+	For working examples please see HTML and JS code bellow...
+
+	For more info and browser limitations on iframe message passing please check:
+	https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
+
+-->
+<html>
+<head>
+	<style>
+		p {
+			font-size:	1.1em;
+		}
+		#shell, #output {
+			width:		640px;
+			height:		300px;
+			margin: 	20px 10px;
+		}
+		#output {
+			overflow:	scroll;
+			border:		2px solid #999;
+		}
+	</style>
+</head>
+<body>
+
+	<h3>
+		Embedded Shell In A Box example page.
+	</h3>
+
+	<p>Controls:</p>
+	<div>
+		<input type="text"   id="input"></input>
+		<input type="button" id="execute" value="Execute"></input>
+		<input type="button" id="output-enable"  value="Output Enable"></input>
+		<input type="button" id="output-disable" value="Output Disable"></input>
+		<input type="button" id="session-reload" value="Session Status"></input>
+	</div>
+
+	<p id="session">Session status: ???</p>
+
+	<!-- Embedded shellinabox, in out case src attribute will be added with help
+		of JS
+		-->
+	<iframe id="shell" src=""></iframe>
+
+	<!-- Ouput -->
+	<p>Terminal output:</p>
+	<pre id="output"></pre>
+
+	<script>
+
+		// Shellinabox url
+		var url = "https://192.168.1.150:4200";
+
+		var input   = document.getElementById("input");
+		var iframe  = document.getElementById("shell");
+		var output  = document.getElementById("output");
+		var session = document.getElementById("session");
+
+		// Add url to our iframe. We do this, only that variable 'url' is used
+		// throughout the whole code.
+		iframe.src = url;
+
+		document.getElementById("execute").addEventListener("click", function() {
+			// Send input to shellinabox
+			var message = JSON.stringify({
+				type : 'input',
+				data : input.value + '\n'
+			});
+			iframe.contentWindow.postMessage(message, url);
+		});
+
+		document.getElementById("output-enable").addEventListener("click", function() {
+			// Enable output replay from shellinabox iframe
+			var message = JSON.stringify({
+				type : 'output',
+				data : 'enable'
+			});
+			iframe.contentWindow.postMessage(message, url);
+		});
+
+		document.getElementById("output-disable").addEventListener("click", function() {
+			// Disable output replay from shellinabox iframe
+			var message = JSON.stringify({
+				type : 'output',
+				data : 'disable'
+			});
+			iframe.contentWindow.postMessage(message, url);
+		});
+
+		document.getElementById("session-reload").addEventListener("click", function() {
+			// Request shellianbox session status
+			var message = JSON.stringify({
+				type : 'session'
+			});
+			iframe.contentWindow.postMessage(message, url);
+		});
+
+		// Receive response from shellinabox
+		window.addEventListener("message", function(message) {
+
+			// Allow messages only from shellinabox
+			if (message.origin !== url) {
+				return;
+			}
+
+			// Handle response according to response type
+			var decoded = JSON.parse(message.data);
+			switch (decoded.type) {
+			case "output" :
+				// Append new output
+				output.innerHTML = output.innerHTML + decoded.data;
+				break;
+			case "session" :
+				// Reload session status
+				session.innerHTML = 'Session status: ' + decoded.data;
+				break;
+			}
+		}, false);
+
+	</script>
+
+</body>
+</html>
