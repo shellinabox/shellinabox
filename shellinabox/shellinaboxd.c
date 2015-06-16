@@ -103,14 +103,15 @@
 static int            port;
 static int            portMin;
 static int            portMax;
-static int            localhostOnly = 0;
-static int            noBeep        = 0;
-static int            numericHosts  = 0;
-static int            enableSSL     = 1;
-static int            enableSSLMenu = 1;
-static int            linkifyURLs   = 1;
+static int            localhostOnly   = 0;
+static int            noBeep          = 0;
+static int            numericHosts    = 0;
+static int            enableSSL       = 1;
+static int            enableSSLMenu   = 1;
+static char           *messagesOrigin = NULL;
+static int            linkifyURLs     = 1;
 static char           *certificateDir;
-static int            certificateFd = -1;
+static int            certificateFd   = -1;
 static HashMap        *externalFiles;
 static Server         *cgiServer;
 static char           *cgiSessionKey;
@@ -677,11 +678,16 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
                                          "disableSSLMenu    = %s;\n"
                                          "suppressAllAudio  = %s;\n"
                                          "linkifyURLs       = %d;\n"
-                                         "userCSSList       = %s;\n\n",
+                                         "userCSSList       = %s;\n"
+                                         "serverMessagesOrigin = %s%s%s;\n\n",
                                          enableSSL      ? "true" : "false",
                                          !enableSSLMenu ? "true" : "false",
                                          noBeep         ? "true" : "false",
-                                         linkifyURLs, userCSSString);
+                                         linkifyURLs,
+                                         userCSSString,
+                                         messagesOrigin ? "'" : "",
+                                         messagesOrigin ? messagesOrigin : "false",
+                                         messagesOrigin ? "'" : "");
     free(userCSSString);
     int stateVarsLength   = strlen(stateVars);
     int contentLength     = stateVarsLength +
@@ -773,6 +779,7 @@ static void usage(void) {
           "      --localhost-only        only listen on 127.0.0.1\n"
           "      --no-beep               suppress all audio output\n"
           "  -n, --numeric               do not resolve hostnames\n"
+          "  -m, --messages-origin=ORIGIN allow iframe message passing from origin\n"
           "      --pidfile=PIDFILE       publish pid of daemon process\n"
           "  -p, --port=PORT             select a port (default: %d)\n"
           "  -s, --service=SERVICE       define one or more services\n"
@@ -862,7 +869,7 @@ static void parseArgs(int argc, char * const argv[]) {
   check(cssStyleSheet      = strdup(stylesStart));
 
   for (;;) {
-    static const char optstring[] = "+hb::c:df:g:np:s:tqu:v";
+    static const char optstring[] = "+hb::c:df:g:nm:p:s:tqu:v";
     static struct option options[] = {
       { "help",             0, 0, 'h' },
       { "background",       2, 0, 'b' },
@@ -877,6 +884,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "localhost-only",   0, 0,  0  },
       { "no-beep",          0, 0,  0  },
       { "numeric",          0, 0, 'n' },
+      { "messages-origin",  1, 0, 'm' },
       { "pidfile",          1, 0,  0  },
       { "port",             1, 0, 'p' },
       { "service",          1, 0, 's' },
@@ -1054,6 +1062,15 @@ static void parseArgs(int argc, char * const argv[]) {
     } else if (!idx--) {
       // Numeric
       numericHosts         = 1;
+    } else if (!idx--) {
+      // Messages origin
+      if (messagesOrigin) {
+        fatal("Duplicated \"--messages-origin\" option.");
+      }
+      if (!optarg || !*optarg) {
+        fatal("Option \"--messages-origin\" expects an argument.");
+      }
+      check(messagesOrigin = strdup(optarg));
     } else if (!idx--) {
       // Pidfile
       if (cgi) {
@@ -1346,6 +1363,7 @@ int main(int argc, char * const argv[]) {
   free(services);
   free(certificateDir);
   free(cgiSessionKey);
+  free(messagesOrigin);
   if (pidfile) {
     // As a convenience, remove the pidfile, if it is still the version that
     // we wrote. In general, pidfiles are not expected to be incredibly
