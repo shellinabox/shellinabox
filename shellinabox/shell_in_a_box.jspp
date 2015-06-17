@@ -389,7 +389,7 @@ ShellInABox.prototype.messageInit = function() {
       }
     }(this), false);
   } else {
-    // For IE8 or lower
+    // For IE8
     if (window.attachEvent) {
       window.attachEvent('onmessage', function(shellInABox) {
         return function(message) {

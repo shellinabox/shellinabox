@@ -1,24 +1,38 @@
 <!DOCTYPE HTML>
 <!--
 
-	Example page with embedded Shell In A Box.
+	##
+	# Example page with embedded Shell In A Box.
+	#
 
 	On this page we can see how Shell In A Box can be embedded in another page and
-	how can we comunicate with it. For communication with Shell In A Box we need to set
-	'-m' (messages-origin) command line option with appropriate message origin.
+	how can we comunicate with it.
 
-	Example:
+	##
+	# Server Side
+	#
 
-		shellinaboxd -p 4200 -m 'https://192.168.1.150:4200'
+	For communication with Shell In A Box we need to set '-m' (messages-origin)
+	command line option with appropriate messages origin. Origin should be set to
+	URL of parent (this) window. If origin is set to '*' Shell In A Box won't checki
+	origin on received messages. This is usually unsafe option.
+
+	Command line example:
+
+		shellinaboxd -p 4200 -m 'https://192.168.1.150'
+
+	##
+	# Client Side
+	#
 
 	Shell In A Box accepts messages formated as JSON strings with 'type' and 'data'
-	fields. Messages with same formate can be passed back to parent (this) window.
+	fields. Messages with same format can be passed back to parent (this) window.
 
-	Example:
+	Message example:
 
 		var message = JSON.stringify({
-			type = "type",
-			data = "data"
+			type : "message type",
+			data : "additional data"
 		});
 
 	Messages are passed with function postMessage() and are received in "message"
@@ -33,11 +47,22 @@
 
 	Following types of messages can be received from shellinabox:
 
-		output	- data field contains terminal output (of last request)
+		output	- data field contains terminal output
 		session - data field contains session status (active or closed)
+
+	Example for passing command to Shell In A Box frame:
+
+		iframe.contentWindow.postMessage(JSON.stringify({
+			type : "input",
+			data : "ls -l\n"
+		}), "https://192.168.1.150:4200");
 
 	Please note that message passing and JSON operations are only supported on moderen
 	browsers.
+
+	##
+	# Info
+	#
 
 	For working examples please see HTML and JS code bellow...
 
@@ -79,9 +104,9 @@
 
 	<p id="session">Session status: ???</p>
 
-	<!-- Embedded shellinabox, in out case src attribute will be added with help
-		of JS
-		-->
+	<!--
+		Embedded shellinabox. In our case src attribute will be added with help
+		of JS. -->
 	<iframe id="shell" src=""></iframe>
 
 	<!-- Ouput -->
@@ -98,8 +123,8 @@
 		var output  = document.getElementById("output");
 		var session = document.getElementById("session");
 
-		// Add url to our iframe. We do this, only that variable 'url' is used
-		// throughout the whole code.
+		// Add url to our iframe. We do this, only that variable 'url' can be used
+		// throughout the whole code where needed.
 		iframe.src = url;
 
 		document.getElementById("execute").addEventListener("click", function() {
@@ -127,6 +152,8 @@
 				data : 'disable'
 			});
 			iframe.contentWindow.postMessage(message, url);
+			// Clear output window
+			output.innerHTML = '';
 		});
 
 		document.getElementById("session-reload").addEventListener("click", function() {
