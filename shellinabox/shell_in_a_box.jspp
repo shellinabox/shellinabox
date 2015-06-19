@@ -109,12 +109,15 @@ function ShellInABox(url, container) {
   this.pendingKeys  = '';
   this.keysInFlight = false;
   this.connected    = false;
+  this.replayOutput = false;
   this.superClass.constructor.call(this, container);
+
 
   // We have to initiate the first XMLHttpRequest from a timer. Otherwise,
   // Chrome never realizes that the page has loaded.
   setTimeout(function(shellInABox) {
                return function() {
+                 shellInABox.messageInit();
                  shellInABox.sendRequest();
                };
              }(this), 1);
@@ -192,6 +195,9 @@ ShellInABox.prototype.onReadyStateChange = function(request) {
       this.connected = true;
       var response   = eval('(' + request.responseText + ')');
       if (response.data) {
+        if (this.replayOutput) {
+          this.messageReplay('output', response.data);
+        }
         this.vt100(response.data);
       }
 
@@ -358,6 +364,87 @@ ShellInABox.prototype.extendContextMenu = function(entries, actions) {
     }
   }
 
+};
+
+ShellInABox.prototype.messageInit = function() {
+
+  // Test if server option for iframe message passing was set.
+  if (!serverMessagesOrigin) {
+    return;
+  }
+
+  // Test for browser support of this feature. JSON class functionality is
+  // also needed because some older IE browsers, support only string passing
+  // and we don't want to use unsafe eval() function in this case.
+  if (!window.postMessage || !window.JSON ||
+      !window.JSON.parse  || !window.JSON.stringify) {
+    return;
+  }
+
+  // Install event listener.
+  if (window.addEventListener) {
+    window.addEventListener('message', function(shellInABox) {
+      return function(message) {
+        shellInABox.messageReceive(message);
+      }
+    }(this), false);
+  } else {
+    // For IE8
+    if (window.attachEvent) {
+      window.attachEvent('onmessage', function(shellInABox) {
+        return function(message) {
+          shellInABox.messageReceive(message);
+        }
+      }(this));
+    }
+  }
+
+};
+
+ShellInABox.prototype.messageReceive = function (message) {
+
+  // Check for message origin if needed.
+  if (serverMessagesOrigin !== "*") {
+    if (serverMessagesOrigin !== message.origin) {
+      return;
+    }
+  }
+
+  // Remember replay information.
+  if (!this.replaySource || !this.replayOrigin) {
+    this.replaySource   = message.source;
+    this.replayOrigin   = message.origin;
+  }
+
+  // Handle received message.
+  var decoded           = JSON.parse(message.data);
+  switch (decoded.type) {
+  case 'input'  :
+    // Input received data to terminal.
+    this.keysPressed(decoded.data);
+    break;
+  case 'output' :
+    // Enable, disable or toggle passing terminal output to parent window.
+    if (decoded.data === 'enable') {
+      this.replayOutput = true;
+    } else if (decoded.data === 'disable') {
+      this.replayOutput = false;
+    } else if (decoded.data === 'toggle') {
+      this.replayOutput = !this.replayOutput;
+    }
+    break;
+  case 'session':
+    // Replay with session status.
+    this.messageReplay('session', this.session ? 'alive' : 'closed');
+    break;
+  }
+};
+
+ShellInABox.prototype.messageReplay = function(type, data) {
+  if (this.replaySource && this.replayOrigin) {
+    var encoded = JSON.stringify({ type : type, data : data });
+    this.replaySource.postMessage(encoded, this.replayOrigin);
+  }
 };
 
 ShellInABox.prototype.about = function() {
