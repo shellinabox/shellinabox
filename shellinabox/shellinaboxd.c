@@ -61,6 +61,9 @@
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
 #include <unistd.h>
 
 #ifdef HAVE_SYS_PRCTL_H
@@ -68,6 +71,7 @@
 #endif
 
 #include "libhttp/http.h"
+#include "libhttp/server.h"
 #include "logging/logging.h"
 #include "shellinabox/externalfile.h"
 #include "shellinabox/launcher.h"
@@ -785,6 +789,7 @@ static void usage(void) {
           "  -s, --service=SERVICE       define one or more services\n"
           "%s"
           "  -q, --quiet                 turn off all messages\n"
+          "      --unixdomain-only=PATH:USER:GROUP:CHMOD listen on unix socket\n"
           "  -u, --user=UID              switch to this user (default: %s)\n"
           "      --user-css=STYLES       defines user-selectable CSS options\n"
           "  -v, --verbose               enable logging messages\n"
@@ -891,6 +896,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "disable-ssl",      0, 0, 't' },
       { "disable-ssl-menu", 0, 0,  0  },
       { "quiet",            0, 0, 'q' },
+      { "unixdomain-only",  1, 0,  0, },
       { "user",             1, 0, 'u' },
       { "user-css",         1, 0,  0  },
       { "verbose",          0, 0, 'v' },
@@ -1126,6 +1132,43 @@ static void parseArgs(int argc, char * const argv[]) {
       }
       verbosity            = MSG_QUIET;
       logSetLogLevel(verbosity);
+    } else if (!idx--) {
+      // Unix domain only
+      if (!optarg || !*optarg) {
+        fatal("Option \"--unixdomain-only\" expects an argument.");
+      }
+      char *ptr, *s, *tmp;
+
+      s = optarg;
+      ptr = strchr(s, ':');
+      if (ptr == NULL) {
+         fatal("Syntax error in unixdomain-only definition \"%s\".", optarg);
+      }
+      check(ptr - s < UNIX_PATH_MAX);
+      memcpy(unixDomainSocket, s, ptr - s);
+      unixDomainSocket[ptr - s] = '\000';
+
+      s = ptr + 1;
+      ptr = strchr(s, ':');
+      if (ptr == NULL) {
+         fatal("Syntax error in unixdomain-only definition \"%s\".", optarg);
+      }
+      check(tmp = strndup(s, ptr - s));
+      unixDomainUser = parseUserArg(tmp, NULL);
+      free(tmp);
+
+      s = ptr + 1;
+      ptr = strchr(s, ':');
+      if (ptr == NULL) {
+         fatal("Syntax error in unixdomain-only definition \"%s\".", optarg);
+      }
+      check(tmp = strndup(s, ptr - s));
+      unixDomainGroup = parseGroupArg(tmp, NULL);
+      free(tmp);
+
+      s = ptr + 1;
+      unixDomainChmod = strtol(s, NULL, 0);
+
     } else if (!idx--) {
       // User
       if (runAsUser >= 0) {
