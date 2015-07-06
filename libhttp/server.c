@@ -52,7 +52,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/poll.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -138,7 +140,12 @@ int x_poll(struct pollfd *fds, nfds_t nfds, int timeout) {
 #define poll x_poll
 #endif
 
+char unixDomainSocket[UNIX_PATH_MAX];
 time_t currentTime;
+
+int unixDomainUser;
+int unixDomainGroup;
+int unixDomainChmod;
 
 struct PayLoad {
   int (*handler)(struct HttpConnection *, void *, const char *, int);
@@ -283,6 +290,38 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
   server->numConnections        = 0;
 
   int true                      = 1;
+
+  if (unixDomainSocket[0]) {
+    server->serverFd = socket(AF_UNIX, SOCK_STREAM, 0);
+    check(server->serverFd >= 0);
+    check(!setsockopt(server->serverFd, SOL_SOCKET, SO_REUSEADDR,
+                    &true, sizeof(true)));
+    struct sockaddr_un serverAddr = { 0 };
+
+    unlink(unixDomainSocket);
+
+    serverAddr.sun_family = AF_UNIX;
+    strcpy(serverAddr.sun_path, unixDomainSocket);
+    int servlen = sizeof(serverAddr.sun_family) + strlen(unixDomainSocket);
+
+    if (bind(server->serverFd, (struct sockaddr *)&serverAddr, servlen)) {
+        fatal("Failed to bind to unix socket");
+    }
+
+    check(!chown(unixDomainSocket, unixDomainUser, unixDomainGroup));
+    check(!chmod(unixDomainSocket, unixDomainChmod));
+
+    check(!listen(server->serverFd, SOMAXCONN));
+    check(server->pollFds         = malloc(sizeof(struct pollfd)));
+    server->pollFds->fd           = server->serverFd;
+    server->pollFds->events       = POLLIN;
+
+    initTrie(&server->handlers, serverDestroyHandlers, NULL);
+    serverRegisterStreamingHttpHandler(server, "/quit", serverQuitHandler, NULL);
+    initSSL(&server->ssl);
+    return;
+  }
+
   server->serverFd              = socket(PF_INET, SOCK_STREAM, 0);
   check(server->serverFd >= 0);
   check(!setsockopt(server->serverFd, SOL_SOCKET, SO_REUSEADDR,
@@ -347,6 +386,8 @@ void destroyServer(struct Server *server) {
     free(server->pollFds);
     destroyTrie(&server->handlers);
     destroySSL(&server->ssl);
+
+    if (unixDomainSocket[0]) unlink(unixDomainSocket);
   }
 }
 

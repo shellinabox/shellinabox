@@ -52,6 +52,15 @@
 #include "libhttp/http.h"
 #include "libhttp/ssl.h"
 
+#ifndef UNIX_PATH_MAX
+#define UNIX_PATH_MAX 108
+#endif
+
+extern int unixDomainUser;
+extern int unixDomainGroup;
+extern int unixDomainChmod;
+extern char unixDomainSocket[UNIX_PATH_MAX];
+
 struct Server;
 
 struct ServerConnection {
