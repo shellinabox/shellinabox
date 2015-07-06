@@ -287,6 +287,14 @@ static char *getPeerName(int fd, int *port, int numericHosts) {
     }
     return NULL;
   }
+  char *ret;
+  if (peerAddr.sa_family == AF_UNIX) {
+    if (port) {
+      *port         = 0;
+    }
+    check(ret       = strdup("localhost"));
+    return ret;
+  }
   char host[256];
   if (numericHosts ||
       getnameinfo(&peerAddr, sockLen, host, sizeof(host), NULL, 0, NI_NOFQDN)){
@@ -297,7 +305,6 @@ static char *getPeerName(int fd, int *port, int numericHosts) {
   if (port) {
     *port           = ntohs(((struct sockaddr_in *)&peerAddr)->sin_port);
   }
-  char *ret;
   check(ret         = strdup(host));
   return ret;
 }
