@@ -1139,35 +1139,40 @@ static void parseArgs(int argc, char * const argv[]) {
       }
       char *ptr, *s, *tmp;
 
-      s = optarg;
-      ptr = strchr(s, ':');
-      if (ptr == NULL) {
-         fatal("Syntax error in unixdomain-only definition \"%s\".", optarg);
+      // Unix domain path
+      s                    = optarg;
+      ptr                  = strchr(s, ':');
+      if (ptr == NULL || ptr == s || ptr - s >= UNIX_PATH_MAX) {
+        fatal("Syntax error in unixdomain-only path definition \"%s\".", optarg);
       }
-      check(ptr - s < UNIX_PATH_MAX);
-      memcpy(unixDomainSocket, s, ptr - s);
-      unixDomainSocket[ptr - s] = '\000';
+      check(unixDomainPath = strndup(s, ptr - s));
 
-      s = ptr + 1;
-      ptr = strchr(s, ':');
-      if (ptr == NULL) {
-         fatal("Syntax error in unixdomain-only definition \"%s\".", optarg);
+      // Unix domain user
+      s                    = ptr + 1;
+      ptr                  = strchr(s, ':');
+      if (ptr == NULL || ptr == s) {
+        fatal("Syntax error in unixdomain-only user definition \"%s\".", optarg);
       }
-      check(tmp = strndup(s, ptr - s));
-      unixDomainUser = parseUserArg(tmp, NULL);
+      check(tmp            = strndup(s, ptr - s));
+      unixDomainUser       = parseUserArg(tmp, NULL);
       free(tmp);
 
-      s = ptr + 1;
-      ptr = strchr(s, ':');
-      if (ptr == NULL) {
-         fatal("Syntax error in unixdomain-only definition \"%s\".", optarg);
+      // Unix domain group
+      s                    = ptr + 1;
+      ptr                  = strchr(s, ':');
+      if (ptr == NULL || ptr == s) {
+        fatal("Syntax error in unixdomain-only group definition \"%s\".", optarg);
       }
-      check(tmp = strndup(s, ptr - s));
-      unixDomainGroup = parseGroupArg(tmp, NULL);
+      check(tmp            = strndup(s, ptr - s));
+      unixDomainGroup      = parseGroupArg(tmp, NULL);
       free(tmp);
 
-      s = ptr + 1;
-      unixDomainChmod = strtol(s, NULL, 0);
+      // Unix domain chmod
+      s                    = ptr + 1;
+      if (strlen(ptr) == 1) {
+        fatal("Syntax error in unixdomain-only chmod definition \"%s\".", optarg);
+      }
+      unixDomainChmod      = strtol(s, NULL, 0);
 
     } else if (!idx--) {
       // User

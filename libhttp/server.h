@@ -56,10 +56,6 @@
 #define UNIX_PATH_MAX 108
 #endif
 
-extern int unixDomainUser;
-extern int unixDomainGroup;
-extern int unixDomainChmod;
-extern char unixDomainSocket[UNIX_PATH_MAX];
 
 struct Server;
 
@@ -130,5 +126,9 @@ void serverSetNumericHosts(struct Server *server, int numericHosts);
 struct Trie *serverGetHttpHandlers(struct Server *server);
 
 extern time_t currentTime;
+extern char  *unixDomainPath;
+extern int    unixDomainUser;
+extern int    unixDomainGroup;
+extern int    unixDomainChmod;
 
 #endif

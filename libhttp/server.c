@@ -141,11 +141,10 @@ int x_poll(struct pollfd *fds, nfds_t nfds, int timeout) {
 #endif
 
 time_t currentTime;
-
-int unixDomainUser;
-int unixDomainGroup;
-int unixDomainChmod;
-char unixDomainSocket[UNIX_PATH_MAX];
+char  *unixDomainPath  = NULL;
+int    unixDomainUser  = 0;
+int    unixDomainGroup = 0;
+int    unixDomainChmod = 0;
 
 struct PayLoad {
   int (*handler)(struct HttpConnection *, void *, const char *, int);
@@ -291,7 +290,7 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
 
   int true                      = 1;
 
-  if (*unixDomainSocket) {
+  if (unixDomainPath && *unixDomainPath) {
 
     server->serverFd              = socket(AF_UNIX, SOCK_STREAM, 0);
     check(server->serverFd >= 0);
@@ -299,28 +298,30 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
                       &true, sizeof(true)));
 
     struct stat st;
-    if (!stat(unixDomainSocket, &st) && S_ISSOCK(st.st_mode)) {
-      unlink(unixDomainSocket);
+    if (!stat(unixDomainPath, &st) && S_ISSOCK(st.st_mode)) {
+      unlink(unixDomainPath);
     }
 
     struct sockaddr_un serverAddr = { 0 };
     serverAddr.sun_family         = AF_UNIX;
-    strcpy(serverAddr.sun_path, unixDomainSocket);
+    strcpy(serverAddr.sun_path, unixDomainPath);
     int servlen                   = sizeof(serverAddr.sun_family)
-                                    + strlen(unixDomainSocket);
+                                    + strlen(unixDomainPath);
 
     if (bind(server->serverFd, (struct sockaddr *)&serverAddr, servlen)) {
       fatal("Failed to bind to unix socket! [%d: %s]", errno, strerror(errno));
     }
-    if (chown(unixDomainSocket, unixDomainUser, unixDomainGroup)) {
-      fatal("Unable to change ownership on unix socket!");
+    if (chown(unixDomainPath, unixDomainUser, unixDomainGroup)) {
+      fatal("Unable to change ownership on unix socket! [%d: %s]",
+            errno, strerror(errno));
     }
-    if (chmod(unixDomainSocket, unixDomainChmod)) {
-      fatal("Unable to change premission on unix socket!");
+    if (chmod(unixDomainPath, unixDomainChmod)) {
+      fatal("Unable to change premission on unix socket! [%d: %s)",
+            errno, strerror(errno));
     }
 
     check(!listen(server->serverFd, SOMAXCONN));
-    info("Listening on unix domain socket %s", unixDomainSocket);
+    info("Listening on unix domain socket %s", unixDomainPath);
     check(server->pollFds         = malloc(sizeof(struct pollfd)));
     server->pollFds->fd           = server->serverFd;
     server->pollFds->events       = POLLIN;
@@ -396,9 +397,12 @@ void destroyServer(struct Server *server) {
     destroyTrie(&server->handlers);
     destroySSL(&server->ssl);
 
-    struct stat st;
-    if (*unixDomainSocket && !stat(unixDomainSocket, &st) && S_ISSOCK(st.st_mode)) {
-      unlink(unixDomainSocket);
+    if (unixDomainPath) {
+      struct stat st;
+      if (*unixDomainPath && !stat(unixDomainPath, &st) && S_ISSOCK(st.st_mode)) {
+        unlink(unixDomainPath);
+      }
+      free(unixDomainPath);
     }
   }
 }
