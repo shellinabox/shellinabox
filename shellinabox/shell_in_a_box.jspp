@@ -109,7 +109,8 @@ function ShellInABox(url, container) {
   this.pendingKeys  = '';
   this.keysInFlight = false;
   this.connected    = false;
-  this.replayOutput = false;
+  this.replayOnOutput  = false;
+  this.replayOnSession = false;
   this.superClass.constructor.call(this, container);
 
 
@@ -135,6 +136,9 @@ ShellInABox.prototype.sessionClosed = function() {
       this.vt100('Session closed.');
     }
     this.showReconnect(true);
+    if (this.replayOnSession) {
+      this.messageReplay('session', 'closed');
+    }
   } catch (e) {
   }
 };
@@ -195,7 +199,7 @@ ShellInABox.prototype.onReadyStateChange = function(request) {
       this.connected = true;
       var response   = eval('(' + request.responseText + ')');
       if (response.data) {
-        if (this.replayOutput) {
+        if (this.replayOnOutput) {
           this.messageReplay('output', response.data);
         }
         this.vt100(response.data);
@@ -205,6 +209,9 @@ ShellInABox.prototype.onReadyStateChange = function(request) {
           this.session && this.session != response.session) {
         this.sessionClosed();
       } else {
+        if (this.replayOnSession && !this.session && response.session) {
+          this.messageReplay('session', 'alive');
+        }
         this.session = response.session;
         this.sendRequest(request);
       }
@@ -425,17 +432,26 @@ ShellInABox.prototype.messageReceive = function (message) {
     break;
   case 'output' :
     // Enable, disable or toggle passing terminal output to parent window.
-    if (decoded.data === 'enable') {
-      this.replayOutput = true;
-    } else if (decoded.data === 'disable') {
-      this.replayOutput = false;
-    } else if (decoded.data === 'toggle') {
-      this.replayOutput = !this.replayOutput;
+    switch (decoded.data) {
+    case 'enable'  : this.replayOnOutput = true;                 break;
+    case 'disable' : this.replayOnOutput = false;                break;
+    case 'toggle'  : this.replayOnOutput = !this.replayOnOutput; break;
     }
     break;
   case 'session':
     // Replay with session status.
     this.messageReplay('session', this.session ? 'alive' : 'closed');
+    break;
+  case 'onsessionchange':
+    // Enable, disable or toggle passing session status to parent window.
+    switch (decoded.data) {
+    case 'enable'  : this.replayOnSession = true;                  break;
+    case 'disable' : this.replayOnSession = false;                 break;
+    case 'toggle'  : this.replayOnSession = !this.replayOnSession; break;
+    }
+    break;
+  case 'reconnect':
+    this.reconnect();
     break;
   }
 };

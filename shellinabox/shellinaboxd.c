@@ -1172,7 +1172,7 @@ static void parseArgs(int argc, char * const argv[]) {
       if (strlen(ptr) == 1) {
         fatal("Syntax error in unixdomain-only chmod definition \"%s\".", optarg);
       }
-      unixDomainChmod      = strtol(s, NULL, 0);
+      unixDomainChmod      = strtol(s, NULL, 8);
 
     } else if (!idx--) {
       // User

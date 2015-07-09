@@ -40,15 +40,30 @@
 
 	Following types of message can be sent to shellinabox:
 
-		input	- writes content of data field to terminal
-		output	- enables passing of output to parent window (data field must be set
-				  to enable, disable or toggle)
-		session	- request sessions status
+	* input
+		writes content of data field to terminal
+
+	* output
+		enables passing of output to parent window (data field must be set
+		to enable, disable or toggle)
+
+	* session
+		request sessions status
+
+	* onsessionchange
+		enables passing session status to parent window (data field must be
+		set to enable, disable or toggle)
+
+	* reconnect
+		reconnects the terminal
 
 	Following types of messages can be received from shellinabox:
 
-		output	- data field contains terminal output
-		session - data field contains session status (active or closed)
+	* output
+		data field contains terminal output
+
+	* session
+		data field contains session status (alive or closed)
 
 	Example for passing command to Shell In A Box frame:
 
@@ -99,7 +114,9 @@
 		<input type="button" id="execute" value="Execute"></input>
 		<input type="button" id="output-enable"  value="Output Enable"></input>
 		<input type="button" id="output-disable" value="Output Disable"></input>
+		<input type="button" id="reconnect" value="Reconnect"></input>
 		<input type="button" id="session-reload" value="Session Status"></input>
+		<input type="button" id="session-toggle" value="Session Status Toggle"></input>
 	</div>
 
 	<p id="session">Session status: ???</p>
@@ -160,6 +177,23 @@
 			// Request shellianbox session status
 			var message = JSON.stringify({
 				type : 'session'
+			});
+			iframe.contentWindow.postMessage(message, url);
+		});
+
+		document.getElementById("session-toggle").addEventListener("click", function() {
+			// Toggles shellinabox session status reporting
+			var message = JSON.stringify({
+				type : 'onsessionchange',
+				data : 'toggle'
+			});
+			iframe.contentWindow.postMessage(message, url);
+		});
+
+		document.getElementById("reconnect").addEventListener("click", function() {
+			// Request shellianbox session status
+			var message = JSON.stringify({
+				type : 'reconnect'
 			});
 			iframe.contentWindow.postMessage(message, url);
 		});

@@ -304,7 +304,7 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
 
     struct sockaddr_un serverAddr = { 0 };
     serverAddr.sun_family         = AF_UNIX;
-    strcpy(serverAddr.sun_path, unixDomainPath);
+    memcpy(serverAddr.sun_path, unixDomainPath, sizeof(serverAddr.sun_path));
     int servlen                   = sizeof(serverAddr.sun_family)
                                     + strlen(unixDomainPath);
 
