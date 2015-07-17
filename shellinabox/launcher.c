@@ -1446,6 +1446,8 @@ static void execService(int width ATTR_UNUSED, int height ATTR_UNUSED,
 
   extern char **environ;
   environ                     = environment;
+  char *cmd;
+  check(cmd                   = strdup(argv[0]));
   char *slash                 = strrchr(argv[0], '/');
   if (slash) {
     memmove(argv[0], slash + 1, strlen(slash));
@@ -1457,8 +1459,6 @@ static void execService(int width ATTR_UNUSED, int height ATTR_UNUSED,
     argv[0][0]                = '-';
     argv[0][len + 1]          = '\000';
   }
-  char *cmd;
-  check(cmd                   = strdup(argv[0]));
   if (execvp(cmd, argv) < 0) {
     free(argv);
     free(cmd);
