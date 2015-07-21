@@ -1019,7 +1019,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
           if (!((ch >= '0' && ch <= '9') ||
                 (ch >= 'A' && ch <= 'Z') ||
                 (ch >= 'a' && ch <= 'z') ||
-                ch == '-' || ch == '_' || ch == '.')) {
+                ch == '-' || ch == '_' || ch == '.' || ch == '@')) {
             goto invalid_user_name;
           }
         }
