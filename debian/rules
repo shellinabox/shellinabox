@@ -4,8 +4,14 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+DH_WITH=--with autotools-dev,autoreconf
+
+clean:
+	[ ! -f Makefile ] || make clean-demo
+	dh clean $(DH_WITH)
+
 %:
-	dh $@ --with autotools-dev,autoreconf
+	dh $@ $(DH_WITH)
 
 # elf-2012.04.10: Since Debian manages package dependencies we can
 # 		  force linkage of ssl s.t. the dependency is properly kept

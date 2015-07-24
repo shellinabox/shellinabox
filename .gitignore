@@ -24,7 +24,10 @@ debian/*.debhelper
 debian/*.substvars
 debian/shellinabox/
 debian/tmp/
+demo/beep.wav
 demo/demo.js
+demo/enabled.gif
+demo/favicon.ico
 demo/keyboard.png
 demo/print-styles.css
 demo/styles.css

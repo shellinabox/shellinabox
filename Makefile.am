@@ -238,7 +238,7 @@ shellinaboxd.1: ${top_srcdir}/shellinabox/shellinaboxd.man.in                 \
 	@out=`echo "$@" 2>/dev/null|sed -e 's/\.[^.]*$$/.ps/'`;               \
 	man -Tps "./$@" >"$${out}" 2>/dev/null || rm -f "$${out}"
 
-clean-local:
+clean-local: clean-demo
 	-rm -rf shellinaboxd.1                                                \
 	        shellinaboxd.ps
 	-rm -rf debian/shellinabox                                            \
@@ -258,6 +258,20 @@ clean-local:
 	        shellinabox/styles.h                                          \
 	        shellinabox/vt100.js                                          \
 	        shellinabox/vt100.h
+
+clean-demo:
+	-rm demo/beep.wav						      \
+	    demo/demo.js 						      \
+	    demo/enabled.gif 						      \
+	    demo/favicon.ico 						      \
+	    demo/keyboard.png 						      \
+	    demo/print-styles.css 					      \
+	    demo/styles.css 						      \
+	    demo/usercss-0.css 						      \
+	    demo/usercss-1.css 						      \
+	    demo/usercss-2.css 						      \
+	    demo/usercss-3.css 						      \
+	    demo/vt100.js
 
 .css.h:
 	@echo od "$<" '>'"$@"
