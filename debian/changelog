@@ -1,14 +1,16 @@
-shellinabox (2.15-1) UNRELEASED; urgency=medium
+shellinabox (2.15) unstable; urgency=low
 
-  * Non-maintainer upload.
+  * Improved clean-liness so that source archive is clean.
+  * First release from GitHub. (Closes: #785181)
+  
+  [Contributions by Alexandre Detiste <alexandre.detiste@gmail.com>]
   * Bump std version to 3.9.6, no change needed
   * Bump debhelper compat to 9
-  * move lintian exception in d/shellinabox.lintian
-  * change urls to new GitHub repos
-  * Closing release coordination metabug (Closes: #785181)
-  * keep user preferences on upgrade (Closes: #786441)
+  * Move lintian exception in d/shellinabox.lintian
+  * Change urls to new GitHub repos
+  * Retain user preferences on upgrade (Closes: #786441)
 
- -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 12 May 2015 14:06:55 +0200
+ -- Marc Singer <elf@debian.org>  Fri, 24 Jul 2015 09:16:18 -0700
 
 shellinabox (2.14-1) unstable; urgency=low
 
