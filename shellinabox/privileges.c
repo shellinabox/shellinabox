@@ -59,9 +59,10 @@
 #include "shellinabox/privileges.h"
 #include "logging/logging.h"
 
+#define UNUSED_RETURN(x) do { (void)((x)+1); } while (0)
+
 int   runAsUser  = -1;
 int   runAsGroup = -1;
-
 
 #ifndef HAVE_GETRESUID
 int getresuid(uid_t *ruid, uid_t *euid, uid_t *suid) {
@@ -136,7 +137,7 @@ void lowerPrivileges(void) {
 
   // Temporarily lower user privileges. If we used to have "root" privileges,
   // we can later still regain them.
-  setresuid(-1, -1, 0);
+  UNUSED_RETURN(setresuid(-1, -1, 0));
 
   if (runAsUser >= 0) {
     // Try to switch to the user-provided user id.

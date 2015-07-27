@@ -25,6 +25,9 @@ AC_C_CONST
 AC_PROG_GCC_TRADITIONAL
 AC_CONFIG_MACRO_DIR([m4])
 
+dnl Overwrite default archiver flags.
+AC_SUBST(AR_FLAGS, [cr])
+
 dnl Check for header files that do not exist on all platforms
 AC_CHECK_HEADERS([libutil.h pthread.h pty.h strings.h sys/prctl.h sys/uio.h  \
                   util.h utmp.h utmpx.h])

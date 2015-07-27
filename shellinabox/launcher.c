@@ -128,6 +128,8 @@ typedef struct pam_handle pam_handle_t;
 #define UNUSED(x)    do { (void)(x); } while (0)
 #endif
 
+#define UNUSED_RETURN(x) do { (void)((x)+1); } while (0)
+
 #undef pthread_once
 #undef execle
 int execle(const char *, const char *, ...);
@@ -668,8 +670,8 @@ void destroyUtmp(struct Utmp *utmp) {
       uid_t r_gid, e_gid, s_gid;
       check(!getresuid(&r_uid, &e_uid, &s_uid));
       check(!getresgid(&r_gid, &e_gid, &s_gid));
-      setresuid(0, 0, 0);
-      setresgid(0, 0, 0);
+      UNUSED_RETURN(setresuid(0, 0, 0));
+      UNUSED_RETURN(setresgid(0, 0, 0));
 
       setutxent();
       pututxline(&utmp->utmpx);
@@ -1543,9 +1545,10 @@ static void childProcess(struct Service *service, int width, int height,
   cfsetospeed(&tt, B38400);
   tcsetattr(0, TCSAFLUSH, &tt);
 
-  // Assert root privileges in order to update utmp entry.
-  setresuid(0, 0, 0);
-  setresgid(0, 0, 0);
+  // Assert root privileges in order to update utmp entry. We can only do that,
+  // if we have root permissions otherwise this fails.
+  UNUSED_RETURN(setresuid(0, 0, 0));
+  UNUSED_RETURN(setresgid(0, 0, 0));
 #ifdef HAVE_UTMPX_H
   setutxent();
   struct utmpx utmpx            = utmp->utmpx;

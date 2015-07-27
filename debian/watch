@@ -1,2 +1,0 @@
-version=3
-https://github.com/shellinabox/shellinabox/tags .*/v?(\d\S*)\.tar\.gz
