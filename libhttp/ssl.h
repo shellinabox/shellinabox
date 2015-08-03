@@ -61,12 +61,19 @@
 #undef HAVE_OPENSSL
 typedef struct BIO        BIO;
 typedef struct BIO_METHOD BIO_METHOD;
+typedef struct EC_KEY     EC_KEY;
 typedef struct SSL        SSL;
 typedef struct SSL_CTX    SSL_CTX;
 typedef struct SSL_METHOD SSL_METHOD;
 typedef struct X509       X509;
 #define SSL_ERROR_WANT_READ  2
 #define SSL_ERROR_WANT_WRITE 3
+#endif
+
+// EC support was added to OpenSSL in 0.9.8, but it can be disabled in some
+// distributions.
+#if OPENSSL_VERSION_NUMBER >= 0x0090800fL && !defined(OPENSSL_NO_EC)
+# define HAVE_OPENSSL_EC
 #endif
 
 #if defined(HAVE_DLOPEN)
@@ -77,15 +84,18 @@ extern BIO    *(*x_BIO_new)(BIO_METHOD *);
 extern BIO    *(*x_BIO_new_socket)(int, int);
 extern BIO    *(*x_BIO_pop)(BIO *);
 extern BIO    *(*x_BIO_push)(BIO *, BIO *);
+#if defined(HAVE_OPENSSL_EC)
+extern void    (*x_EC_KEY_free)(EC_KEY *);
+extern EC_KEY *(*x_EC_KEY_new_by_curve_name)(int);
+#endif
 extern void    (*x_ERR_clear_error)(void);
-extern void    (*x_ERR_clear_error)(void);
-extern unsigned long (*x_ERR_peek_error)(void);
 extern unsigned long (*x_ERR_peek_error)(void);
 extern long    (*x_SSL_CTX_callback_ctrl)(SSL_CTX *, int, void (*)(void));
 extern int     (*x_SSL_CTX_check_private_key)(const SSL_CTX *);
 extern long    (*x_SSL_CTX_ctrl)(SSL_CTX *, int, long, void *);
 extern void    (*x_SSL_CTX_free)(SSL_CTX *);
 extern SSL_CTX*(*x_SSL_CTX_new)(SSL_METHOD *);
+extern int     (*x_SSL_CTX_set_cipher_list)(SSL_CTX *ctx, const char *str);
 extern int     (*x_SSL_CTX_use_PrivateKey_file)(SSL_CTX *, const char *, int);
 extern int     (*x_SSL_CTX_use_PrivateKey_ASN1)(int, SSL_CTX *,
                                                 const unsigned char *, long);
@@ -111,7 +121,6 @@ extern int     (*x_SSL_write)(SSL *, const void *, int);
 extern SSL_METHOD *(*x_SSLv23_server_method)(void);
 extern X509 *  (*x_d2i_X509)(X509 **px, const unsigned char **in, int len);
 extern void    (*x_X509_free)(X509 *a);
-extern int     (*x_SSL_CTX_set_cipher_list)(SSL_CTX *ctx, const char *str);
 extern void    (*x_sk_zero)(void *st);
 extern void   *(*x_SSL_COMP_get_compression_methods)(void);
 
@@ -122,15 +131,16 @@ extern void   *(*x_SSL_COMP_get_compression_methods)(void);
 #define BIO_new_socket               x_BIO_new_socket
 #define BIO_pop                      x_BIO_pop
 #define BIO_push                     x_BIO_push
+#define EC_KEY_free                  x_EC_KEY_free
+#define EC_KEY_new_by_curve_name     x_EC_KEY_new_by_curve_name
 #define ERR_clear_error              x_ERR_clear_error
-#define ERR_clear_error              x_ERR_clear_error
-#define ERR_peek_error               x_ERR_peek_error
 #define ERR_peek_error               x_ERR_peek_error
 #define SSL_CTX_callback_ctrl        x_SSL_CTX_callback_ctrl
 #define SSL_CTX_check_private_key    x_SSL_CTX_check_private_key
 #define SSL_CTX_ctrl                 x_SSL_CTX_ctrl
 #define SSL_CTX_free                 x_SSL_CTX_free
 #define SSL_CTX_new                  x_SSL_CTX_new
+#define SSL_CTX_set_cipher_list      x_SSL_CTX_set_cipher_list
 #define SSL_CTX_use_PrivateKey_file  x_SSL_CTX_use_PrivateKey_file
 #define SSL_CTX_use_PrivateKey_ASN1  x_SSL_CTX_use_PrivateKey_ASN1
 #define SSL_CTX_use_certificate_file x_SSL_CTX_use_certificate_file
@@ -154,13 +164,13 @@ extern void   *(*x_SSL_COMP_get_compression_methods)(void);
 #define SSLv23_server_method         x_SSLv23_server_method
 #define d2i_X509                     x_d2i_X509
 #define X509_free                    x_X509_free
-#define SSL_CTX_set_cipher_list      x_SSL_CTX_set_cipher_list
 #define sk_zero                      x_sk_zero
 #define SSL_COMP_get_compression_methods    x_SSL_COMP_get_compression_methods
 
 #undef  BIO_set_buffer_read_data
 #undef  SSL_CTX_set_tlsext_servername_arg
 #undef  SSL_CTX_set_tlsext_servername_callback
+#undef  SSL_CTX_set_tmp_ecdh
 #undef  SSL_get_app_data
 #undef  SSL_set_app_data
 #undef  SSL_set_mode
@@ -175,6 +185,9 @@ extern void   *(*x_SSL_COMP_get_compression_methods)(void);
                                  (x_SSL_CTX_callback_ctrl(ctx,                \
                                            SSL_CTRL_SET_TLSEXT_SERVERNAME_CB, \
                                            (void (*)(void))cb))
+#define SSL_CTX_set_tmp_ecdh(ctx, ecdh)                                       \
+                                 (x_SSL_CTX_ctrl(ctx, SSL_CTRL_SET_TMP_ECDH,  \
+                                                 0, (char *)ecdh))
 #define SSL_get_app_data(s)      (x_SSL_get_ex_data(s, 0))
 #define SSL_set_app_data(s, arg) (x_SSL_set_ex_data(s, 0, (char *)arg))
 #define SSL_set_mode(ssl, op)    (x_SSL_ctrl((ssl), SSL_CTRL_MODE, (op), NULL))
