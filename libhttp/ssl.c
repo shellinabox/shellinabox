@@ -327,7 +327,7 @@ static void loadSSL(void) {
   };
   for (unsigned i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
     if (!(*symbols[i].var = loadSymbol(path_libssl, symbols[i].fn))) {
-      debug("Failed to load SSL support. Could not find \"%s\"",
+      debug("SSL: failed to load SSL support. Could not find \"%s\"",
             symbols[i].fn);
       for (unsigned j = 0; j < sizeof(symbols)/sizeof(symbols[0]); j++) {
         *symbols[j].var = NULL;
@@ -342,7 +342,7 @@ static void loadSSL(void) {
 
   SSL_library_init();
   dcheck(!ERR_peek_error());
-  debug("Loaded SSL suppport");
+  debug("SSL: loaded SSL suppport");
 }
 #endif
 
@@ -379,12 +379,12 @@ int serverSupportsSSL(void) {
 #if defined(HAVE_OPENSSL)
 static void sslGenerateCertificate(const char *certificate,
                                    const char *serverName) {
-  debug("Auto-generating missing certificate \"%s\" for \"%s\"",
+  debug("SSL: auto-generating missing certificate \"%s\" for \"%s\"",
         certificate, serverName);
 
   pid_t pid       = fork();
   if (pid == -1) {
-    warn("Failed to generate self-signed certificate \"%s\"", certificate);
+    warn("SSL: failed to generate self-signed certificate \"%s\"", certificate);
   } else if (pid == 0) {
     int fd        = NOINTR(open("/dev/null", O_RDONLY));
     check(fd != -1);
@@ -401,14 +401,14 @@ static void sslGenerateCertificate(const char *certificate,
     if (execlp("openssl", "openssl", "req", "-x509", "-nodes", "-days", "7300",
                "-newkey", "rsa:2048", "-keyout", certificate, "-out", certificate,
                "-subj", subject, (char *)NULL) < 0) {
-      warn("Failed to generate self-signed certificate \"%s\"", certificate);
+      warn("SSL: failed to generate self-signed certificate \"%s\"", certificate);
       free(subject);
     }
   } else {
     int status;
     check(NOINTR(waitpid(pid, &status, 0)) == pid);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-      warn("Failed to generate self-signed certificate \"%s\"", certificate);
+      warn("SSL: failed to generate self-signed certificate \"%s\"", certificate);
     }
   }
 }
@@ -689,7 +689,7 @@ static int sslSNICallback(SSL *sslHndl, int *al ATTR_UNUSED,
   }
   struct HttpConnection *http =
                             (struct HttpConnection *)SSL_get_app_data(sslHndl);
-  debug("Received SNI callback for virtual host \"%s\" from \"%s:%d\"",
+  debug("SSL: received SNI callback for virtual host \"%s\" from \"%s:%d\"",
         name, httpGetPeerName(http), httpGetPort(http));
   char *serverName;
   check(serverName        = malloc(strlen(name)+2));
@@ -726,7 +726,7 @@ static int sslSNICallback(SSL *sslHndl, int *al ATTR_UNUSED,
         // the default certificate, instead.
         sslSetCertificateFromFile(context, certificate);
       } else {
-        warn("Could not find matching certificate \"%s\" for \"%s\"",
+        warn("SSL: could not find matching certificate \"%s\" for \"%s\"",
              certificate, serverName + 1);
         SSL_CTX_free(context);
         context           = ssl->sslContext;
@@ -803,7 +803,7 @@ void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
         sslGenerateCertificate(defaultCertificate, he->h_name);
       } else {
         if (h_err) {
-          warn("Error getting host information: \"%s\".", hstrerror(h_err));
+          warn("SSL: error getting host information: \"%s\".", hstrerror(h_err));
         }
         sslGenerateCertificate(defaultCertificate, hostname);
       }
@@ -812,7 +812,7 @@ void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
     }
   }
   if (sslSetCertificateFromFile(ssl->sslContext, defaultCertificate) < 0) {
-    fatal("Cannot read valid certificate from \"%s\". "
+    fatal("SSL: cannot read valid certificate from \"%s\". "
           "Check file permissions and file format.", defaultCertificate);
   }
  valid_certificate:
@@ -878,7 +878,7 @@ void sslSetCertificateFd(struct SSLSupport *ssl, int fd) {
   ssl->sslContext = sslMakeContext();
   char *filename = sslFdToFilename(fd);
   if (!sslSetCertificateFromFd(ssl->sslContext, fd)) {
-    fatal("Cannot read valid certificate from %s. Check file format.",
+    fatal("SSL: cannot read valid certificate from %s. Check file format.",
           filename);
   }
   free(filename);
@@ -1051,7 +1051,7 @@ void sslFreeHndl(SSL **sslHndl) {
         // We do not know, how to fix this situation. Something must have
         // changed in the OpenSSL internals. Either, this is a new bug, or
         // somebody fixed the code in a way that we did not anticipate.
-        fatal("Unexpected corruption of OpenSSL data structures");
+        fatal("SSL: unexpected corruption of OpenSSL data structures");
       }
     }
     SSL_free(*sslHndl);
