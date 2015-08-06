@@ -102,15 +102,20 @@ BIO *         (*BIO_new)(BIO_METHOD *);
 BIO *         (*BIO_new_socket)(int, int);
 BIO *         (*BIO_pop)(BIO *);
 BIO *         (*BIO_push)(BIO *, BIO *);
+#if defined(HAVE_OPENSSL_EC)
+void          (*EC_KEY_free)(EC_KEY *);
+EC_KEY *      (*EC_KEY_new_by_curve_name)(int);
+#endif
 void          (*ERR_clear_error)(void);
-void          (*ERR_clear_error)(void);
-unsigned long (*ERR_peek_error)(void);
 unsigned long (*ERR_peek_error)(void);
 long          (*SSL_CTX_callback_ctrl)(SSL_CTX *, int, void (*)(void));
 int           (*SSL_CTX_check_private_key)(const SSL_CTX *);
 long          (*SSL_CTX_ctrl)(SSL_CTX *, int, long, void *);
 void          (*SSL_CTX_free)(SSL_CTX *);
 SSL_CTX *     (*SSL_CTX_new)(SSL_METHOD *);
+int           (*SSL_CTX_set_cipher_list)(SSL_CTX *, const char *);
+void          (*SSL_CTX_set_info_callback)(SSL_CTX *,
+                                           void (*)(const SSL *, int, int));
 int           (*SSL_CTX_use_PrivateKey_file)(SSL_CTX *, const char *, int);
 int           (*SSL_CTX_use_PrivateKey_ASN1)(int, SSL_CTX *,
                                              const unsigned char *, long);
@@ -136,7 +141,6 @@ int           (*SSL_write)(SSL *, const void *, int);
 SSL_METHOD *  (*SSLv23_server_method)(void);
 X509 *        (*d2i_X509)(X509 **px, const unsigned char **in, int len);
 void          (*X509_free)(X509 *a);
-int           (*x_SSL_CTX_set_cipher_list)(SSL_CTX *ctx, const char *str);
 void          (*x_sk_zero)(void *st);
 void *        (*x_SSL_COMP_get_compression_methods)(void);
 #endif
@@ -166,6 +170,7 @@ void initSSL(struct SSLSupport *ssl) {
   ssl->sslContext            = NULL;
   ssl->sniCertificatePattern = NULL;
   ssl->generateMissing       = 0;
+  ssl->renegotiationCount    = 0;
   initTrie(&ssl->sniContexts, sslDestroyCachedContext, ssl);
 }
 
@@ -280,11 +285,17 @@ static void loadSSL(void) {
     { { &ERR_clear_error },             "ERR_clear_error" },
     { { &ERR_peek_error },              "ERR_peek_error" },
     { { &ERR_peek_error },              "ERR_peek_error" },
+#ifdef HAVE_OPENSSL_EC
+    { { &EC_KEY_free },                 "EC_KEY_free" },
+    { { &EC_KEY_new_by_curve_name },    "EC_KEY_new_by_curve_name" },
+#endif
     { { &SSL_CTX_callback_ctrl },       "SSL_CTX_callback_ctrl" },
     { { &SSL_CTX_check_private_key },   "SSL_CTX_check_private_key" },
     { { &SSL_CTX_ctrl },                "SSL_CTX_ctrl" },
     { { &SSL_CTX_free },                "SSL_CTX_free" },
     { { &SSL_CTX_new },                 "SSL_CTX_new" },
+    { { &SSL_CTX_set_cipher_list },     "SSL_CTX_set_cipher_list" },
+    { { &SSL_CTX_set_info_callback },   "SSL_CTX_set_info_callback" },
     { { &SSL_CTX_use_PrivateKey_file }, "SSL_CTX_use_PrivateKey_file" },
     { { &SSL_CTX_use_PrivateKey_ASN1 }, "SSL_CTX_use_PrivateKey_ASN1" },
     { { &SSL_CTX_use_certificate_file },"SSL_CTX_use_certificate_file"},
@@ -312,12 +323,11 @@ static void loadSSL(void) {
     { { &SSLv23_server_method },        "SSLv23_server_method" },
     { { &d2i_X509 },                    "d2i_X509" },
     { { &X509_free },                   "X509_free" },
-    { { &x_SSL_CTX_set_cipher_list },   "SSL_CTX_set_cipher_list" },
     { { &x_sk_zero },                   "sk_zero" }
   };
   for (unsigned i = 0; i < sizeof(symbols)/sizeof(symbols[0]); i++) {
     if (!(*symbols[i].var = loadSymbol(path_libssl, symbols[i].fn))) {
-      debug("Failed to load SSL support. Could not find \"%s\"",
+      debug("SSL: failed to load SSL support. Could not find \"%s\"",
             symbols[i].fn);
       for (unsigned j = 0; j < sizeof(symbols)/sizeof(symbols[0]); j++) {
         *symbols[j].var = NULL;
@@ -329,9 +339,10 @@ static void loadSSL(void) {
   x_SSL_COMP_get_compression_methods = loadSymbol(path_libssl, "SSL_COMP_get_compression_methods");
   // ends
 
+
   SSL_library_init();
   dcheck(!ERR_peek_error());
-  debug("Loaded SSL suppport");
+  debug("SSL: loaded SSL suppport");
 }
 #endif
 
@@ -368,12 +379,12 @@ int serverSupportsSSL(void) {
 #if defined(HAVE_OPENSSL)
 static void sslGenerateCertificate(const char *certificate,
                                    const char *serverName) {
-  debug("Auto-generating missing certificate \"%s\" for \"%s\"",
+  debug("SSL: auto-generating missing certificate \"%s\" for \"%s\"",
         certificate, serverName);
 
   pid_t pid       = fork();
   if (pid == -1) {
-    warn("Failed to generate self-signed certificate \"%s\"", certificate);
+    warn("SSL: failed to generate self-signed certificate \"%s\"", certificate);
   } else if (pid == 0) {
     int fd        = NOINTR(open("/dev/null", O_RDONLY));
     check(fd != -1);
@@ -390,14 +401,14 @@ static void sslGenerateCertificate(const char *certificate,
     if (execlp("openssl", "openssl", "req", "-x509", "-nodes", "-days", "7300",
                "-newkey", "rsa:2048", "-keyout", certificate, "-out", certificate,
                "-subj", subject, (char *)NULL) < 0) {
-      warn("Failed to generate self-signed certificate \"%s\"", certificate);
+      warn("SSL: failed to generate self-signed certificate \"%s\"", certificate);
       free(subject);
     }
   } else {
     int status;
     check(NOINTR(waitpid(pid, &status, 0)) == pid);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-      warn("Failed to generate self-signed certificate \"%s\"", certificate);
+      warn("SSL: failed to generate self-signed certificate \"%s\"", certificate);
     }
   }
 }
@@ -595,29 +606,73 @@ static int sslSetCertificateFromFile(SSL_CTX *context,
   return rc;
 }
 
+static void sslInfoCallback(const SSL *sslHndl, int type, int val) {
+  // Count the number of renegotiations for each SSL session.
+  if (type & SSL_CB_HANDSHAKE_START) {
+    struct HttpConnection *http    =
+                          (struct HttpConnection *) SSL_get_app_data(sslHndl);
+    http->ssl->renegotiationCount += 1;
+  }
+}
+
 static SSL_CTX *sslMakeContext(void) {
+
   SSL_CTX *context;
   check(context = SSL_CTX_new(SSLv23_server_method()));
-  SSL_CTX_set_options(context, SSL_OP_ALL);
-  SSL_CTX_set_options(context, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
+
+  long options  = SSL_OP_ALL;
+  options      |= SSL_OP_NO_SSLv2;
+  options      |= SSL_OP_NO_SSLv3;
+  options      |= SSL_OP_SINGLE_DH_USE;
+
 #ifdef SSL_OP_NO_COMPRESSION
-  SSL_CTX_set_options(context, SSL_OP_NO_COMPRESSION);
+  options      |= SSL_OP_NO_COMPRESSION;
 #endif
-#if defined(HAVE_DLOPEN)
+
+#ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
+  options      |= SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION;
+#endif
+
+  // Set default SSL options.
+  SSL_CTX_set_options(context, options);
+
+  // Workaround for SSL_OP_NO_COMPRESSION with older OpenSSL versions.
+#ifdef HAVE_DLOPEN
   if (SSL_COMP_get_compression_methods) {
     sk_SSL_COMP_zero(SSL_COMP_get_compression_methods());
   }
 #elif OPENSSL_VERSION_NUMBER >= 0x00908000L
   sk_SSL_COMP_zero(SSL_COMP_get_compression_methods());
 #endif
-  SSL_CTX_set_options(context, SSL_OP_SINGLE_DH_USE);
-#ifdef SSL_OP_SINGLE_ECDH_USE
+
+  // For Perfect Forward Secrecy (PFS) support we need to enable some additional
+  // SSL options, provide eliptic curve key object for handshake and add chipers
+  // suits with ECDHE handshake on top of the ciper list.
+#ifdef HAVE_OPENSSL_EC
   SSL_CTX_set_options(context, SSL_OP_SINGLE_ECDH_USE);
+  SSL_CTX_set_options(context, SSL_OP_CIPHER_SERVER_PREFERENCE);
+
+  EC_KEY *ecKey;
+  check(ecKey   = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+  SSL_CTX_set_tmp_ecdh(context, ecKey);
+  EC_KEY_free(ecKey);
+
+  debug("SSL: support for PFS enabled...");
 #endif
-#ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
-  SSL_CTX_set_options(context, SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
-#endif
-  check(SSL_CTX_set_cipher_list(context, "HIGH:MEDIUM:!aNULL:!MD5"));
+
+  check(SSL_CTX_set_cipher_list(context,
+    "ECDHE-RSA-AES256-GCM-SHA384:"
+    "ECDHE-RSA-AES128-GCM-SHA256:"
+    "ECDHE-RSA-AES256-SHA384:"
+    "ECDHE-RSA-AES128-SHA256:"
+    "ECDHE-RSA-AES256-SHA:"
+    "ECDHE-RSA-AES128-SHA:"
+    "ECDHE-RSA-DES-CBC3-SHA:"
+    "HIGH:MEDIUM:!RC4:!aNULL:!MD5"));
+
+  SSL_CTX_set_info_callback(context, sslInfoCallback);
+
+  debug("SSL: server context succesfully initialized...");
   return context;
 }
 #endif
@@ -634,7 +689,7 @@ static int sslSNICallback(SSL *sslHndl, int *al ATTR_UNUSED,
   }
   struct HttpConnection *http =
                             (struct HttpConnection *)SSL_get_app_data(sslHndl);
-  debug("Received SNI callback for virtual host \"%s\" from \"%s:%d\"",
+  debug("SSL: received SNI callback for virtual host \"%s\" from \"%s:%d\"",
         name, httpGetPeerName(http), httpGetPort(http));
   char *serverName;
   check(serverName        = malloc(strlen(name)+2));
@@ -671,7 +726,7 @@ static int sslSNICallback(SSL *sslHndl, int *al ATTR_UNUSED,
         // the default certificate, instead.
         sslSetCertificateFromFile(context, certificate);
       } else {
-        warn("Could not find matching certificate \"%s\" for \"%s\"",
+        warn("SSL: could not find matching certificate \"%s\" for \"%s\"",
              certificate, serverName + 1);
         SSL_CTX_free(context);
         context           = ssl->sslContext;
@@ -748,7 +803,7 @@ void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
         sslGenerateCertificate(defaultCertificate, he->h_name);
       } else {
         if (h_err) {
-          warn("Error getting host information: \"%s\".", hstrerror(h_err));
+          warn("SSL: error getting host information: \"%s\".", hstrerror(h_err));
         }
         sslGenerateCertificate(defaultCertificate, hostname);
       }
@@ -757,7 +812,7 @@ void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
     }
   }
   if (sslSetCertificateFromFile(ssl->sslContext, defaultCertificate) < 0) {
-    fatal("Cannot read valid certificate from \"%s\". "
+    fatal("SSL: cannot read valid certificate from \"%s\". "
           "Check file permissions and file format.", defaultCertificate);
   }
  valid_certificate:
@@ -823,7 +878,7 @@ void sslSetCertificateFd(struct SSLSupport *ssl, int fd) {
   ssl->sslContext = sslMakeContext();
   char *filename = sslFdToFilename(fd);
   if (!sslSetCertificateFromFd(ssl->sslContext, fd)) {
-    fatal("Cannot read valid certificate from %s. Check file format.",
+    fatal("SSL: cannot read valid certificate from %s. Check file format.",
           filename);
   }
   free(filename);
@@ -996,7 +1051,7 @@ void sslFreeHndl(SSL **sslHndl) {
         // We do not know, how to fix this situation. Something must have
         // changed in the OpenSSL internals. Either, this is a new bug, or
         // somebody fixed the code in a way that we did not anticipate.
-        fatal("Unexpected corruption of OpenSSL data structures");
+        fatal("SSL: unexpected corruption of OpenSSL data structures");
       }
     }
     SSL_free(*sslHndl);

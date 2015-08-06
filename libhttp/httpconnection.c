@@ -88,7 +88,7 @@
 static int httpPromoteToSSL(struct HttpConnection *http, const char *buf,
                             int len) {
   if (http->ssl->enabled && !http->sslHndl) {
-    debug("Switching to SSL (replaying %d+%d bytes)",
+    debug("SSL: switching to SSL (replaying %d+%d bytes)",
           http->partialLength, len);
     if (http->partial && len > 0) {
       check(http->partial  = realloc(http->partial,
@@ -102,6 +102,8 @@ static int httpPromoteToSSL(struct HttpConnection *http, const char *buf,
                                     http->partial ? http->partialLength : len);
     if (http->sslHndl) {
       check(!rc);
+      // Reset renegotiations count for connections promoted to SSL.
+      http->ssl->renegotiationCount = 0;
       SSL_set_app_data(http->sslHndl, http);
     }
     free(http->partial);
@@ -138,6 +140,13 @@ static ssize_t httpRead(struct HttpConnection *http, char *buf, ssize_t len) {
       break;
     }
     dcheck(!ERR_peek_error());
+
+    // Shutdown SSL connection, if client initiated renegotiation.
+    if (http->ssl->renegotiationCount > 1) {
+      debug("SSL: connection shutdown due to client initiated renegotiation!");
+      rc                     = 0;
+      errno                  = EINVAL;
+    }
   } else {
     rc = NOINTR(read(http->fd, buf, len));
   }
