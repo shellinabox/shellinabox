@@ -95,7 +95,9 @@ extern int     (*x_SSL_CTX_check_private_key)(const SSL_CTX *);
 extern long    (*x_SSL_CTX_ctrl)(SSL_CTX *, int, long, void *);
 extern void    (*x_SSL_CTX_free)(SSL_CTX *);
 extern SSL_CTX*(*x_SSL_CTX_new)(SSL_METHOD *);
-extern int     (*x_SSL_CTX_set_cipher_list)(SSL_CTX *ctx, const char *str);
+extern int     (*x_SSL_CTX_set_cipher_list)(SSL_CTX *, const char *);
+extern void    (*x_SSL_CTX_set_info_callback)(SSL_CTX *,
+                                              void (*)(const SSL *, int, int));
 extern int     (*x_SSL_CTX_use_PrivateKey_file)(SSL_CTX *, const char *, int);
 extern int     (*x_SSL_CTX_use_PrivateKey_ASN1)(int, SSL_CTX *,
                                                 const unsigned char *, long);
@@ -141,6 +143,7 @@ extern void   *(*x_SSL_COMP_get_compression_methods)(void);
 #define SSL_CTX_free                 x_SSL_CTX_free
 #define SSL_CTX_new                  x_SSL_CTX_new
 #define SSL_CTX_set_cipher_list      x_SSL_CTX_set_cipher_list
+#define SSL_CTX_set_info_callback    x_SSL_CTX_set_info_callback
 #define SSL_CTX_use_PrivateKey_file  x_SSL_CTX_use_PrivateKey_file
 #define SSL_CTX_use_PrivateKey_ASN1  x_SSL_CTX_use_PrivateKey_ASN1
 #define SSL_CTX_use_certificate_file x_SSL_CTX_use_certificate_file
@@ -198,6 +201,7 @@ struct SSLSupport {
   SSL_CTX     *sslContext;
   char        *sniCertificatePattern;
   int         generateMissing;
+  int         renegotiationCount;
   struct Trie sniContexts;
 };
 

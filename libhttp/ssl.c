@@ -113,7 +113,9 @@ int           (*SSL_CTX_check_private_key)(const SSL_CTX *);
 long          (*SSL_CTX_ctrl)(SSL_CTX *, int, long, void *);
 void          (*SSL_CTX_free)(SSL_CTX *);
 SSL_CTX *     (*SSL_CTX_new)(SSL_METHOD *);
-int           (*SSL_CTX_set_cipher_list)(SSL_CTX *ctx, const char *str);
+int           (*SSL_CTX_set_cipher_list)(SSL_CTX *, const char *);
+void          (*SSL_CTX_set_info_callback)(SSL_CTX *,
+                                           void (*)(const SSL *, int, int));
 int           (*SSL_CTX_use_PrivateKey_file)(SSL_CTX *, const char *, int);
 int           (*SSL_CTX_use_PrivateKey_ASN1)(int, SSL_CTX *,
                                              const unsigned char *, long);
@@ -168,6 +170,7 @@ void initSSL(struct SSLSupport *ssl) {
   ssl->sslContext            = NULL;
   ssl->sniCertificatePattern = NULL;
   ssl->generateMissing       = 0;
+  ssl->renegotiationCount    = 0;
   initTrie(&ssl->sniContexts, sslDestroyCachedContext, ssl);
 }
 
@@ -292,6 +295,7 @@ static void loadSSL(void) {
     { { &SSL_CTX_free },                "SSL_CTX_free" },
     { { &SSL_CTX_new },                 "SSL_CTX_new" },
     { { &SSL_CTX_set_cipher_list },     "SSL_CTX_set_cipher_list" },
+    { { &SSL_CTX_set_info_callback },   "SSL_CTX_set_info_callback" },
     { { &SSL_CTX_use_PrivateKey_file }, "SSL_CTX_use_PrivateKey_file" },
     { { &SSL_CTX_use_PrivateKey_ASN1 }, "SSL_CTX_use_PrivateKey_ASN1" },
     { { &SSL_CTX_use_certificate_file },"SSL_CTX_use_certificate_file"},
@@ -602,6 +606,15 @@ static int sslSetCertificateFromFile(SSL_CTX *context,
   return rc;
 }
 
+static void sslInfoCallback(const SSL *sslHndl, int type, int val) {
+  // Count the number of renegotiations for each SSL session.
+  if (type & SSL_CB_HANDSHAKE_START) {
+    struct HttpConnection *http    =
+                          (struct HttpConnection *) SSL_get_app_data(sslHndl);
+    http->ssl->renegotiationCount += 1;
+  }
+}
+
 static SSL_CTX *sslMakeContext(void) {
 
   SSL_CTX *context;
@@ -656,6 +669,8 @@ static SSL_CTX *sslMakeContext(void) {
     "ECDHE-RSA-AES128-SHA:"
     "ECDHE-RSA-DES-CBC3-SHA:"
     "HIGH:MEDIUM:!RC4:!aNULL:!MD5"));
+
+  SSL_CTX_set_info_callback(context, sslInfoCallback);
 
   debug("SSL: server context succesfully initialized...");
   return context;
