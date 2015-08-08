@@ -1,3 +1,13 @@
+shellinabox (2.17) unstable; urgency=medium
+
+  * Generally, SSL updates.
+  * Disabling secure client-initiated renegotiation, an abused and
+    unnecessary feature.
+  * Added support for PFS using ECDHE.
+  * Guarding build against old versions of SSL.
+
+ -- Marc Singer <elf@debian.org>  Fri, 07 Aug 2015 20:48:33 -0700
+
 shellinabox (2.16) unstable; urgency=low
 
   * New release to guarantee upgrades for people who had installed a
