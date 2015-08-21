@@ -29,8 +29,8 @@ dnl Overwrite default archiver flags.
 AC_SUBST(AR_FLAGS, [cr])
 
 dnl Check for header files that do not exist on all platforms
-AC_CHECK_HEADERS([libutil.h pthread.h pty.h strings.h sys/prctl.h sys/uio.h  \
-                  util.h utmp.h utmpx.h])
+AC_CHECK_HEADERS([libutil.h pthread.h pty.h strings.h syslog.h sys/prctl.h \
+                  sys/uio.h util.h utmp.h utmpx.h])
 
 dnl Most systems require linking against libutil.so in order to get login_tty()
 AC_CHECK_FUNCS(login_tty, [],
@@ -40,6 +40,9 @@ AC_CHECK_FUNCS(login_tty, [],
 
 dnl Use strlcat() instead of strncat() to avoid spurious warnings
 AC_CHECK_FUNCS([strlcat])
+
+dnl Use vsyslog() for logging important error messages
+AC_CHECK_FUNCS([vsyslog])
 
 dnl Prefer thread-safe functions, if available
 AC_CHECK_FUNCS([getgrgid_r getgrnam_r gethostbyname_r getpwnam_r getpwuid_r  \

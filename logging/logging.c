@@ -52,6 +52,19 @@
 
 #include "logging/logging.h"
 
+#ifdef HAVE_SYSLOG_H
+# include <syslog.h>
+# ifndef HAVE_VSYSLOG
+static void vsyslog(int priority, const char *fmt, va_list ap) {
+  char *s = vStringPrintf(NULL, fmt, ap);
+  if (s) {
+    syslog(priority, "%s", s);
+    free(s);
+  }
+}
+# endif
+#endif
+
 static int verbosity = MSG_DEFAULT;
 
 static void debugMsg(int level, const char *fmt, va_list ap) {
@@ -86,6 +99,9 @@ void error(const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   debugMsg(MSG_ERROR, fmt, ap);
+#ifdef HAVE_SYSLOG_H
+  vsyslog(LOG_ERR, fmt, ap);
+#endif
   va_end(ap);
 }
 
@@ -100,6 +116,10 @@ void fatal(const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   debugMsg(MSG_QUIET, fmt, ap);
+#ifdef HAVE_SYSLOG_H
+  vsyslog(LOG_CRIT, fmt, ap);
+  syslog(LOG_CRIT, "Aborting...");
+#endif
   va_end(ap);
   _exit(1);
 }
