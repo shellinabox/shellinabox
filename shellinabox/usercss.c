@@ -80,7 +80,7 @@ static void readStylesheet(struct UserCSS *userCSS, const char *filename,
   int fd                  = open(filename, O_RDONLY);
   struct stat st;
   if (fd < 0 || fstat(fd, &st)) {
-    fatal("Cannot access style sheet \"%s\"", filename);
+    fatal("[config] Cannot access style sheet \"%s\"!", filename);
   }
   FILE *fp;
   check(fp                = fdopen(fd, "r"));
@@ -114,7 +114,7 @@ void initUserCSS(struct UserCSS *userCSS, const char *arg) {
   for (;;) {
     const char *colon                     = strchr(arg, ':');
     if (!colon) {
-      fatal("Incomplete user CSS definition: \"%s\"", arg);
+      fatal("[config] Incomplete user CSS definition: \"%s\"!", arg);
     }
 
     check(userCSS->label                  = malloc(6*(colon - arg) + 1));
@@ -153,15 +153,14 @@ void initUserCSS(struct UserCSS *userCSS, const char *arg) {
         break;
       case '+':
         if (hasActiveMember) {
-          fatal("There can only be one active style option per group. Maybe "
-                "use ';' instead of ',' to start a new group.");
+          fatal("[config] Only one default active style allowed per group!");
         }
         hasActiveMember                   = 1;
         userCSS->isActivated              = 1;
         break;
       default:
-        fatal("Must indicate with '+' or '-' whether the style option is "
-              "active by default");
+        fatal("[config] Must indicate with '+' or '-' whether the style option "
+              "is active by default!");
     }
 
     readStylesheet(userCSS, filename + 1, (char **)&userCSS->style,
@@ -188,9 +187,7 @@ void initUserCSS(struct UserCSS *userCSS, const char *arg) {
     }
   }
   if (!hasActiveMember && numMembers > 1) {
-    fatal("Each group of style options must have exactly one style that is "
-          "active by\n"
-          "default.");
+    fatal("[config] Only one default active style allowed per group!");
   }
 }
 

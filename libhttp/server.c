@@ -309,19 +309,20 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
                                     + strlen(unixDomainPath);
 
     if (bind(server->serverFd, (struct sockaddr *)&serverAddr, servlen)) {
-      fatal("Failed to bind to unix socket! [%d: %s]", errno, strerror(errno));
+      fatal("[server] Failed to bind to unix socket! [%d: %s]",
+            errno, strerror(errno));
     }
     if (chown(unixDomainPath, unixDomainUser, unixDomainGroup)) {
-      fatal("Unable to change ownership on unix socket! [%d: %s]",
+      fatal("[server] Unable to change ownership on unix socket! [%d: %s]",
             errno, strerror(errno));
     }
     if (chmod(unixDomainPath, unixDomainChmod)) {
-      fatal("Unable to change premission on unix socket! [%d: %s)",
+      fatal("[server] Unable to change permission on unix socket! [%d: %s]",
             errno, strerror(errno));
     }
 
     check(!listen(server->serverFd, SOMAXCONN));
-    info("Listening on unix domain socket %s", unixDomainPath);
+    info("[server] Listening on unix domain socket %s...", unixDomainPath);
     check(server->pollFds         = malloc(sizeof(struct pollfd)));
     server->pollFds->fd           = server->serverFd;
     server->pollFds->events       = POLLIN;
@@ -362,7 +363,7 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
       serverAddr.sin_port       = 0;
     }
     if (!serverAddr.sin_port) {
-      fatal("Failed to find any available port");
+      fatal("[server] Failed to find any available port!");
     }
   }
 
@@ -372,7 +373,7 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
                      &socklen));
   check(socklen == sizeof(serverAddr));
   server->port                  = ntohs(serverAddr.sin_port);
-  info("Listening on port %d", server->port);
+  info("[server] Listening on port %d...", server->port);
 
   check(server->pollFds         = malloc(sizeof(struct pollfd)));
   server->pollFds->fd           = server->serverFd;
@@ -386,7 +387,7 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
 void destroyServer(struct Server *server) {
   if (server) {
     if (server->serverFd >= 0) {
-      info("Shutting down server");
+      info("[server] Shutting down server");
       NOINTR(close(server->serverFd));
     }
     for (int i = 0; i < server->numConnections; i++) {

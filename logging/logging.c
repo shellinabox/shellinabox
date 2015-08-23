@@ -118,7 +118,7 @@ void fatal(const char *fmt, ...) {
   debugMsg(MSG_QUIET, fmt, ap);
 #ifdef HAVE_SYSLOG_H
   vsyslog(LOG_CRIT, fmt, ap);
-  syslog(LOG_CRIT, "Aborting...");
+  syslog(LOG_CRIT, "[server] Aborting...");
 #endif
   va_end(ap);
   _exit(1);

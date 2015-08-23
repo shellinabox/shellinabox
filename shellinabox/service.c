@@ -78,7 +78,7 @@ void initService(struct Service *service, const char *arg) {
   char *ptr;
   if ((ptr = strchr(arg, ':')) == NULL) {
   error:
-    fatal("Syntax error in service description \"%s\".", desc);
+    fatal("[config] Syntax error in service description \"%s\"!", desc);
   }
   service->id                               = -1;
   check(service->path                       = malloc(ptr - arg + 2));
@@ -95,8 +95,7 @@ void initService(struct Service *service, const char *arg) {
   // application definition.
   if (!strcmp(arg, "LOGIN")) {
     if (geteuid()) {
-      fatal("Must be \"root\" to invoke \"/bin/login\". Maybe, change "
-            "--service definitions?");
+      fatal("[config] Must be \"root\" to invoke LOGIN service!");
     }
     service->useLogin                       = 1;
     service->useHomeDir                     = 0;
@@ -145,7 +144,7 @@ void initService(struct Service *service, const char *arg) {
             (ch >= 'A' && ch <= 'Z') ||
             (ch >= 'a' && ch <= 'z') ||
             ch == '-' || ch == '.')) {
-        fatal("Invalid hostname \"%s\" in service definition", host);
+        fatal("[config] Invalid hostname \"%s\" in service definition!", host);
       }
     }
 
@@ -210,7 +209,7 @@ void initService(struct Service *service, const char *arg) {
       service->cwd                          = NULL;
     } else {
       if (*arg != '/') {
-        fatal("Working directories must have absolute paths");
+        fatal("[config] Working directories must have absolute paths!");
       }
       service->useHomeDir                   = 0;
       check(service->cwd                    = strdup(arg));

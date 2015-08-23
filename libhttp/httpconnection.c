@@ -88,7 +88,7 @@
 static int httpPromoteToSSL(struct HttpConnection *http, const char *buf,
                             int len) {
   if (http->ssl->enabled && !http->sslHndl) {
-    debug("SSL: switching to SSL (replaying %d+%d bytes)",
+    debug("[ssl] Switching to SSL (replaying %d+%d bytes)...",
           http->partialLength, len);
     if (http->partial && len > 0) {
       check(http->partial  = realloc(http->partial,
@@ -143,7 +143,7 @@ static ssize_t httpRead(struct HttpConnection *http, char *buf, ssize_t len) {
 
     // Shutdown SSL connection, if client initiated renegotiation.
     if (http->ssl->renegotiationCount > 1) {
-      debug("SSL: connection shutdown due to client initiated renegotiation!");
+      debug("[ssl] Connection shutdown due to client initiated renegotiation!");
       rc                     = 0;
       errno                  = EINVAL;
     }
@@ -273,7 +273,7 @@ static int httpFinishCommand(struct HttpConnection *http) {
         *lengthBuf  = '\000';
         strncat(lengthBuf, "-", sizeof(lengthBuf)-1);
       }
-      info("%s - - %s \"%s %s %s\" %d %s",
+      info("[http] %s - - %s \"%s %s %s\" %d %s",
            http->peerName, timeBuf, http->method, http->path, http->version,
            http->code, lengthBuf);
     }
@@ -405,7 +405,7 @@ void initHttpConnection(struct HttpConnection *http, struct Server *server,
   http->sslHndl            = NULL;
   http->lastError          = 0;
   if (logIsInfo()) {
-    debug("Accepted connection from %s:%d",
+    debug("[http] Accepted connection from %s:%d",
           http->peerName ? http->peerName : "???", http->peerPort);
   }
 }
@@ -426,7 +426,7 @@ void destroyHttpConnection(struct HttpConnection *http) {
     }
     httpSetState(http, COMMAND);
     if (logIsInfo()) {
-      debug("Closing connection to %s:%d",
+      debug("[http] Closing connection to %s:%d",
             http->peerName ? http->peerName : "???", http->peerPort);
     }
     httpShutdown(http, http->closed ? SHUT_WR : SHUT_RDWR);
@@ -661,7 +661,7 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
                        31, 8, Z_DEFAULT_STRATEGY) == Z_OK) {
         if (deflate(&strm, Z_FINISH) == Z_STREAM_END) {
           // Compression was successful and resulted in reduction in size
-          debug("Compressed response from %d to %d", len, len-strm.avail_out);
+          debug("[http] Compressed response from %d to %d", len, len-strm.avail_out);
           free(msg);
           msg               = compressed;
           len              -= strm.avail_out;
@@ -757,7 +757,7 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
     if (!http->isPartialReply) {
       if (http->expecting < 0) {
         // If we do not know the length of the content, close the connection.
-        debug("Closing previously suspended connection");
+        debug("[http] Closing previously suspended connection!");
         httpCloseRead(http);
         httpSetState(http, DISCARD_PAYLOAD);
       } else if (http->expecting == 0) {
@@ -786,7 +786,7 @@ void httpTransferPartialReply(struct HttpConnection *http, char *msg, int len){
 
 static int httpHandleCommand(struct HttpConnection *http,
                              const struct Trie *handlers) {
-  debug("Handling \"%s\" \"%s\"", http->method, http->path);
+  debug("[http] Handling \"%s\" \"%s\"", http->method, http->path);
   const char *contentLength                  = getFromHashMap(&http->header,
                                                              "content-length");
   if (contentLength != NULL && *contentLength) {
@@ -901,7 +901,7 @@ static int httpHandleCommand(struct HttpConnection *http,
               protocol ? protocol : "",
               protocol ? "\r\n" : "");
             free(port);
-            debug("Switching to WebSockets");
+            debug("[http] Switching to WebSockets");
             httpTransfer(http, response, strlen(response));
             if (http->expecting < 0) {
               http->expecting                = 0;
@@ -1158,7 +1158,7 @@ static int httpParseHeaders(struct HttpConnection *http,
     }
     value[j]               = '\000';
     if (getRefFromHashMap(&http->header, http->key)) {
-      debug("Dropping duplicate header \"%s\"", http->key);
+      debug("[http] Dropping duplicate header \"%s\"", http->key);
       free(http->key);
       free(value);
       http->key            = NULL;

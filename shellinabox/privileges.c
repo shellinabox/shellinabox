@@ -110,7 +110,7 @@ static void removeGroupPrivileges(int showError) {
     if ((ru && runAsGroup != (int)rg) ||
         setresgid(runAsGroup, runAsGroup, runAsGroup)) {
       if (showError) {
-        fatal("Only privileged users can change their group memberships");
+        fatal("[server] Only privileged users can change their group membership!");
       } else {
         _exit(1);
       }
@@ -142,7 +142,7 @@ void lowerPrivileges(void) {
   if (runAsUser >= 0) {
     // Try to switch to the user-provided user id.
     if (r && runAsUser != (int)r) {
-      fatal("Only privileged users can change their user id");
+      fatal("[server] Only privileged users can change their user id!");
     }
     check(!setresuid(runAsUser, runAsUser, -1));
   } else {
@@ -169,7 +169,7 @@ void dropPrivileges(void) {
     // Try to switch to the user-provided user id.
     if ((r && runAsUser != (int)r) ||
         setresuid(runAsUser, runAsUser, runAsUser)) {
-      fatal("Only privileged users can change their user id.");
+      fatal("[server] Only privileged users can change their user id!");
     }
   } else {
     if (r) {
@@ -268,7 +268,7 @@ uid_t getUserId(const char *name) {
   #endif
   check(buf = malloc(len));
   if (getpwnam_r(name, &pwbuf, buf, len, &pw) || !pw) {
-    fatal("Cannot look up user id \"%s\"", name);
+    fatal("[server] Cannot look up user id \"%s\"!", name);
   }
   uid_t uid = pw->pw_uid;
   free(buf);
@@ -402,16 +402,16 @@ gid_t getGroupId(const char *name) {
           check(buf = realloc(buf, pw_len));
         }
         if (!getpwnam_r("nobody", &pwbuf, buf, pw_len, &pw) && pw) {
-          debug("Substituting \"nobody's\" primary group for \"nogroup\"");
+          debug("[server] Substituting \"nobody\"'s primary group for \"nogroup\"");
           gid_t gid = pw->pw_gid;
           free(buf);
           return gid;
         }
       }
     }
-    if(ret && errno == ERANGE) {
+    if (ret && errno == ERANGE) {
       if ((gr_len + gr_baselen) < gr_len || (gr_len + gr_baselen) > gr_max) {
-        fatal("Cannot look up group \"%s\": buffer limit reached", name);
+        fatal("[server] Cannot look up group \"%s\"! [buffer limit reached]", name);
         break;
       }
       // grow the buffer by 'gr_baselen' each time getgrnam_r fails
@@ -420,7 +420,7 @@ gid_t getGroupId(const char *name) {
       buf = temp;
       continue;
     }
-    fatal("Cannot look up group \"%s\"", name);
+    fatal("[server] Cannot look up group \"%s\"", name);
   }
   gid_t gid = gr->gr_gid;
   free(buf);

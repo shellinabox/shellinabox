@@ -82,10 +82,10 @@ static char *urlUnescape(char *s) {
           ch    = (ch << 4) + c2 - (c2 > '9' ? 'A' - 10 : '0');
           ++u;
         } else if (!warned++) {
-          warn("Malformed URL encoded data \"%s\"", r);
+          warn("[http] Malformed URL encoded data \"%s\"!", r);
         }
       } else if (!warned++) {
-        warn("Malformed URL encoded data \"%s\"", r);
+        warn("[http] Malformed URL encoded data \"%s\"!", r);
       }
     }
     *s++        = ch;
@@ -297,7 +297,7 @@ static void urlParsePostBody(struct URL *url,
                 urlParsePart(url, lastPart, ptr - lastPart);
               } else {
                 if (ptr != buf) {
-                  info("Ignoring prologue before \"multipart/form-data\"");
+                  info("[http] Ignoring prologue before \"multipart/form-data\"!");
                 }
               }
               lastPart     = part;
@@ -307,18 +307,18 @@ static void urlParsePostBody(struct URL *url,
               urlParsePart(url, lastPart, ptr - lastPart);
               lastPart     = NULL;
               if (len > 0) {
-                info("Ignoring epilogue past end of \"multipart/"
-                     "form-data\"");
+                info("[http] Ignoring epilogue past end of \"multipart/"
+				     "form-data\"!");
               }
             }
           }
         }
       }
       if (lastPart) {
-        warn("Missing final \"boundary\" for \"multipart/form-data\"");
+        warn("[http] Missing final \"boundary\" for \"multipart/form-data\"!");
       }
     } else {
-      warn("Missing \"boundary\" information for \"multipart/form-data\"");
+      warn("[http] Missing \"boundary\" information for \"multipart/form-data\"!");
     }
   }
   destroyHashMap(&contentType);

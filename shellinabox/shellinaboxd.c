@@ -280,7 +280,7 @@ static int completePendingRequest(struct Session *session,
 
 static void sessionDone(void *arg) {
   struct Session *session = (struct Session *)arg;
-  debug("Session %s done", session->sessionKey);
+  debug("[server] Session %s done.", session->sessionKey);
   if (session->cleanup) {
     terminateChild(session);
   }
@@ -308,7 +308,7 @@ static int handleSession(struct ServerConnection *connection, void *arg,
   int timedOut                  = serverGetTimeout(connection) < 0;
   if (bytes || timedOut) {
     if (!session->http && timedOut) {
-      debug("Timeout. Closing session.");
+      debug("[server] Timeout. Closing session!");
       session->cleanup = 1;
       return 0;
     }
@@ -332,7 +332,7 @@ static int invalidatePendingHttpSession(void *arg, const char *key,
                                         char **value) {
   struct Session *session = *(struct Session **)value;
   if (session->http && session->http == (HttpConnection *)arg) {
-    debug("Clearing pending HTTP connection for session %s", key);
+    debug("[server] Clearing pending HTTP connection for session %s!", key);
     session->http         = NULL;
     serverDeleteConnection(session->server, session->pty);
 
@@ -367,7 +367,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
 
   // Sanity check
   if (!sessionIsNew && strcmp(session->peerName, httpGetPeerName(http))) {
-    error("Peername changed from %s to %s",
+    error("[server] Peername changed from %s to %s",
           session->peerName, httpGetPeerName(http));
     httpSendReply(http, 400, "Bad Request", NO_MSG);
     return HTTP_DONE;
@@ -418,7 +418,8 @@ static int dataHandler(HttpConnection *http, struct Service *service,
   // Reset window dimensions of the pseudo TTY, if changed since last time set.
   if (session->width > 0 && session->height > 0 &&
       (session->width != oldWidth || session->height != oldHeight)) {
-    debug("Window size changed to %dx%d", session->width, session->height);
+    debug("[server] Window size changed to %dx%d", session->width,
+          session->height);
     setWindowSize(session->pty, session->width, session->height);
   }
 
@@ -746,11 +747,11 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
 static int strtoint(const char *s, int minVal, int maxVal) {
   char *ptr;
   if (!*s) {
-    fatal("Missing numeric value.");
+    fatal("[config] Missing numeric value!");
   }
   long l = strtol(s, &ptr, 10);
   if (*ptr || l < minVal || l > maxVal) {
-    fatal("Range error on numeric value \"%s\".", s);
+    fatal("[config] Range error on numeric value \"%s\"!", s);
   }
   return l;
 }
@@ -916,19 +917,20 @@ static void parseArgs(int argc, char * const argv[]) {
     }
     if (idx-- <= 0) {
       // Help (or invalid argument)
-      usage();
       if (idx < -1) {
-        fatal("Failed to parse command line");
+        fatal("[server] Failed to parse command line!");
+      } else {
+        usage();
       }
       exit(0);
     } else if (!idx--) {
       // Background
       if (cgi) {
-        fatal("CGI and background operations are mutually exclusive");
+        fatal("[config] CGI and background operations are mutually exclusive!");
       }
       demonize            = 1;
       if (optarg && pidfile) {
-        fatal("Only one pidfile can be given");
+        fatal("[config] Only one pidfile can be given!");
       }
       if (optarg && *optarg) {
         check(pidfile     = strdup(optarg));
@@ -936,55 +938,55 @@ static void parseArgs(int argc, char * const argv[]) {
     } else if (!idx--) {
       // Certificate
       if (!hasSSL) {
-        warn("Ignoring certificate directory, as SSL support is unavailable");
+        warn("[config] Ignoring certificate directory, as SSL support is unavailable.");
       }
       if (certificateFd >= 0) {
-        fatal("Cannot set both a certificate directory and file handle");
+        fatal("[config] Cannot set both a certificate directory and file handle!");
       }
       if (certificateDir) {
-        fatal("Only one certificate directory can be selected");
+        fatal("[config] Only one certificate directory can be selected!");
       }
       struct stat st;
       if (!optarg || !*optarg || stat(optarg, &st) || !S_ISDIR(st.st_mode)) {
-        fatal("\"--cert\" expects a directory name");
+        fatal("[config] Option --cert expects a directory name!");
       }
       check(certificateDir = strdup(optarg));
     } else if (!idx--) {
       // Certificate file descriptor
       if (!hasSSL) {
-        warn("Ignoring certificate directory, as SSL support is unavailable");
+        warn("[config] Ignoring certificate directory, as SSL support is unavailable.");
       }
       if (certificateDir) {
-        fatal("Cannot set both a certificate directory and file handle");
+        fatal("[config] Cannot set both a certificate directory and file handle!");
       }
       if (certificateFd >= 0) {
-        fatal("Only one certificate file handle can be provided");
+        fatal("[config] Only one certificate file handle can be provided!");
       }
       if (!optarg || *optarg < '0' || *optarg > '9') {
-        fatal("Option \"--cert-fd\" expects a valid file handle.");
+        fatal("[config] Option --cert-fd expects a valid file handle.");
       }
       int tmpFd            = strtoint(optarg, 3, INT_MAX);
       certificateFd        = dup(tmpFd);
       if (certificateFd < 0) {
-        fatal("Invalid certificate file handle");
+        fatal("[config] Invalid certificate file handle!");
       }
       check(!NOINTR(close(tmpFd)));
     } else if (!idx--) {
       // CSS
       struct stat st;
       if (!optarg || !*optarg || stat(optarg, &st) || !S_ISREG(st.st_mode)) {
-        fatal("Option \"--css\" expects a file name.");
+        fatal("[config] Option --css expects a file name!");
       }
       FILE *css            = fopen(optarg, "r");
       if (!css) {
-        fatal("Cannot read style sheet \"%s\"", optarg);
+        fatal("[config] Cannot read style sheet \"%s\"!", optarg);
       } else {
         check(cssStyleSheet= realloc(cssStyleSheet, strlen(cssStyleSheet) +
                                      st.st_size + 2));
         char *newData      = strrchr(cssStyleSheet, '\000');
         *newData++         = '\n';
         if (fread(newData, st.st_size, 1, css) != 1) {
-          fatal("Failed to read style sheet \"%s\"", optarg);
+          fatal("[config] Failed to read style sheet \"%s\"!", optarg);
         }
         newData[st.st_size]= '\000';
         fclose(css);
@@ -992,19 +994,19 @@ static void parseArgs(int argc, char * const argv[]) {
     } else if (!idx--) {
       // CGI
       if (demonize) {
-        fatal("CGI and background operations are mutually exclusive");
+        fatal("[config] CGI and background operations are mutually exclusive!");
       }
       if (pidfile) {
-        fatal("CGI operation and --pidfile= are mutually exclusive");
+        fatal("[config] CGI operation and --pidfile are mutually exclusive!");
       }
       if (port) {
-        fatal("Cannot specify a port for CGI operation");
+        fatal("[config] Cannot specify a port for CGI operation!");
       }
       cgi                  = 1;
       if (optarg && *optarg) {
         char *ptr          = strchr(optarg, '-');
         if (!ptr) {
-          fatal("Syntax error in port range specification");
+          fatal("[config] Syntax error in port range specification!");
         }
         *ptr               = '\000';
         portMin            = strtoint(optarg, 1, 65535);
@@ -1014,40 +1016,41 @@ static void parseArgs(int argc, char * const argv[]) {
     } else if (!idx--) {
       // Debug
       if (!logIsDefault() && !logIsDebug()) {
-        fatal("--debug is mutually exclusive with --quiet and --verbose.");
+        fatal("[config] Option --debug is mutually exclusive with --quiet and --verbose!");
       }
       verbosity            = MSG_DEBUG;
       logSetLogLevel(verbosity);
     } else if (!idx--) {
       // Static file
       if (!optarg || !*optarg) {
-	    fatal("Option \"--static-file\" expects an argument.");
+	    fatal("[config] Option --static-file expects an argument!");
       }
       char *ptr, *path, *file;
       if ((ptr             = strchr(optarg, ':')) == NULL) {
-        fatal("Syntax error in static-file definition \"%s\".", optarg);
+        fatal("[config] Syntax error in static-file definition \"%s\"!",
+              optarg);
       }
       check(path           = malloc(ptr - optarg + 1));
       memcpy(path, optarg, ptr - optarg);
       path[ptr - optarg]   = '\000';
       check(file           = strdup(ptr + 1));
       if (getRefFromHashMap(externalFiles, path)) {
-        fatal("Duplicate static-file definition for \"%s\".", path);
+        fatal("[config] Duplicate static-file definition for \"%s\"!", path);
       }
       addToHashMap(externalFiles, path, file);
     } else if (!idx--) {
       // Group
       if (runAsGroup >= 0) {
-        fatal("Duplicate --group option.");
+        fatal("[config] Duplicate --group option.");
       }
       if (!optarg || !*optarg) {
-        fatal("Option \"--group\" expects a group name.");
+        fatal("[config] Option --group expects a group name.");
       }
       runAsGroup           = parseGroupArg(optarg, NULL);
     } else if (!idx--) {
       // Linkify
       if (!optarg || !*optarg) {
-        fatal("Option \"--linkify\" expects an argument.");
+        fatal("[config] Option --linkify expects an argument.");
       }
       if (!strcmp(optarg, "none")) {
         linkifyURLs        = 0;
@@ -1056,8 +1059,8 @@ static void parseArgs(int argc, char * const argv[]) {
       } else if (!strcmp(optarg, "aggressive")) {
         linkifyURLs        = 2;
       } else {
-        fatal("Invalid argument for --linkify. Must be "
-              "\"none\", \"normal\", or \"aggressive\".");
+        fatal("[config] Invalid argument for --linkify. Must be \"none\", \"normal\", "
+              "or \"aggressive\".");
       }
     } else if (!idx--) {
       // Localhost Only
@@ -1071,71 +1074,70 @@ static void parseArgs(int argc, char * const argv[]) {
     } else if (!idx--) {
       // Messages origin
       if (messagesOrigin) {
-        fatal("Duplicated \"--messages-origin\" option.");
+        fatal("[config] Duplicated --messages-origin option.");
       }
       if (!optarg || !*optarg) {
-        fatal("Option \"--messages-origin\" expects an argument.");
+        fatal("[config] Option --messages-origin expects an argument.");
       }
       check(messagesOrigin = strdup(optarg));
     } else if (!idx--) {
       // Pidfile
       if (cgi) {
-        fatal("CGI operation and --pidfile= are mutually exclusive");
+        fatal("[config] CGI operation and --pidfile are mutually exclusive");
       }
       if (!optarg || !*optarg) {
-        fatal("Must specify a filename for --pidfile= option");
+        fatal("[config] Must specify a filename for --pidfile option");
       }
       if (pidfile) {
-        fatal("Only one pidfile can be given");
+        fatal("[config] Only one pidfile can be given");
       }
       check(pidfile        = strdup(optarg));
     } else if (!idx--) {
       // Port
       if (port) {
-        fatal("Duplicate --port option");
+        fatal("[config] Duplicate --port option!");
       }
       if (cgi) {
-        fatal("Cannot specifiy a port for CGI operation");
+        fatal("[config] Cannot specifiy a port for CGI operation");
       }
       if (!optarg || *optarg < '0' || *optarg > '9') {
-        fatal("Option \"--port\" expects a port number.");
+        fatal("[config] Option --port expects a port number.");
       }
       port = strtoint(optarg, 1, 65535);
     } else if (!idx--) {
       // Service
       if (!optarg || !*optarg) {
-        fatal("Option \"--service\" expects an argument.");
+        fatal("[config] Option \"--service\" expects an argument.");
       }
       struct Service *service;
       service              = newService(optarg);
       if (getRefFromHashMap(serviceTable, service->path)) {
-        fatal("Duplicate service description for \"%s\".", service->path);
+        fatal("[config] Duplicate service description for \"%s\".", service->path);
       }
       addToHashMap(serviceTable, service->path, (char *)service);
     } else if (!idx--) {
       // Disable SSL
       if (!hasSSL) {
-        warn("Ignoring disable-ssl option, as SSL support is unavailable");
+        warn("[config] Ignoring disable-ssl option, as SSL support is unavailable.");
       }
       enableSSL            = 0;
     } else if (!idx--) {
       // Disable SSL Menu
       if (!hasSSL) {
-        warn("Ignoring disable-ssl-menu option, as SSL support is "
-             "unavailable");
+        warn("[config] Ignoring disable-ssl-menu option, as SSL support is unavailable.");
       }
       enableSSLMenu        = 0;
     } else if (!idx--) {
       // Quiet
       if (!logIsDefault() && !logIsQuiet()) {
-        fatal("--quiet is mutually exclusive with --debug and --verbose.");
+         fatal("[config] Option --quiet is mutually exclusive with --debug and --verbose!");
       }
       verbosity            = MSG_QUIET;
       logSetLogLevel(verbosity);
     } else if (!idx--) {
       // Unix domain only
       if (!optarg || !*optarg) {
-        fatal("Option \"--unixdomain-only\" expects an argument.");
+        fatal("[config] Option --unixdomain-only expects an argument!");
       }
       char *ptr, *s, *tmp;
 
@@ -1143,7 +1145,8 @@ static void parseArgs(int argc, char * const argv[]) {
       s                    = optarg;
       ptr                  = strchr(s, ':');
       if (ptr == NULL || ptr == s || ptr - s >= UNIX_PATH_MAX) {
-        fatal("Syntax error in unixdomain-only path definition \"%s\".", optarg);
+        fatal("[config] Syntax error in unixdomain-only path definition \"%s\".",
+		      optarg);
       }
       check(unixDomainPath = strndup(s, ptr - s));
 
@@ -1151,7 +1154,8 @@ static void parseArgs(int argc, char * const argv[]) {
       s                    = ptr + 1;
       ptr                  = strchr(s, ':');
       if (ptr == NULL || ptr == s) {
-        fatal("Syntax error in unixdomain-only user definition \"%s\".", optarg);
+        fatal("[config] Syntax error in unixdomain-only user definition \"%s\".",
+              optarg);
       }
       check(tmp            = strndup(s, ptr - s));
       unixDomainUser       = parseUserArg(tmp, NULL);
@@ -1161,7 +1165,8 @@ static void parseArgs(int argc, char * const argv[]) {
       s                    = ptr + 1;
       ptr                  = strchr(s, ':');
       if (ptr == NULL || ptr == s) {
-        fatal("Syntax error in unixdomain-only group definition \"%s\".", optarg);
+        fatal("[config] Syntax error in unixdomain-only group definition \"%s\".",
+		      optarg);
       }
       check(tmp            = strndup(s, ptr - s));
       unixDomainGroup      = parseGroupArg(tmp, NULL);
@@ -1170,29 +1175,31 @@ static void parseArgs(int argc, char * const argv[]) {
       // Unix domain chmod
       s                    = ptr + 1;
       if (strlen(ptr) == 1) {
-        fatal("Syntax error in unixdomain-only chmod definition \"%s\".", optarg);
+        fatal("[config] Syntax error in unixdomain-only chmod definition \"%s\".",
+              optarg);
       }
       unixDomainChmod      = strtol(s, NULL, 8);
 
     } else if (!idx--) {
       // User
       if (runAsUser >= 0) {
-        fatal("Duplicate --user option.");
+        fatal("[config] Duplicate --user option.");
       }
       if (!optarg || !*optarg) {
-        fatal("Option \"--user\" expects a user name.");
+        fatal("[config] Option --user expects a user name.");
       }
       runAsUser            = parseUserArg(optarg, NULL);
     } else if (!idx--) {
       // User CSS
       if (!optarg || !*optarg) {
-        fatal("Option \"--user-css\" expects a list of styles sheets and labels");
+        fatal("[config] Option --user-css expects a list of styles sheets "
+              "and labels!");
       }
       parseUserCSS(&userCSSList, optarg);
     } else if (!idx--) {
       // Verbose
       if (!logIsDefault() && (!logIsInfo() || logIsDebug())) {
-        fatal("--verbose is mutually exclusive with --debug and --quiet");
+         fatal("[config] Option --verbose is mutually exclusive with --debug and --quiet!");
       }
       verbosity            = MSG_INFO;
       logSetLogLevel(verbosity);
@@ -1204,14 +1211,14 @@ static void parseArgs(int argc, char * const argv[]) {
   }
   if (optind != argc) {
     usage();
-    fatal("Failed to parse command line");
+    fatal("[config] Failed to parse command line!");
   }
   char *buf                = NULL;
   check(argc >= 1);
   for (int i = 0; i < argc; i++) {
     buf                    = stringPrintf(buf, " %s", argv[i]);
   }
-  info("Command line:%s", buf);
+  info("[server] Command line: %s", buf);
   free(buf);
 
   // If the user did not specify a port, use the default one
@@ -1237,7 +1244,7 @@ static void parseArgs(int argc, char * const argv[]) {
   if (cgi) {
     for (int i = 0; i < numServices; i++) {
       if (strcmp(services[i]->path, "/")) {
-        fatal("Non-root service URLs are incompatible with CGI operation");
+        fatal("[config] Non-root service URLs are incompatible with CGI operation");
       }
     }
     check(cgiSessionKey    = newSessionKey());
@@ -1297,7 +1304,7 @@ static void setUpSSL(Server *server) {
     } else if (certificateDir) {
       char *tmp;
       if (strchr(certificateDir, '%')) {
-        fatal("Invalid certificate directory name \"%s\".", certificateDir);
+        fatal("[ssl] Invalid certificate directory name \"%s\".", certificateDir);
       }
       check(tmp = stringPrintf(NULL, "%s/certificate%%s.pem", certificateDir));
       serverSetCertificate(server, tmp, 1);
@@ -1433,6 +1440,6 @@ int main(int argc, char * const argv[]) {
     }
     free((char *)pidfile);
   }
-  info("Done");
+  info("[server] Done");
   _exit(0);
 }

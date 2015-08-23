@@ -224,7 +224,7 @@ struct Session *findSession(const char *sessionKey, const char *cgiSessionKey,
       *sessionIsNew      = 0;
     } else if (!cgiSessionKey && sessionKey && *sessionKey) {
       *sessionIsNew      = 0;
-      debug("Failed to find session: %s", sessionKey);
+      debug("[server] Failed to find session: %s", sessionKey);
     } else {
       // First contact. Create session, now.
       check(sessionKey   = cgiSessionKey ? strdup(cgiSessionKey)
@@ -232,7 +232,7 @@ struct Session *findSession(const char *sessionKey, const char *cgiSessionKey,
       session            = newSession(sessionKey, httpGetServer(http),
                                       httpGetPeerName(http));
       addToHashMap(sessions, sessionKey, (const char *)session);
-      debug("Creating a new session: %s", sessionKey);
+      debug("[server] Creating a new session: %s", sessionKey);
     }
   }
   return session;

@@ -430,7 +430,7 @@ static void loadPAM(void) {
         *symbols[i].var = (void *)my_misc_conv;
         continue;
       }
-      debug("Failed to load PAM support. Could not find \"%s\"",
+      debug("[server] Failed to load PAM support. Could not find \"%s\"!",
             symbols[i].fn);
       for (unsigned j = 0; j < sizeof(symbols)/sizeof(symbols[0]); j++) {
         *symbols[j].var = NULL;
@@ -438,7 +438,7 @@ static void loadPAM(void) {
       return;
     }
   }
-  debug("Loaded PAM suppport");
+  debug("[server] Loaded PAM suppport");
 }
 #endif
 
@@ -566,7 +566,7 @@ int terminateChild(struct Session *session) {
   }
 
   if (session->pid < 1) {
-    debug("Child pid for termination not valid!");
+    debug("[server] Child pid for termination not valid!");
     return -1;
   }
 
@@ -576,7 +576,7 @@ int terminateChild(struct Session *session) {
   check(request        = calloc(len, 1));
   request->terminate   = session->pid;
   if (NOINTR(write(launcher, request, len)) != len) {
-    debug("Child %d termination request failed!", request->terminate);
+    debug("[server] Child %d termination request failed!", request->terminate);
     free(request);
     return -1;
   }
@@ -850,7 +850,7 @@ static int forkPty(int *pty, int useLogin, struct Utmp **utmp,
           ptyPath[5]        = 't';
         }
         if ((slave          = NOINTR(open(ptyPath, O_RDWR|O_NOCTTY))) >= 0) {
-          debug("Opened old-style pty: %s", ptyPath);
+          debug("[server] Opened old-style pty: %s", ptyPath);
           goto success;
         }
         NOINTR(close(*pty));
@@ -1672,7 +1672,7 @@ static void launcherDaemon(int fd) {
     int len                   = read(fd, &request, sizeof(request));
     if (len != sizeof(request) && errno != EINTR) {
       if (len) {
-        debug("Failed to read launch request");
+        debug("[server] Failed to read launch request!");
       }
       break;
     }
@@ -1682,7 +1682,8 @@ static void launcherDaemon(int fd) {
     int   status;
     pid_t pid;
     while (NOINTR(pid = waitpid(-1, &status, WNOHANG)) > 0) {
-      debug("Child %d exited with exit code %d", pid, WEXITSTATUS(status));
+      debug("[server] Child %d exited with exit code %d.",
+            pid, WEXITSTATUS(status));
       if (WIFEXITED(status) || WIFSIGNALED(status)) {
         char key[32];
         snprintf(&key[0], sizeof(key), "%d", pid);
@@ -1700,9 +1701,9 @@ static void launcherDaemon(int fd) {
       NOINTR(pid = waitpid(request.terminate, &status, WNOHANG));
       if (pid == 0 && errno == 0) {
         if (kill(request.terminate, SIGTERM) == 0) {
-          debug("Terminating child %d (kill)", request.terminate);
+          debug("[server] Terminating child %d! [kill]", request.terminate);
         } else {
-          debug("Terminating child %d failed [%s]", request.terminate,
+          debug("[server] Terminating child %d failed! [%s]", request.terminate,
                 strerror(errno));
         }
       }
@@ -1714,12 +1715,13 @@ static void launcherDaemon(int fd) {
   readURL:
     len                       = read(fd, url, request.urlLength + 1);
     if (len != request.urlLength + 1 && errno != EINTR) {
-      debug("Failed to read URL");
+      debug("[server] Failed to read URL!");
       free(url);
       break;
     }
     while (NOINTR(pid = waitpid(-1, &status, WNOHANG)) > 0) {
-      debug("Child %d exited with exit code %d", pid, WEXITSTATUS(status));
+      debug("[server] Child %d exited with exit code %d.", pid,
+            WEXITSTATUS(status));
       if (WIFEXITED(status) || WIFSIGNALED(status)) {
         char key[32];
         snprintf(&key[0], sizeof(key), "%d", pid);
@@ -1776,7 +1778,7 @@ static void launcherDaemon(int fd) {
           childProcesses      = newHashMap(destroyUtmpHashEntry, NULL);
         }
         addToHashMap(childProcesses, utmp->pid, (char *)utmp);
-        debug("Child %d launched", pid);
+        debug("[server] Child %d launched", pid);
       } else {
         int fds[2];
         if (!pipe(fds)) {
@@ -1830,9 +1832,9 @@ int forkLauncher(void) {
     lowerPrivileges();
     closeAllFds((int []){ pair[1], 2 }, 2);
     launcherDaemon(pair[1]);
-    fatal("exit() failed!");
+    fatal("[server] Launcher exit() failed!");
   case -1:
-    fatal("fork() failed!");
+    fatal("[server] Launcher fork() failed!");
   default:
     NOINTR(close(pair[1]));
     launcher = pair[0];
