@@ -609,7 +609,7 @@ void httpTransfer(struct HttpConnection *http, char *msg, int len) {
         // Found the end of the headers.
 
         // Check that we don't send any data with HEAD requests
-        int isHead          = !strcmp(http->method, "HEAD");
+        int isHead          = http->method && !strcmp(http->method, "HEAD");
         check(l == 2 || !isHead);
 
         #ifdef HAVE_ZLIB
@@ -1421,6 +1421,7 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
       if (bytes > 0) {
         http->headerLength          += bytes;
         if (http->headerLength > MAX_HEADER_LENGTH) {
+          debug("[http] Connection closed due to exceeded header size!");
           httpSendReply(http, 413, "Header too big", NO_MSG);
           bytes                      = 0;
           eof                        = 1;
@@ -1782,7 +1783,7 @@ void httpSendReply(struct HttpConnection *http, int code,
                                 code != 200 ? "Connection: close\r\n" : "",
                                 (long)strlen(body));
   }
-  int isHead     = !strcmp(http->method, "HEAD");
+  int isHead     = http->method && !strcmp(http->method, "HEAD");
   if (!isHead) {
     response     = stringPrintf(response, "%s", body);
   }
