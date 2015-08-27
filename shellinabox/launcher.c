@@ -1629,6 +1629,10 @@ static void childProcess(struct Service *service, int width, int height,
     }
   }
 
+  // Reset the sigaction for HUP to the default, so the child does not inherit the action of SIG_IGN from us.
+  // We need the child to be able to get HUP's because we send HUP if the session times out/closes.
+  signal(SIGHUP, SIG_DFL);
+
   // Finally, launch the child process.
   if (service->useLogin == 1) {
     // At login service launch, we try to pass real IP in '-h' parameter. Real
@@ -1700,8 +1704,8 @@ static void launcherDaemon(int fd) {
       errno = 0;
       NOINTR(pid = waitpid(request.terminate, &status, WNOHANG));
       if (pid == 0 && errno == 0) {
-        if (kill(request.terminate, SIGTERM) == 0) {
-          debug("[server] Terminating child %d! [kill]", request.terminate);
+        if (kill(request.terminate, SIGHUP) == 0) {
+          debug("[server] Terminating child %d! [HUP]", request.terminate);
         } else {
           debug("[server] Terminating child %d failed! [%s]", request.terminate,
                 strerror(errno));
