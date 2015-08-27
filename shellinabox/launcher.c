@@ -1629,6 +1629,10 @@ static void childProcess(struct Service *service, int width, int height,
     }
   }
 
+  // Reset the sigaction for HUP to the default, so the child does not inherit the action of SIG_IGN from us.
+  // We need the child to be able to get HUP's because we send HUP if the session times out/closes.
+  signal(SIGHUP, SIG_DFL);
+
   // Finally, launch the child process.
   if (service->useLogin == 1) {
     // At login service launch, we try to pass real IP in '-h' parameter. Real
