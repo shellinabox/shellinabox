@@ -1700,8 +1700,8 @@ static void launcherDaemon(int fd) {
       errno = 0;
       NOINTR(pid = waitpid(request.terminate, &status, WNOHANG));
       if (pid == 0 && errno == 0) {
-        if (kill(request.terminate, SIGTERM) == 0) {
-          debug("[server] Terminating child %d! [kill]", request.terminate);
+        if (kill(request.terminate, SIGHUP) == 0) {
+          debug("[server] Terminating child %d! [HUP]", request.terminate);
         } else {
           debug("[server] Terminating child %d failed! [%s]", request.terminate,
                 strerror(errno));
