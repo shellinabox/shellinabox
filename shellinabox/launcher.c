@@ -139,6 +139,9 @@ int execle(const char *, const char *, ...);
 extern int pthread_once(pthread_once_t *, void (*)(void))__attribute__((weak));
 #endif
 
+// From shellinabox/shellinaboxd.c
+extern int enableUtmpLogging;
+
 // If PAM support is available, take advantage of it. Otherwise, silently fall
 // back on legacy operations for session management.
 #if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_DLOPEN)
@@ -673,15 +676,17 @@ void destroyUtmp(struct Utmp *utmp) {
       UNUSED_RETURN(setresuid(0, 0, 0));
       UNUSED_RETURN(setresgid(0, 0, 0));
 
-      setutxent();
-      pututxline(&utmp->utmpx);
-      endutxent();
+      if(enableUtmpLogging) {
+        setutxent();
+        pututxline(&utmp->utmpx);
+        endutxent();
 
 #if defined(HAVE_UPDWTMP) || defined(HAVE_UPDWTMPX)
-      if (!utmp->useLogin) {
-        updwtmpx("/var/log/wtmp", &utmp->utmpx);
-      }
+        if (!utmp->useLogin) {
+          updwtmpx("/var/log/wtmp", &utmp->utmpx);
+        }
 #endif
+      }
 
       // Switch back to the lower privileges
       check(!setresgid(r_gid, e_gid, s_gid));
@@ -1230,7 +1235,7 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
 
   // Update utmp/wtmp entries
 #ifdef HAVE_UTMPX_H
-  if (service->authUser != 2 /* SSH */) {
+  if (enableUtmpLogging && service->authUser != 2 /* SSH */) {
     memset(&utmp->utmpx.ut_user, 0, sizeof(utmp->utmpx.ut_user));
     strncat(&utmp->utmpx.ut_user[0], service->user,
             sizeof(utmp->utmpx.ut_user) - 1);
@@ -1550,22 +1555,24 @@ static void childProcess(struct Service *service, int width, int height,
   UNUSED_RETURN(setresuid(0, 0, 0));
   UNUSED_RETURN(setresgid(0, 0, 0));
 #ifdef HAVE_UTMPX_H
-  setutxent();
-  struct utmpx utmpx            = utmp->utmpx;
-  if (service->useLogin || service->authUser) {
-    utmpx.ut_type               = LOGIN_PROCESS;
-    memset(utmpx.ut_host, 0, sizeof(utmpx.ut_host));
-  }
-  pututxline(&utmpx);
-  endutxent();
+  if(enableUtmpLogging) {
+    setutxent();
+    struct utmpx utmpx            = utmp->utmpx;
+    if (service->useLogin || service->authUser) {
+      utmpx.ut_type               = LOGIN_PROCESS;
+      memset(utmpx.ut_host, 0, sizeof(utmpx.ut_host));
+    }
+    pututxline(&utmpx);
+    endutxent();
 
 #if defined(HAVE_UPDWTMP) || defined(HAVE_UPDWTMPX)
-  if (!utmp->useLogin) {
-    memset(&utmpx.ut_user, 0, sizeof(utmpx.ut_user));
-    strncat(&utmpx.ut_user[0], "LOGIN", sizeof(utmpx.ut_user) - 1);
-    updwtmpx("/var/log/wtmp", &utmpx);
-  }
+    if (!utmp->useLogin) {
+      memset(&utmpx.ut_user, 0, sizeof(utmpx.ut_user));
+      strncat(&utmpx.ut_user[0], "LOGIN", sizeof(utmpx.ut_user) - 1);
+      updwtmpx("/var/log/wtmp", &utmpx);
+    }
 #endif
+  }
 #endif
 
   // Create session. We might have to fork another process as PAM wants us

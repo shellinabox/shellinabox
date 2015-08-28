@@ -107,15 +107,16 @@
 static int            port;
 static int            portMin;
 static int            portMax;
-static int            localhostOnly   = 0;
-static int            noBeep          = 0;
-static int            numericHosts    = 0;
-static int            enableSSL       = 1;
-static int            enableSSLMenu   = 1;
-static char           *messagesOrigin = NULL;
-static int            linkifyURLs     = 1;
+static int            localhostOnly     = 0;
+static int            noBeep            = 0;
+static int            numericHosts      = 0;
+static int            enableSSL         = 1;
+static int            enableSSLMenu     = 1;
+int                   enableUtmpLogging = 1;
+static char           *messagesOrigin   = NULL;
+static int            linkifyURLs       = 1;
 static char           *certificateDir;
-static int            certificateFd   = -1;
+static int            certificateFd     = -1;
 static HashMap        *externalFiles;
 static Server         *cgiServer;
 static char           *cgiSessionKey;
@@ -789,6 +790,7 @@ static void usage(void) {
           "  -p, --port=PORT             select a port (default: %d)\n"
           "  -s, --service=SERVICE       define one or more services\n"
           "%s"
+          "      --disable-utmp-logging  disable logging to utmp and wtmp\n"
           "  -q, --quiet                 turn off all messages\n"
           "      --unixdomain-only=PATH:USER:GROUP:CHMOD listen on unix socket\n"
           "  -u, --user=UID              switch to this user (default: %s)\n"
@@ -877,31 +879,32 @@ static void parseArgs(int argc, char * const argv[]) {
   for (;;) {
     static const char optstring[] = "+hb::c:df:g:nm:p:s:tqu:v";
     static struct option options[] = {
-      { "help",             0, 0, 'h' },
-      { "background",       2, 0, 'b' },
-      { "cert",             1, 0, 'c' },
-      { "cert-fd",          1, 0,  0  },
-      { "css",              1, 0,  0  },
-      { "cgi",              2, 0,  0  },
-      { "debug",            0, 0, 'd' },
-      { "static-file",      1, 0, 'f' },
-      { "group",            1, 0, 'g' },
-      { "linkify",          1, 0,  0  },
-      { "localhost-only",   0, 0,  0  },
-      { "no-beep",          0, 0,  0  },
-      { "numeric",          0, 0, 'n' },
-      { "messages-origin",  1, 0, 'm' },
-      { "pidfile",          1, 0,  0  },
-      { "port",             1, 0, 'p' },
-      { "service",          1, 0, 's' },
-      { "disable-ssl",      0, 0, 't' },
-      { "disable-ssl-menu", 0, 0,  0  },
-      { "quiet",            0, 0, 'q' },
-      { "unixdomain-only",  1, 0,  0, },
-      { "user",             1, 0, 'u' },
-      { "user-css",         1, 0,  0  },
-      { "verbose",          0, 0, 'v' },
-      { "version",          0, 0,  0  },
+      { "help",                 0, 0, 'h' },
+      { "background",           2, 0, 'b' },
+      { "cert",                 1, 0, 'c' },
+      { "cert-fd",              1, 0,  0  },
+      { "css",                  1, 0,  0  },
+      { "cgi",                  2, 0,  0  },
+      { "debug",                0, 0, 'd' },
+      { "static-file",          1, 0, 'f' },
+      { "group",                1, 0, 'g' },
+      { "linkify",              1, 0,  0  },
+      { "localhost-only",       0, 0,  0  },
+      { "no-beep",              0, 0,  0  },
+      { "numeric",              0, 0, 'n' },
+      { "messages-origin",      1, 0, 'm' },
+      { "pidfile",              1, 0,  0  },
+      { "port",                 1, 0, 'p' },
+      { "service",              1, 0, 's' },
+      { "disable-ssl",          0, 0, 't' },
+      { "disable-ssl-menu",     0, 0,  0  },
+      { "disable-utmp-logging", 0, 0,  0  },
+      { "quiet",                0, 0, 'q' },
+      { "unixdomain-only",      1, 0,  0, },
+      { "user",                 1, 0, 'u' },
+      { "user-css",             1, 0,  0  },
+      { "verbose",              0, 0, 'v' },
+      { "version",              0, 0,  0  },
       { 0,                  0, 0,  0  } };
     int idx                = -1;
     int c                  = getopt_long(argc, argv, optstring, options, &idx);
@@ -1127,6 +1130,9 @@ static void parseArgs(int argc, char * const argv[]) {
         warn("[config] Ignoring disable-ssl-menu option, as SSL support is unavailable.");
       }
       enableSSLMenu        = 0;
+    } else if (!idx--) {
+      // Disable UTMP logging
+      enableUtmpLogging    = 0;
     } else if (!idx--) {
       // Quiet
       if (!logIsDefault() && !logIsQuiet()) {
