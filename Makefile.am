@@ -127,6 +127,7 @@ BUILT_SOURCES        = shellinabox/beep.h                                     \
 shellinaboxd_LDADD   = liblogging.la                                          \
                        libhttp.la
 shellinaboxd_LDFLAGS = -static
+docdir               = ${datadir}/doc/${PACKAGE}
 
 symbolname           =                                                        \
   sed -e 's/.*\/\([^.]*\)[.].*/\1/'                                           \
