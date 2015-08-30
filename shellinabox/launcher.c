@@ -139,9 +139,6 @@ int execle(const char *, const char *, ...);
 extern int pthread_once(pthread_once_t *, void (*)(void))__attribute__((weak));
 #endif
 
-// From shellinabox/shellinaboxd.c
-extern int enableUtmpLogging;
-
 // If PAM support is available, take advantage of it. Otherwise, silently fall
 // back on legacy operations for session management.
 #if defined(HAVE_SECURITY_PAM_APPL_H) && defined(HAVE_DLOPEN)
@@ -174,6 +171,13 @@ static int (*x_misc_conv)(int, const struct pam_message **,
 
 static int   launcher = -1;
 static uid_t restricted;
+
+// From shellinabox/shellinaboxd.c
+extern int enableUtmpLogging;
+
+#if defined(HAVE_SECURITY_PAM_APPL_H)
+static int pamSessionSighupFlag;
+#endif
 
 // MacOS X has a somewhat unusual definition of getgrouplist() which can
 // trigger a compile warning.
@@ -676,7 +680,7 @@ void destroyUtmp(struct Utmp *utmp) {
       UNUSED_RETURN(setresuid(0, 0, 0));
       UNUSED_RETURN(setresgid(0, 0, 0));
 
-      if(enableUtmpLogging) {
+      if (enableUtmpLogging) {
         setutxent();
         pututxline(&utmp->utmpx);
         endutxent();
@@ -1495,6 +1499,17 @@ void setWindowSize(int pty, int width, int height) {
   }
 }
 
+#if defined(HAVE_SECURITY_PAM_APPL_H)
+static void pamSessionSighupHandler(int sig ATTR_UNUSED,
+                                    siginfo_t *info ATTR_UNUSED,
+                                    void *unused ATTR_UNUSED) {
+  UNUSED(sig);
+  UNUSED(info);
+  UNUSED(unused);
+  pamSessionSighupFlag = 1;
+}
+#endif
+
 static void childProcess(struct Service *service, int width, int height,
                          struct Utmp *utmp, const char *peerName, const char *realIP,
                          const char *url) {
@@ -1555,7 +1570,7 @@ static void childProcess(struct Service *service, int width, int height,
   UNUSED_RETURN(setresuid(0, 0, 0));
   UNUSED_RETURN(setresgid(0, 0, 0));
 #ifdef HAVE_UTMPX_H
-  if(enableUtmpLogging) {
+  if (enableUtmpLogging) {
     setutxent();
     struct utmpx utmpx            = utmp->utmpx;
     if (service->useLogin || service->authUser) {
@@ -1585,7 +1600,7 @@ static void childProcess(struct Service *service, int width, int height,
 #if defined(HAVE_SECURITY_PAM_APPL_H)
     if (pam && !geteuid()) {
       if (pam_open_session(pam, PAM_SILENT) != PAM_SUCCESS) {
-        fprintf(stderr, "Access denied.\n");
+        fprintf(stderr, "[server] Unable to open PAM session!\n");
         _exit(1);
       }
       pid_t pid                 = fork();
@@ -1595,10 +1610,27 @@ static void childProcess(struct Service *service, int width, int height,
       case 0:
         break;
       default:;
-        // Finish all pending PAM operations.
+        // This process is used for finishing all pending PAM operations.
+        struct sigaction sa;
+        memset(&sa, 0, sizeof(sa));
+        sa.sa_flags             = SA_NOCLDSTOP | SA_SIGINFO;
+        sa.sa_sigaction         = pamSessionSighupHandler;
+        check(!sigaction(SIGHUP, &sa, NULL));
         int status, rc;
-        check(NOINTR(waitpid(pid, &status, 0)) == pid);
-        rc = pam_close_session(pam, PAM_SILENT);
+        while (1) {
+          pamSessionSighupFlag  = 0;
+          int val               = waitpid(pid, &status, 0);
+          if (val < 0 && errno == EINTR) {
+            if (pamSessionSighupFlag) {
+              // If SIGHUP signal is received it needs to be forwarded to child
+              // process, which is acctual service process.
+              kill(pid, SIGHUP);
+            }
+          } else {
+            break;
+          }
+        }
+        rc                      = pam_close_session(pam, PAM_SILENT);
         pam_end(pam, rc | PAM_DATA_SILENT);
         _exit(WIFEXITED(status) ? WEXITSTATUS(status) : -WTERMSIG(status));
       }
