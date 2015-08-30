@@ -17,6 +17,8 @@ CFLAGS="${CFLAGS:--Os}"
 AM_INIT_AUTOMAKE([subdir-objects])
 AM_CONFIG_HEADER(config.h)
 AC_PROG_CC
+dnl Added this for compatibility with older versions of autoconf/automake
+AM_PROG_CC_C_O
 AC_LANG_WERROR
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL

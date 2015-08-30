@@ -127,6 +127,8 @@ BUILT_SOURCES        = shellinabox/beep.h                                     \
 shellinaboxd_LDADD   = liblogging.la                                          \
                        libhttp.la
 shellinaboxd_LDFLAGS = -static
+## Added this for compatibility with older versions of autoconf/automake
+docdir               = ${datadir}/doc/${PACKAGE}
 
 symbolname           =                                                        \
   sed -e 's/.*\/\([^.]*\)[.].*/\1/'                                           \
