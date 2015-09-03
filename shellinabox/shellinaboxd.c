@@ -1372,8 +1372,9 @@ int main(int argc, char * const argv[]) {
     check(port    = serverGetListeningPort(server));
     printf("X-ShellInABox-Port: %d\r\n"
            "X-ShellInABox-Pid: %d\r\n"
+           "X-ShellInABox-Session: %s\r\n"
            "Content-type: text/html; charset=utf-8\r\n\r\n",
-           port, getpid());
+           port, getpid(), cgiSessionKey);
     UNUSED(cgiRootSize);
     printfUnchecked(cgiRootStart, port, cgiSessionKey);
     fflush(stdout);
