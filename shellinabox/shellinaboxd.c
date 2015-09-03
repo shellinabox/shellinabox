@@ -768,7 +768,7 @@ static void usage(void) {
   const char *user  = getUserName(r_uid);
   const char *group = getGroupName(r_gid);
 
-  message("Usage: shellinaboxd [OPTIONS]...\n"
+  printf("Usage: shellinaboxd [OPTIONS]...\n"
           "Starts an HTTP server that serves terminal emulators to AJAX "
           "enabled browsers.\n"
           "\n"
@@ -835,7 +835,8 @@ static void usage(void) {
           "\n"
           "OPTIONs that make up a GROUP are mutually exclusive. But "
           "individual GROUPs are\n"
-          "independent of each other.\n",
+          "independent of each other.\n"
+          "\n",
           !serverSupportsSSL() ? "" :
           "  -c, --cert=CERTDIR          set certificate dir "
           "(default: $PWD)\n"
@@ -1211,18 +1212,19 @@ static void parseArgs(int argc, char * const argv[]) {
       logSetLogLevel(verbosity);
     } else if (!idx--) {
       // Version
-      message("ShellInABox version " VERSION VCS_REVISION);
+      printf("ShellInABox version " VERSION VCS_REVISION "\n");
       exit(0);
     }
   }
   if (optind != argc) {
-    usage();
     fatal("[config] Failed to parse command line!");
   }
   char *buf                = NULL;
   check(argc >= 1);
+
+  info("[server] Version " VERSION VCS_REVISION);
   for (int i = 0; i < argc; i++) {
-    buf                    = stringPrintf(buf, " %s", argv[i]);
+    buf                    = stringPrintf(buf, "%s ", argv[i]);
   }
   info("[server] Command line: %s", buf);
   free(buf);
