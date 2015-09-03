@@ -243,9 +243,12 @@
 [else DEFINES_COLORS]
 /* SYSTEM colors */
 #vt100 .ansiDef   { color:            #000000; }
+#vt100 .ansiDefR  { color:            #ffffff; }
 
 #vt100 #scrollable.inverted .ansiDef
                   { color:            #ffffff; }
+#vt100 #scrollable.inverted .ansiDefR
+                  { color:            #000000; }
 
 #vt100 .ansi0     { color:            #000000; }
 #vt100 .ansi1     { color:            #cd0000; }
@@ -508,9 +511,13 @@
 
 /* SYSTEM colors */
 #vt100 .bgAnsiDef { background-color: #ffffff; }
+#vt100 .bgAnsiDefR
+                  { background-color: #000000; }
 
 #vt100 #scrollable.inverted .bgAnsiDef
                   { background-color: #000000; }
+#vt100 #scrollable.inverted .bgAnsiDefR
+                  { background-color: #ffffff; }
 
 #vt100 .bgAnsi0   { background-color: #000000; }
 #vt100 .bgAnsi1   { background-color: #cd0000; }

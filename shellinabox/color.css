@@ -2,6 +2,7 @@
 
 /* SYSTEM colors */
 #vt100 .ansiDef   {                            }
+#vt100 .ansiDefR  {                            }
 
 #vt100 .ansi0     { color:            #000000; }
 #vt100 .ansi1     { color:            #cd0000; }
@@ -264,6 +265,7 @@
 
 /* SYSTEM colors */
 #vt100 .bgAnsiDef {                            }
+#vt100 .bgAnsiDefR {                            }
 
 #vt100 .bgAnsi0   { background-color: #000000; }
 #vt100 .bgAnsi1   { background-color: #cd0000; }

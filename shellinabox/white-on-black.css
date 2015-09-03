@@ -24,14 +24,30 @@
   color:            #ffffff;
 }
 
+#vt100 .ansiDefR {
+  color:            #000000;
+}
+
 #vt100 .bgAnsiDef {
   background-color: #000000;
+}
+
+#vt100 .bgAnsiDefR {
+  background-color: #ffffff;
 }
 
 #vt100 #scrollable.inverted .ansiDef {
   color:            #000000;
 }
 
+#vt100 #scrollable.inverted .ansiDefR {
+  color:            #ffffff;
+}
+
 #vt100 #scrollable.inverted .bgAnsiDef {
   background-color: #ffffff;
+}
+
+#vt100 #scrollable.inverted .bgAnsiDefR {
+  background-color: #000000;
 }

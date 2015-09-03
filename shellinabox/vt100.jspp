@@ -3351,44 +3351,50 @@ VT100.prototype.respondSecondaryDA = function() {
 
 
 VT100.prototype.updateStyle = function() {
-  this.style   = '';
+  var fg          = '';
+  var bg          = '';
+  this.style      = '';
+
   if (this.attr & ATTR_UNDERLINE) {
-    this.style = 'text-decoration: underline;';
-  }
-  var bg       = (this.attr >> 4) & 0xF;
-  var fg       =  this.attr       & 0xF;
-  if (this.attr & ATTR_REVERSE) {
-    var tmp    = bg;
-    bg         = fg;
-    fg         = tmp;
-  }
-  if ((this.attr & (ATTR_REVERSE | ATTR_DIM)) == ATTR_DIM) {
-    fg         = 8; // Dark grey
-  } else if (this.attr & ATTR_BRIGHT) {
-    fg        |= 8;
-    this.style = 'font-weight: bold;';
+    this.style   += 'text-decoration: underline;';
   }
   if (this.attr & ATTR_BLINK) {
-    this.style = 'text-decoration: blink;';
+    this.style   += 'text-decoration: blink;';
   }
 
-  // Default colors
-  if (this.attr & ATTR_DEF_FG) {
-    fg         = 'Def';
-  }
-  if (this.attr & ATTR_DEF_BG) {
-    bg         = 'Def';
-  }
-
-  // Extended color mode support (256 colors).
+  // Forground color
   if (this.attrFg) {
-    fg         = this.attrFg;
-  }
-  if (this.attrBg) {
-    bg         = this.attrBg;
+    // 256 color mode
+    fg            = this.attrFg
+  } else if (this.attr & ATTR_DEF_FG) {
+    fg            = 'Def';
+  } else {
+    fg            = this.attr & 0xF;
+    if (this.attr & ATTR_BRIGHT) {
+      fg         |= 8;
+      this.style += 'font-weight: bold;';
+    }
   }
 
-  this.color   = 'ansi' + fg + ' bgAnsi' + bg;
+  // Background color
+  if (this.attrBg) {
+    // 256 color mode
+    bg            = this.attrBg
+  } else if (this.attr & ATTR_DEF_BG) {
+    bg            = 'Def';
+  } else {
+    bg            = (this.attr >> 4) & 0xF;
+  }
+
+  // Reverse colors
+  if (this.attr & ATTR_REVERSE) {
+    var tmpFg     = fg;
+    var tmpBg     = bg;
+    fg            = (tmpBg == 'Def') ? 'DefR' : tmpBg;
+    bg            = (tmpFg == 'Def') ? 'DefR' : tmpFg;
+  }
+
+  this.color      = 'ansi' + fg + ' bgAnsi' + bg;
 };
 
 VT100.prototype.setAttrColors = function(attr) {
