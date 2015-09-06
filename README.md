@@ -27,7 +27,7 @@ tools to a web based terminal emulator. This emulator is accessible to any
 JavaScript and CSS enabled web browser and does not require any additional
 browser plugins.
 
-![Shell In A Box preview](/misc/preview.png?raw=true)
+![Shell In A Box preview](/misc/preview.gif?raw=true)
 
 More information:
 
