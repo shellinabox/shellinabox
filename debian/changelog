@@ -1,3 +1,9 @@
+shellinabox (2.18) UNRELEASED; urgency=low
+
+  * Non-maintainer release
+
+ -- Luka Krajger <luka.krajger@gmail.com>  Thu, 17 Sep 2015 10:26:05 +0200
+
 shellinabox (2.17) unstable; urgency=medium
 
   * Generally, SSL updates.
