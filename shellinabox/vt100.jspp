@@ -1429,6 +1429,25 @@ VT100.prototype.mouseEvent = function(event, type) {
     return this.cancelEvent(event);
   }
 
+  // Simulate middle click pasting from inside of current window. Note that
+  // pasting content from other programs will not work in this way, since we
+  // don't have access to native clipboard.
+  if ((event.which || event.button) == 2 && selection.length) {
+    if (type == MOUSE_UP) {
+      // Use timeout to prevent double paste on Chrome/Linux.
+      setTimeout(function (vt100) {
+        return function() {
+          vt100.keysPressed(selection);
+          vt100.input.focus();
+        }
+      }(this), 10);
+    }
+    if (type == MOUSE_DOWN) {
+      // Prevent middle click scroll on Windows systems.
+      return this.cancelEvent(event);
+    }
+  }
+
   if (this.mouseReporting) {
     try {
       event.shiftKey         = false;
