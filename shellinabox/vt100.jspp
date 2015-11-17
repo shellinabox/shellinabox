@@ -1198,8 +1198,8 @@ VT100.prototype.resizer = function() {
                                      document.documentElement.clientHeight ||
                                      document.body.clientHeight))-1;
 
-  // Prevent ever growing consoles on iPad.
-  if (navigator.userAgent.match(/iPad/i) != null) {
+  // Prevent ever growing console on some iOS clients.
+  if (navigator.userAgent.match(/iPad|iPhone|iPod/i) != null) {
     height                    -= 1;
   }
 
