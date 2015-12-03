@@ -112,6 +112,7 @@ static int            noBeep            = 0;
 static int            numericHosts      = 0;
 static int            enableSSL         = 1;
 static int            enableSSLMenu     = 1;
+static int            forceSSL          = 1; // TODO enable http fallback with commandline option
 int                   enableUtmpLogging = 1;
 static char           *messagesOrigin   = NULL;
 static int            linkifyURLs       = 1;
@@ -1302,7 +1303,8 @@ static void removeLimits() {
 }
 
 static void setUpSSL(Server *server) {
-  serverEnableSSL(server, enableSSL);
+
+  serverSetupSSL(server, enableSSL, forceSSL);
 
   // Enable SSL support (if available)
   if (enableSSL) {

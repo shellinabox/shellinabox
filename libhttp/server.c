@@ -670,11 +670,12 @@ void serverLoop(struct Server *server) {
   server->looping                         = loopDepth - 1;
 }
 
-void serverEnableSSL(struct Server *server, int flag) {
-  if (flag) {
+void serverSetupSSL(struct Server *server, int enable, int force) {
+  if (enable) {
     check(serverSupportsSSL());
   }
-  sslEnable(&server->ssl, flag);
+  sslEnable(&server->ssl, enable);
+  sslForce(&server->ssl, force);
 }
 
 void serverSetCertificate(struct Server *server, const char *filename,

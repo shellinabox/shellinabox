@@ -198,6 +198,7 @@ extern void   *(*x_SSL_COMP_get_compression_methods)(void);
 
 struct SSLSupport {
   int         enabled;
+  int         force;
   SSL_CTX     *sslContext;
   char        *sniCertificatePattern;
   int         generateMissing;
@@ -214,6 +215,7 @@ void sslSetCertificate(struct SSLSupport *ssl, const char *filename,
                        int autoGenerateMissing);
 void sslSetCertificateFd(struct SSLSupport *ssl, int fd);
 int  sslEnable(struct SSLSupport *ssl, int enabled);
+int  sslForce(struct SSLSupport *ssl, int force);
 void sslBlockSigPipe();
 int  sslUnblockSigPipe();
 int  sslPromoteToSSL(struct SSLSupport *ssl, SSL **sslHndl, int fd,

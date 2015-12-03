@@ -102,7 +102,7 @@ short serverConnectionSetEvents(Server *server, ServerConnection *connection,
 void serverExitLoop(Server *server, int exitAll);
 void serverLoop(Server *server);
 int  serverSupportsSSL();
-void serverEnableSSL(Server *server, int flag);
+void serverSetupSSL(Server *server, int enable, int force);
 void serverSetCertificate(Server *server, const char *filename,
                           int autoGenerateMissing);
 void serverSetCertificateFd(Server *server, int fd);

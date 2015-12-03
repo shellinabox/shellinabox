@@ -118,7 +118,7 @@ short serverConnectionSetEvents(struct Server *server,
                                 short events);
 void serverExitLoop(struct Server *server, int exitAll);
 void serverLoop(struct Server *server);
-void serverEnableSSL(struct Server *server, int flag);
+void serverSetupSSL(struct Server *server, int enable, int force);
 void serverSetCertificate(struct Server *server, const char *filename,
                           int autoGenerateMissing);
 void serverSetCertificateFd(struct Server *server, int fd);

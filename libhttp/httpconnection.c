@@ -1480,6 +1480,13 @@ int httpHandleConnection(struct ServerConnection *connection, void *http_,
           *events                   |= POLLIN;
           continue;
         }
+      } else {
+        if (http->ssl && http->ssl->enabled && http->ssl->force) {
+          debug("[http] Non-SSL connections not allowed!");
+          httpCloseRead(http);
+          bytes                      = 0;
+          eof                        = 1;
+        }
       }
     }
 

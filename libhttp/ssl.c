@@ -167,6 +167,7 @@ struct SSLSupport *newSSL(void) {
 
 void initSSL(struct SSLSupport *ssl) {
   ssl->enabled               = serverSupportsSSL();
+  ssl->force                 = 0;
   ssl->sslContext            = NULL;
   ssl->sniCertificatePattern = NULL;
   ssl->generateMissing       = 0;
@@ -891,6 +892,12 @@ void sslSetCertificateFd(struct SSLSupport *ssl, int fd) {
 int sslEnable(struct SSLSupport *ssl, int enabled) {
   int old      = ssl->enabled;
   ssl->enabled = enabled;
+  return old;
+}
+
+int sslForce(struct SSLSupport *ssl, int force) {
+  int old      = ssl->force;
+  ssl->force   = force;
   return old;
 }
 
