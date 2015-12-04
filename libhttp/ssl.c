@@ -411,7 +411,7 @@ static void sslGenerateCertificate(const char *certificate,
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
       warn("[ssl] Failed to generate self-signed certificate \"%s\"!", certificate);
     } else {
-      info("[ssl] Certificate succesfully generated.");
+      info("[ssl] Certificate successfully generated.");
     }
   }
 }
@@ -675,7 +675,7 @@ static SSL_CTX *sslMakeContext(void) {
 
   SSL_CTX_set_info_callback(context, sslInfoCallback);
 
-  debug("[ssl] Server context succesfully initialized...");
+  debug("[ssl] Server context successfully initialized...");
   return context;
 }
 #endif
