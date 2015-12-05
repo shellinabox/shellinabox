@@ -1,3 +1,13 @@
+shellinabox (2.19) unstable; urgency=high
+
+  * Added support for middle-click paste, #350.
+  * Improved iOS support, #354.
+  * New logic to enable soft keyboard icon, #119, #321, #354.
+  * Disable HTTPS fallback using the URL /plain.  Consequently disables
+    automatic upgrades from HTTP to HTTPS, #355. (CVE-2015-8400).
+
+ -- Marc Singer <elf@debian.org>  Sat, 05 Dec 2015 10:24:12 -0800
+
 shellinabox (2.18) unstable; urgency=low
 
   * Fixed reverse vide rendering, #341.
