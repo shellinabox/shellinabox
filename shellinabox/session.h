@@ -58,9 +58,11 @@ struct Session {
   HttpConnection   *http;
   int              done;
   int              pty;
+  int              ptyFirstRead;
   int              width;
   int              height;
   char             *buffered;
+  int              useLogin;
   int              len;
   pid_t            pid;
   int              cleanup;
