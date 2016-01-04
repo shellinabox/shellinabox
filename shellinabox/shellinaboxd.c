@@ -63,7 +63,7 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-
+#include <time.h>
 #include <unistd.h>
 
 #ifdef HAVE_SYS_PRCTL_H
@@ -291,6 +291,13 @@ static void sessionDone(void *arg) {
   completePendingRequest(session, "", 0, INT_MAX);
 }
 
+static void delaySession(void) {
+  struct timespec ts;
+  ts.tv_sec              = 0;
+  ts.tv_nsec             = 200 * 1000; // Delay for 0.2 ms
+  nanosleep(&ts, NULL);
+}
+
 static int handleSession(struct ServerConnection *connection, void *arg,
                          short *events, short revents) {
   struct Session *session       = (struct Session *)arg;
@@ -310,7 +317,7 @@ static int handleSession(struct ServerConnection *connection, void *arg,
   int timedOut                  = serverGetTimeout(connection) < 0;
   if (bytes || timedOut) {
     if (!session->http && timedOut) {
-      debug("[server] Timeout. Closing session!");
+      debug("[server] Timeout. Closing session %s!", session->sessionKey);
       session->cleanup = 1;
       return 0;
     }
@@ -324,8 +331,26 @@ static int handleSession(struct ServerConnection *connection, void *arg,
       *events                   = 0;
     }
     serverSetTimeout(connection, AJAX_TIMEOUT);
+    session->ptyFirstRead       = 0;
     return 1;
   } else {
+    if (revents & POLLHUP) {
+      if (session->useLogin && session->ptyFirstRead) {
+        // Workaround for random "Session closed" issues related to /bin/login
+        // closing and reopening our pty during initialization. This happens only
+        // on some systems like Fedora for example.
+        // Here we allow that our pty is closed by ignoring POLLHUP on first read.
+        // Delay is also needed so that login process has some time to reopen pty.
+        // Note that the issue may occur anyway but with workaround we reduce the
+        // chances.
+        debug("[server] POLLHUP received on login PTY first read!");
+        session->ptyFirstRead   = 0;
+        delaySession();
+        return 1;
+      }
+      debug("[server] POLLHUP received on PTY! Closing session %s!",
+            session->sessionKey);
+    }
     return 0;
   }
 }
@@ -402,6 +427,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
       goto bad_new_session;
     }
     session->http         = http;
+    session->useLogin     = service->useLogin;
     if (launchChild(service->id, session,
                     rootURL && *rootURL ? rootURL : urlGetURL(url)) < 0) {
       abandonSession(session);

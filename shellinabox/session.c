@@ -116,9 +116,11 @@ void initSession(struct Session *session, const char *sessionKey,
   session->http           = NULL;
   session->done           = 0;
   session->pty            = -1;
+  session->ptyFirstRead   = 1;
   session->width          = 0;
   session->height         = 0;
   session->buffered       = NULL;
+  session->useLogin       = 0;
   session->len            = 0;
   session->pid            = 0;
   session->cleanup        = 0;
