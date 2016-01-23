@@ -83,6 +83,7 @@
 #define EStitle        17
 #define ESss2          18
 #define ESss3          19
+#define ESVTETitle     20
 
 #define ATTR_DEFAULT   0x60F0
 #define ATTR_REVERSE   0x0100
@@ -4046,6 +4047,8 @@ VT100.prototype.doControl = function(ch) {
 /*0*/ case 0x30:
 /*1*/ case 0x31:
 /*2*/ case 0x32: this.isEsc   = EStitle; this.titleString = '';         break;
+/*6*/ case 0x36: this.isEsc   = ESVTEtitle;                             break;
+/*7*/ case 0x37: this.isEsc   = ESVTEtitle;                             break;
 /*P*/ case 0x50: this.npar    = 0; this.par = [ 0, 0, 0, 0, 0, 0, 0 ];
                  this.isEsc   = ESpalette;                              break;
 /*R*/ case 0x52: // Palette support is not implemented
@@ -4273,6 +4276,13 @@ VT100.prototype.doControl = function(ch) {
       this.lastCharacter      = String.fromCharCode(ch);
       lineBuf                += this.lastCharacter;
       this.isEsc              = ESnormal;                               break;
+    case ESVTEtitle:
+      // Ignores VTE escape sequences for current directory (OSC6) and current
+      // file (OSC7).
+      if (ch == 0x07 || ch == 0x5C) {
+        this.isEsc            = ESnormal;
+      }
+      break;
     default:
       this.isEsc              = ESnormal;                               break;
     }
