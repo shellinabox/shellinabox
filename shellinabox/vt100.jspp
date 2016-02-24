@@ -2841,7 +2841,7 @@ VT100.prototype.handleKey = function(event) {
       ch                              = part1                                 +
                                        ((event.shiftKey             ? 1 : 0)  +
                                         (event.altKey|event.metaKey ? 2 : 0)  +
-                                        (event.ctrlKey              ? 4 : 0)) +
+                                        (event.ctrlKey              ? 4 : 0) + 1) +
                                         part2;
     } else if (ch.length == 1 && (event.altKey || event.metaKey)
                && !this.disableAlt) {
