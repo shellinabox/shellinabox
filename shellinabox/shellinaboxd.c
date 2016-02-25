@@ -825,6 +825,7 @@ static void usage(void) {
           "      --user-css=STYLES       defines user-selectable CSS options\n"
           "  -v, --verbose               enable logging messages\n"
           "      --version               prints version information\n"
+          "      --disable-peer-check    disable peer check on a session\n"
           "\n"
           "Debug, quiet, and verbose are mutually exclusive.\n"
           "\n"
