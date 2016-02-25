@@ -110,6 +110,7 @@ static int            portMax;
 static int            localhostOnly     = 0;
 static int            noBeep            = 0;
 static int            numericHosts      = 0;
+static int            peerCheckEnabled  = 1;
 static int            enableSSL         = 1;
 static int            enableSSLMenu     = 1;
 static int            forceSSL          = 1; // TODO enable http fallback with commandline option
@@ -393,7 +394,7 @@ static int dataHandler(HttpConnection *http, struct Service *service,
   }
 
   // Sanity check
-  if (!sessionIsNew && strcmp(session->peerName, httpGetPeerName(http))) {
+  if (!sessionIsNew && peerCheckEnabled && strcmp(session->peerName, httpGetPeerName(http))) {
     error("[server] Peername changed from %s to %s",
           session->peerName, httpGetPeerName(http));
     httpSendReply(http, 400, "Bad Request", NO_MSG);
@@ -895,6 +896,7 @@ static void parseArgs(int argc, char * const argv[]) {
   int hasSSL               = serverSupportsSSL();
   if (!hasSSL) {
     enableSSL              = 0;
+    forceSSL               = 0;
   }
   int demonize             = 0;
   int cgi                  = 0;
@@ -933,6 +935,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "user-css",             1, 0,  0  },
       { "verbose",              0, 0, 'v' },
       { "version",              0, 0,  0  },
+      { "disable-peer-check",   0, 0,  0  },
       { 0,                  0, 0,  0  } };
     int idx                = -1;
     int c                  = getopt_long(argc, argv, optstring, options, &idx);
@@ -1152,6 +1155,7 @@ static void parseArgs(int argc, char * const argv[]) {
         warn("[config] Ignoring disable-ssl option, as SSL support is unavailable.");
       }
       enableSSL            = 0;
+      forceSSL             = 0;
     } else if (!idx--) {
       // Disable SSL Menu
       if (!hasSSL) {
@@ -1241,6 +1245,9 @@ static void parseArgs(int argc, char * const argv[]) {
       // Version
       printf("ShellInABox version " VERSION VCS_REVISION "\n");
       exit(0);
+    } else if (!idx--) {
+      // disable-peer-check
+      peerCheckEnabled = 0;
     }
   }
   if (optind != argc) {
