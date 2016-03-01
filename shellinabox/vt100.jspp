@@ -1604,7 +1604,10 @@ VT100.prototype.updateWidth = function() {
       this.terminalWidth = Math.floor(this.console[this.currentScreen].offsetWidth/this.cursorWidth*this.scale);
     }
   } else {
-    this.terminalWidth = Math.floor(this.console[this.currentScreen].offsetWidth/this.cursorWidth*this.scale);
+    if ("ActiveXObject" in window)
+      this.terminalWidth = Math.floor(this.console[this.currentScreen].offsetWidth/this.cursorWidth*this.scale*0.95);
+    else
+      this.terminalWidth = Math.floor(this.console[this.currentScreen].offsetWidth/this.cursorWidth*this.scale);
   }
 
   return this.terminalWidth;
