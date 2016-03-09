@@ -83,7 +83,7 @@
 #define EStitle        17
 #define ESss2          18
 #define ESss3          19
-#define ESVTETitle     20
+#define ESVTEtitle     20
 
 #define ATTR_DEFAULT   0x60F0
 #define ATTR_REVERSE   0x0100
