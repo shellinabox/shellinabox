@@ -282,7 +282,7 @@ Display a brief usage message showing the valid command line parameters.
 .TP
 \fB--linkify\fP=[\fBnone\fP|\fBnormal\fP|\fBaggressive\fP]
 the daemon attempts to recognize URLs in the terminal output and makes them
-clickable. This is not neccessarily a fool-proof process and both false
+clickable. This is not necessarily a fool-proof process and both false
 negatives and false positives are possible. By default, only URLs starting
 with a well known protocol of
 .BR http:// ,\  https:// ,\  ftp:// ,\ or\  mailto:

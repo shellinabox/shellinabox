@@ -809,7 +809,7 @@ static void usage(void) {
           "  -f, --static-file=URL:FILE  serve static file from URL path\n"
           "  -g, --group=GID             switch to this group (default: %s)\n"
           "  -h, --help                  print this message\n"
-          "      --linkify=[none|normal|agressive] default is \"normal\"\n"
+          "      --linkify=[none|normal|aggressive] default is \"normal\"\n"
           "      --localhost-only        only listen on 127.0.0.1\n"
           "      --no-beep               suppress all audio output\n"
           "  -n, --numeric               do not resolve hostnames\n"

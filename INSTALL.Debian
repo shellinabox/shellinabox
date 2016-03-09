@@ -41,7 +41,7 @@ you point your browser to the site.
 
 At the very least, you need a file called "certificate.pem" that includes
 both the private key and the public certificate in PEM (i.e. ASCII) format.
-Additionally, you should create files for each of the publically visible
+Additionally, you should create files for each of the publicly visible
 hostnames that your machine has. These are named "certificate-${FQDN}.pem".
 You probably also want "certificate-localhost.pem".
 
