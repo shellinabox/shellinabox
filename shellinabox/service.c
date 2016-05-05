@@ -137,6 +137,7 @@ void initService(struct Service *service, const char *arg) {
             {
                 int size                    = (tmp - ptr + 1);
                 free(host);
+                free(sshPort);
                 host                        = malloc(size);
                 memset(host, 0, size);
                 memcpy(host, ptr , size - 1);
