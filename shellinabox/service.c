@@ -127,20 +127,20 @@ void initService(struct Service *service, const char *arg) {
     if ((ptr                                = strchr(arg, ':')) != NULL) {
         ptr                                 = ptr + 1;
         if (*ptr) {
-            char * tmp = strchr(ptr, ':');
+            char * tmp                      = strchr(ptr, ':');
             if(tmp == NULL)//if the second ":" is not found, keep as host whatever is after first ":"
             {
                 free(host);
-                host = strdup(ptr);
+                host                        = strdup(ptr);
             }
             else // if we find a second ":", keep as a host whatever is in between first ":" and second ":" and as sshPort whatever is after second ":"
             {
-                int size = (tmp - ptr + 1);
+                int size                    = (tmp - ptr + 1);
                 free(host);
-                host = malloc(size);
+                host                        = malloc(size);
                 memset(host, 0, size);
-                memcpy(host, ptr , size-1);
-                sshPort                    = strdup (tmp + 1);
+                memcpy(host, ptr , size - 1);
+                sshPort                     = strdup (tmp + 1);
             }
         }
     }
