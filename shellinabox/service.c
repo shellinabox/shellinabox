@@ -124,26 +124,27 @@ void initService(struct Service *service, const char *arg) {
     char *sshPort;
     check(host                              = strdup("localhost"));
     check(sshPort                           = strdup("22"));
+
     if ((ptr                                = strchr(arg, ':')) != NULL) {
-        ptr                                 = ptr + 1;
-        if (*ptr) {
-            char * tmp                      = strchr(ptr, ':');
-            if(tmp == NULL)//if the second ":" is not found, keep as host whatever is after first ":"
-            {
-                free(host);
-                host                        = strdup(ptr);
-            }
-            else // if we find a second ":", keep as a host whatever is in between first ":" and second ":" and as sshPort whatever is after second ":"
-            {
-                int size                    = (tmp - ptr + 1);
-                free(host);
-                free(sshPort);
-                host                        = malloc(size);
-                memset(host, 0, size);
-                memcpy(host, ptr , size - 1);
-                sshPort                     = strdup (tmp + 1);
-            }
+      ptr                                   = ptr + 1;
+      if (*ptr) {
+        char *tmp                           = strchr(ptr, ':');
+        if (tmp == NULL) {
+          // If the second ":" is not found, keep as host whatever is after first ":".
+          free(host);
+          check(host                        = strdup(ptr));
+        } else {
+          // If we find a second ":", keep as a host whatever is in between first ":"
+          // and second ":" and as sshPort whatever is after second ":".
+          int size                          = (tmp - ptr + 1);
+          free(host);
+          free(sshPort);
+          check(host                        = malloc(size));
+          memset(host, 0, size);
+          memcpy(host, ptr, size - 1);
+          check(sshPort                     = strdup(tmp + 1));
         }
+      }
     }
 
     // Don't allow manipulation of the SSH command line through "creative" use
@@ -166,6 +167,7 @@ void initService(struct Service *service, const char *arg) {
         fatal("[config] Invalid port \"%s\" in service definition!", sshPort);
       }
     }
+
     service->cmdline                        = stringPrintf(NULL,
       "ssh -a -e none -i /dev/null -x -oChallengeResponseAuthentication=no "
           "-oCheckHostIP=no -oClearAllForwardings=yes -oCompression=no "
