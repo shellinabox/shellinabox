@@ -2914,9 +2914,9 @@ VT100.prototype.fixEvent = function(event) {
   // Some browsers fail to translate keys, if both shift and alt/meta is
   // pressed at the same time. We try to translate those cases, but that
   // only works for US keyboard layouts.
+  var u                   = undefined;
+  var s                   = undefined;
   if (event.shiftKey) {
-    var u                   = undefined;
-    var s                   = undefined;
     switch (this.lastNormalKeyDownEvent.keyCode) {
     case  39: /* ' -> " */ u = 39; s =  34; break;
     case  44: /* , -> < */ u = 44; s =  60; break;
@@ -2957,16 +2957,22 @@ VT100.prototype.fixEvent = function(event) {
     case 222: /* ' -> " */ u = 39; s =  34; break;
     default:                                break;
     }
-    if (s && (event.charCode == u || event.charCode == 0)) {
-      var fake              = [ ];
-      fake.charCode         = s;
-      fake.keyCode          = event.keyCode;
-      fake.ctrlKey          = event.ctrlKey;
-      fake.shiftKey         = event.shiftKey;
-      fake.altKey           = event.altKey;
-      fake.metaKey          = event.metaKey;
-      return fake;
+  } else {
+    var c = this.lastNormalKeyDownEvent.keyCode;
+    if (c >= 65 && c <= 90) {
+      u = c;
+      s = u | 32;
     }
+  }
+  if (s && (event.charCode == u || event.charCode == 0)) {
+    var fake              = [ ];
+    fake.charCode         = s;
+    fake.keyCode          = event.keyCode;
+    fake.ctrlKey          = event.ctrlKey;
+    fake.shiftKey         = event.shiftKey;
+    fake.altKey           = event.altKey;
+    fake.metaKey          = event.metaKey;
+    return fake;
   }
   return event;
 };
@@ -3052,10 +3058,8 @@ VT100.prototype.keyDown = function(event) {
     } else {
       fake.charCode             = 0;
       fake.keyCode              = event.keyCode;
-      if (!alphNumKey && event.shiftKey) {
-        fake                    = this.fixEvent(fake);
-      }
     }
+    fake                        = this.fixEvent(fake);
 
     this.handleKey(fake);
     this.lastNormalKeyDownEvent = undefined;
@@ -3170,9 +3174,9 @@ VT100.prototype.keyUp = function(event) {
       } else {
         fake.charCode             = 0;
         fake.keyCode              = event.keyCode;
-        if (!alphNumKey && (event.ctrlKey || event.altKey || event.metaKey)) {
-          fake                    = this.fixEvent(fake);
-        }
+      }
+      if (event.ctrlKey || event.altKey || event.metaKey) {
+        fake                      = this.fixEvent(fake);
       }
       this.lastNormalKeyDownEvent = undefined;
       this.handleKey(fake);
