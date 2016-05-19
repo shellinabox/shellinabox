@@ -7,7 +7,7 @@ shellinabox
 
 
 This is an unofficial fork of the project **Shell In A Box**. The fork was created because
-the original project is not maintained anymore and we cannot contact the original
+the original project was not maintained anymore and we cannot contact the original
 repository owners.
 
 Our aim is to continue with maintenance of the shellinabox project. For a list of
