@@ -103,5 +103,5 @@ created from our sources. In new issue report please include following things:
 * Version of shellinabox
 * Steps to reproduce the problem
 
-Also feel free to post any questions or comments in [shellianbox chat room](https://gitter.im/shellinabox/shellinabox)
+Also feel free to post any questions or comments in [shellinabox chat room](https://gitter.im/shellinabox/shellinabox)
 on Gitter.
