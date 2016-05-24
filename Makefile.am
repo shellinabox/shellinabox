@@ -242,7 +242,8 @@ shellinaboxd.1: ${top_srcdir}/shellinabox/shellinaboxd.man.in                 \
 
 clean-local: clean-demo
 	-rm -rf shellinaboxd.1                                                \
-	        shellinaboxd.ps
+	        shellinaboxd.ps                                               \
+	        shellinaboxd.pdf
 	-rm -rf debian/shellinabox                                            \
 	        debian/shellinabox*.debhelper*                                \
 	        debian/shellinabox.substvars                                  \
@@ -363,4 +364,10 @@ clean-demo:
 	   echo "static const int $${sym}Size ATTR_UNUSED ="                  \
 	           "(int)sizeof($${sym}Start);";                              \
 	 } >"$@"
+
+shellinaboxd.ps: shellinaboxd.1
+	groff -man -T ps $^ >$@
+
+shellinaboxd.pdf: shellinaboxd.ps
+	ps2pdf $^ $@
 
