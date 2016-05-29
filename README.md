@@ -6,16 +6,16 @@ shellinabox
 [![Join the chat at https://gitter.im/shellinabox/shellinabox](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/shellinabox/shellinabox?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 
-This is unofficial fork of project **Shell In A Box**. Fork was created because
-original project is not maintained anymore and we cannot contact original
+This is an unofficial fork of the project **Shell In A Box**. The fork was created because
+the original project was not maintained anymore and we cannot contact the original
 repository owners.
 
-Our aim is to continue with maintanince of shellinabox project. For list of
-recent changes please see [CHANGELOG.md](/CHANGELOG.md).
+Our aim is to continue with maintenance of the shellinabox project. For a list of
+recent changes, please see [CHANGELOG.md](/CHANGELOG.md).
 
-If you have any questions, issues or patches, please fell free to submit pull
-request or report an issue. You can also drop an email to original project
-[issue #261](https://code.google.com/p/shellinabox/issues/detail?id=261) discusion
+If you have any questions, issues, or patches, please feel free to submit a pull
+request or report an issue. You can also drop an email to the original project
+[issue #261](https://code.google.com/p/shellinabox/issues/detail?id=261) discussion
 from where this fork started.
 
 
@@ -103,5 +103,5 @@ created from our sources. In new issue report please include following things:
 * Version of shellinabox
 * Steps to reproduce the problem
 
-Also feel free to post any questions or comments in [shellianbox chat room](https://gitter.im/shellinabox/shellinabox)
+Also feel free to post any questions or comments in [shellinabox chat room](https://gitter.im/shellinabox/shellinabox)
 on Gitter.
