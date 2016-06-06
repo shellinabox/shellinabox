@@ -100,7 +100,11 @@ void error(const char *fmt, ...) {
   va_start(ap, fmt);
   debugMsg(MSG_ERROR, fmt, ap);
 #ifdef HAVE_SYSLOG_H
-  vsyslog(LOG_ERR, fmt, ap);
+  va_list apSyslog;
+  va_copy(apSyslog, ap);
+  va_start(apSyslog, fmt);
+  vsyslog(LOG_ERR, fmt, apSyslog);
+  va_end(apSyslog);
 #endif
   va_end(ap);
 }
@@ -117,7 +121,11 @@ void fatal(const char *fmt, ...) {
   va_start(ap, fmt);
   debugMsg(MSG_QUIET, fmt, ap);
 #ifdef HAVE_SYSLOG_H
-  vsyslog(LOG_CRIT, fmt, ap);
+  va_list apSyslog;
+  va_copy(apSyslog, ap);
+  va_start(apSyslog, fmt);
+  vsyslog(LOG_CRIT, fmt, apSyslog);
+  va_end(apSyslog);
   syslog(LOG_CRIT, "[server] Aborting...");
 #endif
   va_end(ap);
