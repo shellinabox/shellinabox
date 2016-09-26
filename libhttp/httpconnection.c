@@ -430,7 +430,7 @@ void destroyHttpConnection(struct HttpConnection *http) {
             http->peerName ? http->peerName : "???", http->peerPort);
     }
     httpShutdown(http, http->closed ? SHUT_WR : SHUT_RDWR);
-    dcheck(!close(http->fd));
+    dcheck(!close(http->fd) || errno != EBADF);
     free(http->peerName);
     free(http->url);
     free(http->method);
