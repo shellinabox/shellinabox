@@ -406,6 +406,9 @@ ShellInABox.prototype.messageInit = function() {
     }
   }
 
+  // After message mechanisms are in place "ready" message is sent to parent
+  // window.
+  parent.postMessage(JSON.stringify({type : 'ready', data : ''}), '*');
 };
 
 ShellInABox.prototype.messageReceive = function (message) {

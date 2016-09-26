@@ -14,7 +14,7 @@
 
 	For communication with Shell In A Box we need to set '-m' (messages-origin)
 	command line option with appropriate messages origin. Origin should be set to
-	URL of parent (this) window. If origin is set to '*' Shell In A Box won't checki
+	URL of parent (this) window. If origin is set to '*' Shell In A Box won't check
 	origin on received messages. This is usually unsafe option.
 
 	Command line example:
@@ -58,6 +58,9 @@
 		reconnects the terminal
 
 	Following types of messages can be received from shellinabox:
+
+	* ready
+		signals that shellinabox is ready to send and receive messages
 
 	* output
 		data field contains terminal output
@@ -140,10 +143,6 @@
 		var output  = document.getElementById("output");
 		var session = document.getElementById("session");
 
-		// Add url to our iframe. We do this, only that variable 'url' can be used
-		// throughout the whole code where needed.
-		iframe.src = url;
-
 		document.getElementById("execute").addEventListener("click", function() {
 			// Send input to shellinabox
 			var message = JSON.stringify({
@@ -209,6 +208,15 @@
 			// Handle response according to response type
 			var decoded = JSON.parse(message.data);
 			switch (decoded.type) {
+			case "ready":
+				// Shellinabox is ready to communicate and we will enable console output
+				// by default.
+				var message = JSON.stringify({
+					type : 'output',
+					data : 'enable'
+				});
+				iframe.contentWindow.postMessage(message, url);
+				break;
 			case "output" :
 				// Append new output
 				output.innerHTML = output.innerHTML + decoded.data;
@@ -219,6 +227,9 @@
 				break;
 			}
 		}, false);
+
+		// Add url to our iframe after the event listener is installed.
+		iframe.src = url;
 
 	</script>
 
