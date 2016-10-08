@@ -82,6 +82,7 @@ extern BIO_METHOD *(*x_BIO_f_buffer)(void);
 extern void    (*x_BIO_free_all)(BIO *);
 extern BIO    *(*x_BIO_new)(BIO_METHOD *);
 extern BIO    *(*x_BIO_new_socket)(int, int);
+extern BIO    *(*x_BIO_next)(BIO *);
 extern BIO    *(*x_BIO_pop)(BIO *);
 extern BIO    *(*x_BIO_push)(BIO *, BIO *);
 #if defined(HAVE_OPENSSL_EC)
@@ -131,6 +132,7 @@ extern void   *(*x_SSL_COMP_get_compression_methods)(void);
 #define BIO_free_all                 x_BIO_free_all
 #define BIO_new                      x_BIO_new
 #define BIO_new_socket               x_BIO_new_socket
+#define BIO_next                     x_BIO_next
 #define BIO_pop                      x_BIO_pop
 #define BIO_push                     x_BIO_push
 #define EC_KEY_free                  x_EC_KEY_free

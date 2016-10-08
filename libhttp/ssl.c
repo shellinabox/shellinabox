@@ -100,6 +100,7 @@ BIO_METHOD *  (*BIO_f_buffer)(void);
 void          (*BIO_free_all)(BIO *);
 BIO *         (*BIO_new)(BIO_METHOD *);
 BIO *         (*BIO_new_socket)(int, int);
+BIO *         (*BIO_next)(BIO *);
 BIO *         (*BIO_pop)(BIO *);
 BIO *         (*BIO_push)(BIO *, BIO *);
 #if defined(HAVE_OPENSSL_EC)
@@ -280,6 +281,7 @@ static void loadSSL(void) {
     { { &BIO_free_all },                "BIO_free_all" },
     { { &BIO_new },                     "BIO_new" },
     { { &BIO_new_socket },              "BIO_new_socket" },
+    { { &BIO_next },                    "BIO_next" },
     { { &BIO_pop },                     "BIO_pop" },
     { { &BIO_push },                    "BIO_push" },
     { { &ERR_clear_error },             "ERR_clear_error" },
@@ -1013,6 +1015,14 @@ int sslPromoteToSSL(struct SSLSupport *ssl, SSL **sslHndl, int fd,
 #endif
 }
 
+BIO *sslGetNextBIO(BIO *b) {
+#if OPENSSL_VERSION_NUMBER <= 0x10100000L
+  return b->next_bio;
+#else
+  return BIO_next(b);
+#endif
+}
+
 void sslFreeHndl(SSL **sslHndl) {
 #if defined(HAVE_OPENSSL)
   if (*sslHndl) {
@@ -1020,24 +1030,23 @@ void sslFreeHndl(SSL **sslHndl) {
     // BIOs. This is particularly a problem if an SSL connection has two
     // different BIOs for the read and the write end, with one being a stacked
     // derivative of the other. Unfortunately, this is exactly the scenario
-    // that we set up.
+    // that we set up with call to "BIO_push(readBIO, writeBIO)" in function
+    // "sslPromoteToSSL()".
     // As a work-around, we un-stack the BIOs prior to freeing the SSL
     // connection.
+    debug("[ssl] Freeing SSL handle.");
     ERR_clear_error();
     BIO *writeBIO, *readBIO;
     check(writeBIO    = SSL_get_wbio(*sslHndl));
     check(readBIO     = SSL_get_rbio(*sslHndl));
     if (writeBIO != readBIO) {
-      if (readBIO->next_bio == writeBIO) {
-        // OK, that's exactly the bug we are looking for. We know how to
-        // fix it.
+      if (sslGetNextBIO(readBIO) == writeBIO) {
+        // OK, that's exactly the bug we are looking for. We know that
+        // writeBIO needs to be removed from readBIO chain.
+        debug("[ssl] Removing stacked write BIO!");
         check(BIO_pop(readBIO) == writeBIO);
-        check(readBIO->references == 1);
-        check(writeBIO->references == 1);
-        check(!readBIO->next_bio);
-        check(!writeBIO->prev_bio);
-      } else if (readBIO->next_bio == writeBIO->next_bio &&
-                 writeBIO->next_bio->prev_bio == writeBIO) {
+        check(!sslGetNextBIO(readBIO));
+      } else if (sslGetNextBIO(readBIO) == sslGetNextBIO(writeBIO)) {
         // Things get even more confused, if the SSL handshake is aborted
         // prematurely.
         // OpenSSL appears to internally stack a BIO onto the read end that
@@ -1046,15 +1055,13 @@ void sslFreeHndl(SSL **sslHndl) {
         // reading and one for writing). In this case, not only is the
         // reference count wrong, but the chain of next_bio/prev_bio pairs
         // is corrupted, too.
+        warn("[ssl] Removing stacked socket BIO!");
         BIO *sockBIO;
         check(sockBIO = BIO_pop(readBIO));
         check(sockBIO == BIO_pop(writeBIO));
-        check(readBIO->references == 1);
-        check(writeBIO->references == 1);
-        check(sockBIO->references == 1);
-        check(!readBIO->next_bio);
-        check(!writeBIO->next_bio);
-        check(!sockBIO->prev_bio);
+        check(!sslGetNextBIO(readBIO));
+        check(!sslGetNextBIO(writeBIO));
+        check(!sslGetNextBIO(sockBIO));
         BIO_free_all(sockBIO);
       } else {
         // We do not know, how to fix this situation. Something must have
