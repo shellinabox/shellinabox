@@ -1,0 +1,12 @@
+Installing SElinux policy
+================================
+
+Prior to build and use this selinux module, you've to install selinux devel package 
+On a Fedora distrib use :
+# yum install selinux-policy-devel
+
+Then execute with root shellinaboxd.sh script that will build and load the new policy module.
+# ./shellinaboxd.sh
+
+Restart shellinaboxd service to make sure context daemon use the correct execution context :
+# systemctl restart shellinaboxd.service

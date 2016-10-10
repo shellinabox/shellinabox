@@ -1,0 +1,102 @@
+policy_module(shellinaboxd, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+type shellinaboxd_t;
+type shellinaboxd_exec_t;
+init_daemon_domain(shellinaboxd_t, shellinaboxd_exec_t)
+
+permissive shellinaboxd_t;
+
+type shellinaboxd_var_lib_t;
+files_type(shellinaboxd_var_lib_t)
+
+type shellinaboxd_unit_file_t;
+systemd_unit_file(shellinaboxd_unit_file_t)
+
+########################################
+#
+# shellinaboxd local policy
+#
+
+#============= shellinaboxd_t ==============
+require {
+    type systemd_logind_t;
+	type chkpwd_exec_t;
+	type shellinaboxd_t;
+	type security_t;
+	type unconfined_t;
+	type devpts_t;
+    type init_t;
+    type proc_t;
+	class capability { sys_tty_config sys_resource net_admin audit_write dac_override fsetid };
+	class tcp_socket { listen accept };
+	class process { setsched setexec transition setkeycreate };
+	class file { open read execute_no_trans execute };
+	class netlink_audit_socket { nlmsg_relay create };
+	class chr_file { open setattr relabelfrom relabelto };
+	class security { compute_relabel compute_user };
+}
+
+allow shellinaboxd_t chkpwd_exec_t:file { open read execute_no_trans execute };
+allow shellinaboxd_t devpts_t:chr_file { open setattr relabelto relabelfrom };
+allow shellinaboxd_t security_t:security { compute_relabel compute_user };
+allow shellinaboxd_t self:capability { sys_tty_config sys_resource net_admin audit_write dac_override fsetid };
+allow shellinaboxd_t self:netlink_audit_socket { nlmsg_relay create };
+allow shellinaboxd_t self:process { setsched setexec setkeycreate };
+allow shellinaboxd_t init_t:file { getattr open read };
+allow shellinaboxd_t proc_t:file { getattr open read };
+
+allow shellinaboxd_t systemd_logind_t:dbus send_msg;
+allow shellinaboxd_t self:tcp_socket { listen accept };
+
+allow shellinaboxd_t unconfined_t:process transition;
+
+allow shellinaboxd_t self:capability { chown setgid setuid };
+allow shellinaboxd_t self:process { fork setrlimit signal_perms };
+allow shellinaboxd_t self:fifo_file rw_fifo_file_perms;
+allow shellinaboxd_t self:unix_stream_socket create_stream_socket_perms;
+
+allow shellinaboxd_t chkpwd_exec_t:file { read execute_no_trans execute open };
+allow shellinaboxd_t default_context_t:file { read getattr open };
+
+allow systemd_logind_t shellinaboxd_t:dbus send_msg;
+
+auth_log_filetrans_login_records(shellinaboxd_t)
+auth_login_entry_type(shellinaboxd_t)
+auth_rw_faillog(shellinaboxd_t)
+auth_rw_lastlog(shellinaboxd_t)
+auth_tunable_read_shadow(shellinaboxd_t)
+auth_write_login_records(shellinaboxd_t)
+corecmd_shell_entry_type(shellinaboxd_t)
+corenet_tcp_bind_oa_system_port(shellinaboxd_t)
+dbus_system_bus_client(shellinaboxd_t)
+init_rw_utmp(shellinaboxd_t)
+logging_manage_generic_logs(shellinaboxd_t)
+seutil_read_default_contexts(shellinaboxd_t)
+term_getattr_pty_fs(shellinaboxd_t)
+term_relabel_all_ptys(shellinaboxd_t)
+term_use_generic_ptys(shellinaboxd_t)
+term_use_ptmx(shellinaboxd_t)
+
+manage_dirs_pattern(shellinaboxd_t, shellinaboxd_var_lib_t, shellinaboxd_var_lib_t)
+manage_files_pattern(shellinaboxd_t, shellinaboxd_var_lib_t, shellinaboxd_var_lib_t)
+manage_lnk_files_pattern(shellinaboxd_t, shellinaboxd_var_lib_t, shellinaboxd_var_lib_t)
+files_var_lib_filetrans(shellinaboxd_t, shellinaboxd_var_lib_t, { dir file lnk_file })
+
+domain_use_interactive_fds(shellinaboxd_t)
+
+files_read_etc_files(shellinaboxd_t)
+
+auth_use_nsswitch(shellinaboxd_t)
+
+logging_send_syslog_msg(shellinaboxd_t)
+
+miscfiles_read_localization(shellinaboxd_t)
+
+sysnet_dns_name_resolve(shellinaboxd_t)
+
+

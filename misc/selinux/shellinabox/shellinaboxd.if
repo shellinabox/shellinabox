@@ -1,0 +1,184 @@
+
+## <summary>policy for shellinaboxd</summary>
+
+########################################
+## <summary>
+##	Execute shellinaboxd_exec_t in the shellinaboxd domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`shellinaboxd_domtrans',`
+	gen_require(`
+		type shellinaboxd_t, shellinaboxd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, shellinaboxd_exec_t, shellinaboxd_t)
+')
+
+######################################
+## <summary>
+##	Execute shellinaboxd in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`shellinaboxd_exec',`
+	gen_require(`
+		type shellinaboxd_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, shellinaboxd_exec_t)
+')
+
+########################################
+## <summary>
+##	Search shellinaboxd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`shellinaboxd_search_lib',`
+	gen_require(`
+		type shellinaboxd_var_lib_t;
+	')
+
+	allow $1 shellinaboxd_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read shellinaboxd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`shellinaboxd_read_lib_files',`
+	gen_require(`
+		type shellinaboxd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, shellinaboxd_var_lib_t, shellinaboxd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage shellinaboxd lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`shellinaboxd_manage_lib_files',`
+	gen_require(`
+		type shellinaboxd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, shellinaboxd_var_lib_t, shellinaboxd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage shellinaboxd lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`shellinaboxd_manage_lib_dirs',`
+	gen_require(`
+		type shellinaboxd_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, shellinaboxd_var_lib_t, shellinaboxd_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Execute shellinaboxd server in the shellinaboxd domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`shellinaboxd_systemctl',`
+	gen_require(`
+		type shellinaboxd_t;
+		type shellinaboxd_unit_file_t;
+	')
+
+	systemd_exec_systemctl($1)
+        systemd_read_fifo_file_passwd_run($1)
+	allow $1 shellinaboxd_unit_file_t:file read_file_perms;
+	allow $1 shellinaboxd_unit_file_t:service manage_service_perms;
+
+	ps_process_pattern($1, shellinaboxd_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	an shellinaboxd environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`shellinaboxd_admin',`
+	gen_require(`
+		type shellinaboxd_t;
+		type shellinaboxd_var_lib_t;
+	type shellinaboxd_unit_file_t;
+	')
+
+	allow $1 shellinaboxd_t:process { signal_perms };
+	ps_process_pattern($1, shellinaboxd_t)
+
+    tunable_policy(`deny_ptrace',`',`
+        allow $1 shellinaboxd_t:process ptrace;
+    ')
+
+	files_search_var_lib($1)
+	admin_pattern($1, shellinaboxd_var_lib_t)
+
+	shellinaboxd_systemctl($1)
+	admin_pattern($1, shellinaboxd_unit_file_t)
+	allow $1 shellinaboxd_unit_file_t:service all_service_perms;
+	optional_policy(`
+		systemd_passwd_agent_exec($1)
+		systemd_read_fifo_file_passwd_run($1)
+	')
+')
