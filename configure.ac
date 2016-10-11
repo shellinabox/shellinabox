@@ -32,7 +32,7 @@ AC_SUBST(AR_FLAGS, [cr])
 
 dnl Check for header files that do not exist on all platforms
 AC_CHECK_HEADERS([libutil.h pthread.h pty.h strings.h syslog.h sys/prctl.h \
-                  sys/uio.h util.h utmp.h utmpx.h])
+                  sys/uio.h util.h])
 
 dnl Most systems require linking against libutil.so in order to get login_tty()
 AC_CHECK_FUNCS(login_tty, [],
@@ -75,15 +75,6 @@ AC_TRY_LINK([#include <math.h>],
             [AC_DEFINE(HAVE_ISNAN, 1,
                        Define to 1 if you have support for isnan)])
 
-dnl Even if utmpx.h exists, not all systems have support for updwtmpx()
-AC_TRY_LINK([#include <utmp.h>],
-            [updwtmp(0, 0);],
-            [AC_DEFINE(HAVE_UPDWTMP, 1,
-                       Define to 1 if you have support for updwtmp)])
-AC_TRY_LINK([#include <utmpx.h>],
-            [updwtmpx(0, 0);],
-            [AC_DEFINE(HAVE_UPDWTMPX, 1,
-                       Define to 1 if you have support for updwtmpx)])
 
 dnl Check if the compiler supports aliasing of symbols
 AC_TRY_LINK([void x(void) { };
@@ -146,6 +137,28 @@ AC_ARG_ENABLE(runtime-loading,
                             and PAM enabled.  If you would rather directly link
                             these libraries into the binary, thus making them a
                             hard dependency, then disable runtime-loading.])
+
+dnl This is feature is not suported in some standard C libs. So users can use
+dnl this switch to avoid compile and runtime problems. Note that utmp must
+dnl disabled on systems with musl libc.
+AC_ARG_ENABLE(utmp,
+              [  --disable-utmp            Disable support for login records. Note
+                                           that for systems with musl libc utmp must
+                                           be disabled.])
+
+if test "x$enable_utmp" != xno; then
+  AC_CHECK_HEADERS([utmp.h utmpx.h])
+
+  dnl Even if utmpx.h exists, not all systems have support for updwtmpx()
+  AC_TRY_LINK([#include <utmp.h>],
+              [updwtmp(0, 0);],
+              [AC_DEFINE(HAVE_UPDWTMP, 1,
+                         Define to 1 if you have support for updwtmp)])
+  AC_TRY_LINK([#include <utmpx.h>],
+              [updwtmpx(0, 0);],
+              [AC_DEFINE(HAVE_UPDWTMPX, 1,
+                         Define to 1 if you have support for updwtmpx)])
+fi
 
 dnl Only test for OpenSSL headers, if not explicitly disabled
 if test "x$enable_ssl" != xno; then
