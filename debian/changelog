@@ -1,3 +1,25 @@
+shellinabox (2.20) unstable; urgency=medium
+
+  * Fixed issue #222, LOGIN service
+  * Fixed issue #360, ignore escape sequences to fix dir listing
+  * Fix for function key presses
+  * Adjusting scale on IE
+  * New option to disable peer check (#364)
+  * Add option for custom SSH port
+  * Support for APL characters
+  * PDF documentation
+  * Fix for BSD build
+  * New ready event support
+  * OpenSSL 1.1 fixes  (Closes: #828542)
+  * May build with MUSL library
+  * Documentation added that SSL support is optional and requires
+    installation of openssl on Debian. (Closes: #839067)
+  * Jessie requires explicit installation of openssl because the default
+    package does not include the necessary utilities to support creation
+    of certificates. (Closes: #839066)
+
+ -- Marc Singer <elf@debian.org>  Wed, 09 Nov 2016 09:52:24 -0800
+
 shellinabox (2.19) unstable; urgency=high
 
   * Added support for middle-click paste, #350.

@@ -16,5 +16,7 @@ Suggests: openssl
 Description: publish command line shell through AJAX interface
  Shellinabox can export arbitrary command line programs to any JavaScript
  enabled web browser. By default, it prompts for username and password
- and then exports a SSL/TLS encrypted login shell. Shellinabox provides
- a VT100 compatible terminal emulator that runs within any modern browser.
+ and then exports a login shell. Shellinabox provides a VT100
+ compatible terminal emulator that runs within any modern
+ browser. Support for HTTPS protocol (SSL/TLS encryption) is optional
+ and requires installation of openssl.

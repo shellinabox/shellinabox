@@ -105,3 +105,17 @@ created from our sources. In new issue report please include following things:
 
 Also feel free to post any questions or comments in [shellinabox chat room](https://gitter.im/shellinabox/shellinabox)
 on Gitter.
+
+
+Known Issues
+------------
+
+* The openssl package is required for HTTP/SSL support.
+  Shell-in-a-box may be used without SSL such that the login session
+  is not encrypted.  To enable automatic creation of self-signed
+  certificates or to use a generated certificate, install openssl.
+
+* On Debian Jessie, the default openssl package does not include the
+  utilities necessary for Shell-in-a-box to generate self-signed
+  certificates.  Upgrade openssl to install a version of the tools
+  that support certificate creation.
