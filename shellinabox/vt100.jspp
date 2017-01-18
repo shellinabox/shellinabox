@@ -3395,7 +3395,7 @@ VT100.prototype.updateStyle = function() {
     this.style   += 'text-decoration: blink;';
   }
 
-  // Forground color
+  // Foreground color
   if (this.attrFg) {
     // 256 color mode
     fg            = this.attrFg
