@@ -288,33 +288,40 @@ static void httpDestroyHeaders(void *arg ATTR_UNUSED, char *key, char *value) {
 }
 
 static char *getPeerName(int fd, int *port, int numericHosts) {
-  struct sockaddr peerAddr;
+  struct sockaddr_storage peerAddr;
   socklen_t sockLen = sizeof(peerAddr);
-  if (getpeername(fd, &peerAddr, &sockLen)) {
+
+  if (getpeername(fd, (struct sockaddr*)&peerAddr, &sockLen)) {
     if (port) {
       *port         = -1;
     }
     return NULL;
   }
+
+  char ipaddr[INET6_ADDRSTRLEN];
   char *ret;
-  if (peerAddr.sa_family == AF_UNIX) {
+  if (peerAddr.ss_family == AF_INET) {
+    struct sockaddr_in *s = (struct sockaddr_in *)&peerAddr;
+    *port = ntohs(s->sin_port);
+    inet_ntop(AF_INET, &s->sin_addr, ipaddr, sizeof ipaddr);
+  } else if (peerAddr.ss_family == AF_INET6) {
+    struct sockaddr_in6 *s = (struct sockaddr_in6 *)&peerAddr;
+    *port = ntohs(s->sin6_port);
+    inet_ntop(AF_INET6, &s->sin6_addr, ipaddr, sizeof ipaddr);
+  } else { // AF_UNIX
     if (port) {
       *port         = 0;
     }
     check(ret       = strdup("localhost"));
     return ret;
   }
-  char host[256];
-  if (numericHosts ||
-      getnameinfo(&peerAddr, sockLen, host, sizeof(host), NULL, 0, NI_NOFQDN)){
-    check(inet_ntop(peerAddr.sa_family,
-                    &((struct sockaddr_in *)&peerAddr)->sin_addr,
-                    host, sizeof(host)));
+
+  char host[1024];
+  if (numericHosts || getnameinfo((struct sockaddr *)&peerAddr, sockLen, host, sizeof(host), 0, 0, NI_NOFQDN)) {
+    check(ret         = strdup(ipaddr));
+  } else {
+    check(ret         = strdup(host));
   }
-  if (port) {
-    *port           = ntohs(((struct sockaddr_in *)&peerAddr)->sin_port);
-  }
-  check(ret         = strdup(host));
   return ret;
 }
 
