@@ -16,7 +16,9 @@
 # You can find the GPL license text on a Debian system under
 # /usr/share/common-licenses/GPL-2.
 
+import grp
 import os
+import pwd
 import subprocess
 
 if 'DEBUG' in os.environ:
@@ -53,9 +55,14 @@ for domain, mtime in dest.items():
         continue
     updated=True
     print('Updating domain %s...' % domain)
-    with open(os.path.join(DEST,'certificate-%s.pem' % domain), 'w') as out:
+    pem=os.path.join(DEST,'certificate-%s.pem' % domain)
+    with open(pem, 'w') as out:
         out.write(open(os.path.join(SOURCE, domain, 'privkey.pem'), 'r').read())
         out.write(open(os.path.join(SOURCE, domain, 'cert.pem'), 'r').read())
+    os.chown(pem,
+             pwd.getpwnam('shellinabox').pw_uid,
+             grp.getgrnam('shellinabox').gr_gid)
+    os.chmod(pem, 0o600)
 
 if updated:
     print('Restarting ShellInABox')
