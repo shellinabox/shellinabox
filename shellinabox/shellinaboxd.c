@@ -91,7 +91,7 @@
 // Embedded resources
 #include "shellinabox/beep.h"
 #include "shellinabox/cgi_root.h"
-#include "shellinabox/enabled.h"
+#include "shellinabox/check.h"
 #include "shellinabox/favicon.h"
 #include "shellinabox/keyboard.h"
 #include "shellinabox/keyboard-layout.h"

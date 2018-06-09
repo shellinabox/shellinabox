@@ -1,49 +1,49 @@
 @import url("/install/theme.css");
 
 #vt100 #cursor.bright {
-  background-color: #111;
-  color:            #ccc;
+  background-color: #fe0;
+  color:            black;
 }
 
 #vt100 #scrollable {
-  color:            #222;
-  background-color: #eee;
+  color:            #db0;
+  background-color: #000;
 }
 
 #vt100 #scrollable.inverted {
-  color:            #ddd;
-  background-color: #444;
+  color:            #000;
+  background-color: #ca0;
 }
 
 #vt100 .ansi1, #vt100 .ansi2, #vt100 .ansi3, #vt100 .ansi4, #vt100 .ansi5, #vt100 .ansi6, #vt100 .ansi7 {
-  color:            #222;
+  color:            #db0;
 }
 
 #vt100 .ansi8 {
-  color:            #666;
+  color:			#420;
 }
 
 #vt100 .ansi9, #vt100 .ansi10, #vt100 .ansi11, #vt100 .ansi12, #vt100 .ansi13, #vt100 .ansi14, #vt100 .ansi15 {
-  color:            #000;
+  color:            #fe0;
 }
 
 #vt100 .ansi0 {
-  color:            #eee;
+  color:            #000;
 }
 
 #vt100 .bgAnsi0 {
-  background-color: #eee;
+  background-color: #000;
 }
 
 #vt100 .bgAnsi1, #vt100 .bgAnsi2, #vt100 .bgAnsi3, #vt100 .bgAnsi4, #vt100 .bgAnsi5, #vt100 .bgAnsi6, #vt100 .bgAnsi7 {
-  background-color: #888;
+  background-color: #970;
 }
 
 #vt100 .bgAnsi8 {
-  background-color: #bbb;
+  background-color: #530;
 }
 
 #vt100 .bgAnsi9, #vt100 .bgAnsi10, #vt100 .bgAnsi11, #vt100 .bgAnsi12, #vt100 .bgAnsi13, #vt100 .bgAnsi14, .bgAnsi15 {
-  background-color: #333;
+  background-color: #ec0;
 }
 
