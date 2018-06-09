@@ -4088,7 +4088,6 @@ VT100.prototype.csim = function() {
     case 40:
     case 49: this.attr = (this.attr & ~ATTR_DEF_BG);                          break; // reset bg
     default:
-    default:
       if (this.par[i] >= 30 && this.par[i] <= 37) {
           var fg        = this.par[i] - 30;
           this.attr     = ((this.attr & ATTR_DEF_BG) | fg) & ~(ATTR_DEF_FG);
