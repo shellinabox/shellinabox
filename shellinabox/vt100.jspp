@@ -3524,7 +3524,7 @@ VT100.prototype.updateStyle = function() {
     fg        |= 8;
     this.style = 'font-weight: bold;';
   }
-  if (this.attr & ATTR_BLINK */) {
+  if (this.attr & ATTR_BLINK) {
     this.style = 'text-decoration: blink;';
   }
   this.color   = 'ansi' + fg + ' bgAnsi' + bg;
