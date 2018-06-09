@@ -2546,7 +2546,7 @@ VT100.prototype.showContextMenu = function(x, y) {
              (this.softKeyboard ? '<img src="check.png" />' : '<div class="noimg"> </div>') +
              'Onscreen Keyboard</li>' +
           '<li>' +
-             (this.disableAlt ? '<img src="enabled.gif" />' : '') +
+             (this.disableAlt ? '<img src="check.png" />' : '') +
              'Disable Alt Key</li>' +
           '<li id="endconfig">' +
              (this.blinkingCursor ? '<img src="check.png" />' : '<div class="noimg"> </div>') +

@@ -1,47 +1,53 @@
 #vt100 #cursor.bright {
-  background-color: #eee;
-  color:            #000;
+  background-color: white;
+  color:            black;
+}
+
+#vt100 #cursor.dim {
+  background-color: black;
+  opacity:          0.2;
+  -moz-opacity:     0.2;
+  filter:           alpha(opacity=20);
 }
 
 #vt100 #scrollable {
-  color:            #ccc;
-  background-color: #000;
+  color:            #ffffff;
+  background-color: #000000;
 }
 
 #vt100 #scrollable.inverted {
-  color:            #000;
-  background-color: #aaa;
+  color:            #000000;
+  background-color: #ffffff;
 }
 
-#vt100 .ansi1, #vt100 .ansi2, #vt100 .ansi3, #vt100 .ansi4, #vt100 .ansi5, #vt100 .ansi6, #vt100 .ansi7 {
-  color:            #ccc;
+#vt100 .ansiDef {
+  color:            #ffffff;
 }
 
-#vt100 .ansi8 {
-  color:            #444;
+#vt100 .ansiDefR {
+  color:            #000000;
 }
 
-#vt100 .ansi9, #vt100 .ansi10, #vt100 .ansi11, #vt100 .ansi12, #vt100 .ansi13, #vt100 .ansi14, #vt100 .ansi15 {
-  color:            #fff;
+#vt100 .bgAnsiDef {
+  background-color: #000000;
 }
 
-#vt100 .ansi0 {
-  color:            #000;
+#vt100 .bgAnsiDefR {
+  background-color: #ffffff;
 }
 
-#vt100 .bgAnsi0 {
-  background-color: #000;
+#vt100 #scrollable.inverted .ansiDef {
+  color:            #000000;
 }
 
-#vt100 .bgAnsi8 {
-  backrgound-color: #555;
+#vt100 #scrollable.inverted .ansiDefR {
+  color:            #ffffff;
 }
 
-#vt100 .bgAnsi1, #vt100 .bgAnsi2, #vt100 .bgAnsi3, #vt100 .bgAnsi4, #vt100 .bgAnsi5, #vt100 .bgAnsi6, #vt100 .bgAnsi7 {
-  background-color: #888;
+#vt100 #scrollable.inverted .bgAnsiDef {
+  background-color: #ffffff;
 }
 
-#vt100 #vt100 .bgAnsi9, #vt100 .bgAnsi10, #vt100 .bgAnsi11, #vt100 .bgAnsi12, #vt100 .bgAnsi13, #vt100 .bgAnsi14, .bgAnsi15 {
-  background-color: #eee;
+#vt100 #scrollable.inverted .bgAnsiDefR {
+  background-color: #000000;
 }
-
