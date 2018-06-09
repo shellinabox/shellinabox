@@ -1,26 +1,24 @@
-@import url("/install/theme.css");
-
 #vt100 #cursor.bright {
   background-color: #eee;
   color:            #000;
 }
 
 #vt100 #scrollable {
-  color:            #aaa;
+  color:            #ccc;
   background-color: #000;
 }
 
 #vt100 #scrollable.inverted {
   color:            #000;
-  background-color: #888;
+  background-color: #aaa;
 }
 
 #vt100 .ansi1, #vt100 .ansi2, #vt100 .ansi3, #vt100 .ansi4, #vt100 .ansi5, #vt100 .ansi6, #vt100 .ansi7 {
-  color:            #aaa;
+  color:            #ccc;
 }
 
 #vt100 .ansi8 {
-  color:            #222;
+  color:            #444;
 }
 
 #vt100 .ansi9, #vt100 .ansi10, #vt100 .ansi11, #vt100 .ansi12, #vt100 .ansi13, #vt100 .ansi14, #vt100 .ansi15 {

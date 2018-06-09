@@ -85,29 +85,18 @@
 #define ESss3          19
 #define ESVTEtitle     20
 
-#define ATTR_DEFAULT   0x0007
+#define ATTR_DEFAULT   0x60F0
 #define ATTR_REVERSE   0x0100
 #define ATTR_UNDERLINE 0x0200
 #define ATTR_DIM       0x0400
 #define ATTR_BRIGHT    0x0800
 #define ATTR_BLINK     0x1000
-#define ATTR_DEF_FG    0x07
-#define ATTR_DEF_BG    0xF0
+#define ATTR_DEF_FG    0x2000
+#define ATTR_DEF_BG    0x4000
 
 #define MOUSE_DOWN     0
 #define MOUSE_UP       1
 #define MOUSE_CLICK    2
-
-// Test via a getter in the options object to see if the passive property is accessed
-var supportsPassive = false;
-try {
-  var opts = Object.defineProperty({}, 'passive', {
-    get: function() {
-      supportsPassive = true;
-    }
-  });
-  window.addEventListener("test", null, opts);
-} catch (e) {}
 
 function VT100(container) {
   if (typeof linkifyURLs == 'undefined' || linkifyURLs <= 0) {
@@ -229,9 +218,11 @@ VT100.prototype.reset = function(clearHistory) {
   this.utfEnabled                                    = this.utfPreferred;
   this.utfCount                                      = 0;
   this.utfChar                                       = 0;
-  this.color                                         = 'ansi7 bgAnsi0';
+  this.color                                         = 'ansiDef bgAnsiDef';
   this.style                                         = '';
   this.attr                                          = ATTR_DEFAULT;
+  this.attrFg                                        = false;
+  this.attrBg                                        = false;
   this.useGMap                                       = 0;
   this.GMap                                          = [ this.Latin1Map,
                                                          this.VT100GraphicsMap,
@@ -282,7 +273,7 @@ VT100.prototype.reset = function(clearHistory) {
 VT100.prototype.addListener = function(elem, event, listener) {
   try {
     if (elem.addEventListener) {
-      elem.addEventListener(event, listener, passiveflag);
+      elem.addEventListener(event, listener, false);
     } else {
       elem.attachEvent('on' + event, listener);
     }
@@ -312,7 +303,7 @@ VT100.prototype.getUserSettings = function() {
       navigator.userAgent.match(/PlayStation Vita|Kindle/i) != null) {
     this.softKeyboard       = true;
   }
-  this.blinkingCursor       = true;
+
   if (this.visualBell) {
     this.signature          = Math.floor(16807*this.signature + 1) %
                                          ((1 << 31) - 1);
@@ -814,7 +805,6 @@ VT100.prototype.initializeKeyboard = function() {
   this.addListener(this.keyboard, 'click',
     function(vt100) { return function(e) {
       vt100.hideSoftKeyboard();
-      console.log("initializeKeyboard->click");
       vt100.input.focus();
       return false; }; }(this));
   this.addListener(this.keyboard, 'selectstart', this.cancelEvent);
@@ -903,8 +893,8 @@ VT100.prototype.initializeElements = function(container) {
                        '<div class="hidden">' +
                          '<div id="usercss"></div>' +
                          '<pre><div><span id="space"></span></div></pre>' +
-                         '<input type="textfield" id="input" autocorrect="off" autocapitalize="off"/>' +
-                         '<input type="textfield" id="cliphelper" />' +
+                         '<input type="text" id="input" autocorrect="off" autocapitalize="off" />' +
+                         '<input type="text" id="cliphelper" />' +
                          (typeof suppressAllAudio != 'undefined' &&
                           suppressAllAudio ? "" :
                           "<audio id=\"beep_embed\"><source src=\"beep.wav\"/></audio>") +
@@ -987,10 +977,7 @@ VT100.prototype.initializeElements = function(container) {
                                  - (x + this.container.offsetWidth);
   this.isEmbedded              = marginTop != y ||
                                  marginLeft != x ||
-                                 (window.innerWidth ||
-                                  document.documentElement.clientWidth ||
-                                  document.body.clientWidth) -
-                                 marginRight != x + this.container.offsetWidth;
+                                 (widthDiff != 0 && widthDiff != -1);
   if (!this.isEmbedded) {
     // Some browsers generate resize events when the terminal is first
     // shown. Disable showing the size indicator until a little bit after
@@ -1596,13 +1583,13 @@ VT100.prototype.insertBlankLine = function(y, color, style) {
   // not add any missing lines in between. It is the caller's responsibility
   // to do so.
   if (!color) {
-    color                = 'ansi7 bgAnsi0';
+    color                = 'ansiDef bgAnsiDef';
   }
   if (!style) {
     style                = '';
   }
   var line;
-  if (color != 'ansi7 bgAnsi0' && !style) {
+  if (color != 'ansiDef bgAnsiDef' && !style) {
     line                 = document.createElement('pre');
     this.setTextContent(line, '\n');
   } else {
@@ -1696,7 +1683,7 @@ VT100.prototype.truncateLines = function(width) {
       // Prune white space from the end of the current line
       var span       = line.lastChild;
       while (span &&
-             span.className == 'ansi7 bgAnsi0' &&
+             span.className == 'ansiDef bgAnsiDef' &&
              !span.style.cssText.length) {
         // Scan backwards looking for first non-space character
         var s         = this.getTextContent(span);
@@ -1730,7 +1717,7 @@ VT100.prototype.truncateLines = function(width) {
 
 VT100.prototype.putString = function(x, y, text, color, style) {
   if (!color) {
-    color                           = 'ansi7 bgAnsi0';
+    color                           = 'ansiDef bgAnsiDef';
   }
   if (!style) {
     style                           = '';
@@ -1791,12 +1778,12 @@ VT100.prototype.putString = function(x, y, text, color, style) {
       var oldColor                  = span.className;
       var oldStyle                  = span.style.cssText;
       if (xPos + s.length < x) {
-        if (oldColor != 'ansi7 bgAnsi0' || oldStyle != '') {
+        if (oldColor != 'ansiDef bgAnsiDef' || oldStyle != '') {
           span                      = document.createElement('span');
           line.appendChild(span);
-          span.className            = 'ansi7 bgAnsi0';
+          span.className            = 'ansiDef bgAnsiDef';
           span.style.cssText        = '';
-          oldColor                  = 'ansi7 bgAnsi0';
+          oldColor                  = 'ansiDef bgAnsiDef';
           oldStyle                  = '';
           xPos                     += s.length;
           s                         = '';
@@ -1964,7 +1951,7 @@ VT100.prototype.putString = function(x, y, text, color, style) {
     // Prune white space from the end of the current line
     span                            = line.lastChild;
     while (span &&
-           span.className == 'ansi7 bgAnsi0' &&
+           span.className == 'ansiDef bgAnsiDef' &&
            !span.style.cssText.length) {
       // Scan backwards looking for first non-space character
       s                             = this.getTextContent(span);
@@ -2155,7 +2142,7 @@ VT100.prototype.clearRegion = function(x, y, w, h, color, style) {
   // child nodes.
   if (!this.numScrollbackLines &&
       w == this.terminalWidth && h == this.terminalHeight &&
-      (color == undefined || color == 'ansi7 bgAnsi0') && !style) {
+      (color == undefined || color == 'ansiDef bgAnsiDef') && !style) {
     var console = this.console[this.currentScreen];
     while (console.lastChild) {
       console.removeChild(console.lastChild);
@@ -2217,7 +2204,7 @@ VT100.prototype.copyLineSegment = function(dX, dY, sX, sY, w) {
     if (className[i]) {
       color                           = className[i];
     } else {
-      color                           = 'ansi7 bgAnsi0';
+      color                           = 'ansiDef bgAnsiDef';
     }
     this.putString(dX, dY - this.numScrollbackLines, text[i], color, style[i]);
     dX                               += text[i].length;
@@ -2842,11 +2829,13 @@ VT100.prototype.handleKey = function(event) {
       case 189: /* -            */ ch = this.applyModifiers(45, event); break;
       case 190: /* .            */ ch = this.applyModifiers(46, event); break;
       case 191: /* /            */ ch = this.applyModifiers(47, event); break;
-
-//    Reported conflicts (192.219,221) with dead key " on Swiss keyboards.
+      // Conflicts with dead key " on Swiss keyboards
       // case 192: /* `            */ ch = this.applyModifiers(96, event); break;
+      // Conflicts with dead key " on Swiss keyboards
       // case 219: /* [            */ ch = this.applyModifiers(91, event); break;
       case 220: /* \            */ ch = this.applyModifiers(92, event); break;
+      // Conflicts with dead key ^ and ` on Swiss keaboards
+      //                         ^ and " on French keyboards
       // case 221: /* ]            */ ch = this.applyModifiers(93, event); break;
       case 222: /* '            */ ch = this.applyModifiers(39, event); break;
       default:                                                          return;
@@ -2948,9 +2937,9 @@ VT100.prototype.fixEvent = function(event) {
   // Some browsers fail to translate keys, if both shift and alt/meta is
   // pressed at the same time. We try to translate those cases, but that
   // only works for US keyboard layouts.
-  if (event.shiftKey) {
   var u                   = undefined;
   var s                   = undefined;
+  if (event.shiftKey) {
     switch (this.lastNormalKeyDownEvent.keyCode) {
     case  39: /* ' -> " */ u = 39; s =  34; break;
     case  44: /* , -> < */ u = 44; s =  60; break;
@@ -3177,10 +3166,8 @@ VT100.prototype.keyDown = function(event) {
     } else {
       fake.charCode             = 0;
       fake.keyCode              = event.keyCode;
-      if (!alphNumKey && event.shiftKey) {
-        fake                    = this.fixEvent(fake);
-      }
     }
+    fake                        = this.fixEvent(fake);
 
     this.handleKey(fake);
     this.lastNormalKeyDownEvent = undefined;
@@ -3275,14 +3262,13 @@ VT100.prototype.keyUp = function(event) {
         asciiKey                                     ||
         event.keyCode ==  50                         ||
         event.keyCode >=  96 && event.keyCode <= 105;
+      // Not used ???
       var normalKey               =
         alphNumKey                                   ||
-//        event.keyCode ==  59 || event.keyCode ==  61 ||
-        event.keyCode >=  58 && event.keyCode <=  64 ||
+        event.keyCode ==  59 || event.keyCode ==  61 ||
         event.keyCode == 106 || event.keyCode == 107 ||
         event.keyCode >= 109 && event.keyCode <= 111 ||
-//        event.keyCode >= 186 && event.keyCode <= 192 ||
-        event.keyCode >= 160 && event.keyCode <= 192 ||
+        event.keyCode >= 186 && event.keyCode <= 192 ||
         event.keyCode >= 219 && event.keyCode <= 223 ||
         event.keyCode == 252;
       var fake                    = [ ];
@@ -3296,9 +3282,9 @@ VT100.prototype.keyUp = function(event) {
       } else {
         fake.charCode             = 0;
         fake.keyCode              = event.keyCode;
-        if (!alphNumKey && (event.ctrlKey || event.altKey || event.metaKey)) {
-          fake                    = this.fixEvent(fake);
-        }
+      }
+      if (event.ctrlKey || event.altKey || event.metaKey) {
+        fake                      = this.fixEvent(fake);
       }
       this.lastNormalKeyDownEvent = undefined;
       this.handleKey(fake);
@@ -3464,7 +3450,6 @@ VT100.prototype.lf = function(count) {
       this.scrollRegion(0, this.top + 1,
                         this.terminalWidth, this.bottom - this.top - 1,
                         0, -1, this.color, this.style);
-      offset = undefined;
     } else if (this.cursorY < this.terminalHeight - 1) {
       this.gotoXY(this.cursorX, this.cursorY + 1);
     }
@@ -3511,23 +3496,43 @@ VT100.prototype.updateStyle = function() {
   if (this.attr & ATTR_UNDERLINE) {
     this.style   += 'text-decoration: underline;';
   }
-  var bg       = (this.attr >> 4) & 0xF;
-  var fg       =  this.attr       & 0xF;
-  if (this.attr & ATTR_REVERSE) {
-    var tmp    = bg;
-    bg         = fg;
-    fg         = tmp;
-  }
-  if ((this.attr & (ATTR_REVERSE | ATTR_DIM)) == ATTR_DIM) {
-		fg &=  ~(ATTR_BRIGHT);	// turn off bright bit - EKL
-  } else if (this.attr & ATTR_BRIGHT) {
-    fg        |= 8;
-    this.style = 'font-weight: bold;';
-  }
   if (this.attr & ATTR_BLINK) {
-    this.style = 'text-decoration: blink;';
+    this.style   += 'text-decoration: blink;';
   }
-  this.color   = 'ansi' + fg + ' bgAnsi' + bg;
+
+  // Forground color
+  if (this.attrFg) {
+    // 256 color mode
+    fg            = this.attrFg
+  } else if (this.attr & ATTR_DEF_FG) {
+    fg            = 'Def';
+  } else {
+    fg            = this.attr & 0xF;
+    if (this.attr & ATTR_BRIGHT) {
+      fg         |= 8;
+      this.style += 'font-weight: bold;';
+    }
+  }
+
+  // Background color
+  if (this.attrBg) {
+    // 256 color mode
+    bg            = this.attrBg
+  } else if (this.attr & ATTR_DEF_BG) {
+    bg            = 'Def';
+  } else {
+    bg            = (this.attr >> 4) & 0xF;
+  }
+
+  // Reverse colors
+  if (this.attr & ATTR_REVERSE) {
+    var tmpFg     = fg;
+    var tmpBg     = bg;
+    fg            = (tmpBg == 'Def') ? 'DefR' : tmpBg;
+    bg            = (tmpFg == 'Def') ? 'DefR' : tmpFg;
+  }
+
+  this.color      = 'ansi' + fg + ' bgAnsi' + bg;
 };
 
 VT100.prototype.setAttrColors = function(attr) {
@@ -3541,6 +3546,8 @@ VT100.prototype.saveCursor = function() {
   this.savedX[this.currentScreen]      = this.cursorX;
   this.savedY[this.currentScreen]      = this.cursorY;
   this.savedAttr[this.currentScreen]   = this.attr;
+  this.savedAttrFg[this.currentScreen] = this.attrFg;
+  this.savedAttrBg[this.currentScreen] = this.attrBg;
   this.savedUseGMap                    = this.useGMap;
   for (var i = 0; i < 4; i++) {
     this.savedGMap[i]                  = this.GMap[i];
@@ -3553,6 +3560,8 @@ VT100.prototype.restoreCursor = function() {
     return;
   }
   this.attr      = this.savedAttr[this.currentScreen];
+  this.attrFg    = this.savedAttrFg[this.currentScreen];
+  this.attrBg    = this.savedAttrBg[this.currentScreen];
   this.updateStyle();
   this.useGMap   = this.savedUseGMap;
   for (var i = 0; i < 4; i++) {
@@ -3969,47 +3978,13 @@ VT100.prototype.csiM = function(number) {
   this.needWrap = false;
 };
 
-VT100.prototype.colorReducer = function(color,colorsize) {
-  // colorsize should be 6 or 24 | this only does colors, no attributes
-  // if you need to subtract 40 or 16 or whatever, do it before calling
-  var r, g, b;
-  if (colorsize == 6) {
-    r = Math.floor(color / 36);
-    color -= (r * 36);
-    g = Math.floor(color / 6);
-    b = color - (g * 6);
-  } else { 
-    r = Math.round((color >> 16) / 51.0 );
-    g = Math.round(((color & 0x0000ff00) >> 8) / 51.0);
-    b = Math.round((color & 0x000000ff) / 51.0);
-  }
-  // Actual color convert - EKL
-  var median = Math.cbrt(((r+2)*(g+2)*(b+2))/3);
-  var index = ((((b - median) >= -0.62) ? ((b==0) ? 0 : 1) : 0) << 2) |
-          ((((g - median) >= -0.62) ? ((g==0) ? 0 : 1) : 0) << 1) |
-          (((r - median) >= -0.62) ? ((r==0) ? 0 : 1) : 0);
-  // Fixup brightness flags - greys first since we have 4 brightnesses
-  if ((index == 0) || (index == 7)) {
-    switch (Math.max(Math.max(r,g),b)) {
-      case 0: case 1:  index=0; break;
-      case 2: index=8; break;
-      case 3: case 4: index=7; break;
-      case 5: case 6: index=15; break;
-    }
-  // then we do the rest of the colors with a formula, slightly
-  // adjusted for orange needing to be so bright, yet is still not
-  // in the 'bright' palette (it's dim yellow).
-  } else if ((Math.pow(r+1,3) + Math.pow(g+1,3) + Math.pow(b+1,3)) >= 
-                                ((index==3) ? 300 : 216)) 
-    index |= 8;  // this is the bright color bit. BUG: no bold
-  return index;
-};
-
 VT100.prototype.csim = function() {
   for (var i = 0; i <= this.npar; i++) {
     switch (this.par[i]) {
     case 0:
       this.attr         = ATTR_DEFAULT;
+      this.attrFg       = false;
+      this.attrBg       = false;
       break;
     case 1:  this.attr  = (this.attr & ~ATTR_DIM)|ATTR_BRIGHT;         break;
     case 2:  this.attr  = (this.attr & ~ATTR_BRIGHT)|ATTR_DIM;         break;
@@ -4037,69 +4012,43 @@ VT100.prototype.csim = function() {
     case 25: this.attr &= ~ ATTR_BLINK;                                break;
     case 27: this.attr &= ~ ATTR_REVERSE;                              break;
     case 38:
-      if (i < this.npar) {
-        i++;
-        if (this.par[i] == 2) {
-          fg = this.colorReducer((this.par[i+1]<<16)|(this.par[i+2]<<8)|(this.par[i+3]), 24);
-          i += 4;  // is this legal?  - EKL
-        } else if (this.par[i] == 5) {
-          fg = this.par[++i];		// color
-          if (fg >= 0xe8) { 		// for 16 grey-shade area
-            if (fg <= 0xeb) {
-              fg = 0;
-            } else if (fg <= 0xf2) {
-              fg = 8;
-            } else if (fg <= 0xf9) {
-              fg = 7;
-            } else fg = 15;
-          } else if (fg >= 16) { 	// full 6x6x6 area
-            fg = this.colorReducer(fg-16, 6);
-          }
-        }
-		this.attr = ((this.attr & ~ATTR_DEF_BG) | fg);
+      if (this.npar >= (i+2) && this.par[i+1] == 5) {
+        // Foreground color for extended color mode (256 colors). Escape code is formatted
+        // as: ESC 38; 5; 0-255. Last parameter is color code in range [0-255]. This is
+        // not VT100 standard.
+        this.attrFg     = (this.par[i+2] >= 0 && this.par[i+2] <= 255) ? this.par[i+2] : false;
+        i              += 2;
+      } else {
+        // Default VT100 behaviour.
+        this.attr       = (this.attr & ~(ATTR_DIM|ATTR_BRIGHT|0x0F))|ATTR_UNDERLINE | ATTR_DEF_FG;
       }
       break;
     case 39:
-      this.attr         = (this.attr & ~(ATTR_DIM|ATTR_BRIGHT|ATTR_UNDERLINE)) | ATTR_DEF_FG;
+      this.attr         = (this.attr & ~(ATTR_DIM|ATTR_BRIGHT|ATTR_UNDERLINE|0x0F)) | ATTR_DEF_FG;
+      this.attrFg       = false;
       break;
     case 48:
-      if (i < this.npar) {
-        i++;
-        if (this.par[i] == 2) {
-          bg = this.colorReducer((this.par[i+1]<<16)|(this.par[i+2]<<8)|(this.par[i+3]), 24);
-          i += 4;  // is this legal?  - EKL
-        } else if (this.par[i] == 5) {
-          bg = this.par[++i]; 		// color
-          if (bg >= 0xe8) {
-            if (bg <= 0xeb) { 		// 16 greys
-              bg = 0;
-            } else if (bg <= 0xf2) {
-              bg = 8;
-            } else if (bg <= 0xf9) {
-              bg = 7;
-            } else bg = 15;
-          } else if (bg >= 16) { 	// 6x6x6 cube
-            bg = this.colorReducer(bg-16, 6);
-          }
-        }
-        this.attr = ((this.attr & ~ATTR_DEF_BG) | (bg << 4));
+      if (this.npar >= (i+2) && this.par[i+1] == 5) {
+        // Background color for extended color mode (256 colors). Escape code is formatted
+        // as: ESC 48; 5; 0-255. Last parameter is color code in range [0-255]. This is
+        // not VT100 standard.
+        this.attrBg     = (this.par[i+2] >= 0 && this.par[i+2] <= 255) ? this.par[i+2] : false;
+        i              += 2;
       }
       break;
-    case 40:
-    case 49: this.attr = (this.attr & ~ATTR_DEF_BG);                          break; // reset bg
+    case 49:
+      this.attr        |= (0xF0|ATTR_DEF_BG);
+      this.attrBg       = false;
+      break;
     default:
       if (this.par[i] >= 30 && this.par[i] <= 37) {
           var fg        = this.par[i] - 30;
-          this.attr     = ((this.attr & ATTR_DEF_BG) | fg) & ~(ATTR_DEF_FG);
-      } else if (this.par[i] > 40 && this.par[i] <= 47) {
+          this.attr     = ((this.attr & ~0x0F) | fg) & ~(ATTR_DEF_FG);
+          this.attrFg   = false;
+      } else if (this.par[i] >= 40 && this.par[i] <= 47) {
           var bg        = this.par[i] - 40;
-          this.attr     = (this.attr & ~ATTR_DEF_BG) | (bg << 4);
-      } else if (this.par[i] >=90 && this.par[i] <= 97 ) { // bright fg
-    	  var fg 		= this.par[i] - 90;
-    	  this.attr 	= (this.attr & ~ATTR_DIM) | ATTR_BRIGHT;
-      } else if (this.par[i] >= 100 && this.par[i] <= 107 ) { // bright bg
-          var bg 		= this.par[i] - 92;
-          this.attr 	= (this.attr & ~ATTR_DEF_BG) | (bg << 4);
+          this.attr     = ((this.attr & ~0xF0) | (bg << 4)) & ~(ATTR_DEF_BG);
+          this.attrBg   = false;
       }
       break;
     }
