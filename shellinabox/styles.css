@@ -102,16 +102,16 @@
 }
 
 #vt100 #menu .popup {
-  border: 1px solid rgba(0,0,0,0.3); 
-  font-family: "Droid Sans", "DejaVu Sans", "Arial", sans-serif; 
-  padding: 0.5em 0; 
-  font-size: 11pt; 
-  box-shadow: 4px 4px 6px black; 
-  background: rgba(90,90,90,0.95); 
-  color: ivory; 
-  border-radius: 3px; 
-  position: absolute; 
-  text-shadow: 0.5px 0.5px 0 rgba(0,0,0,0.5);
+  border:               1px solid rgba(0,0,0,0.3);
+  font-family:          "Droid Sans", "DejaVu Sans", "Arial", sans-serif;
+  padding:              0.5em 0;
+  font-size:            11pt;
+  box-shadow:           4px 4px 6px black;
+  background:           rgba(90,90,90,0.95);
+  color:                ivory;
+  border-radius:        3px;
+  position:             absolute;
+  text-shadow:          0.5px 0.5px 0 rgba(0,0,0,0.5);
 }
 
 #vt100 #menu .popup ul {
@@ -144,13 +144,13 @@
 }
 
 .noimg,#vt100 #menu img {
-    margin-right: 0.5ex;
-    width: 2.2ex;
-    height: 2.2ex;
-    top: 2px;
-    position: relative;
-    display: inline-block;
-    filter: drop-shadow(1px 1px 1px black);
+    margin-right:       0.5ex;
+    width:              2.2ex;
+    height:             2.2ex;
+    top:                2px;
+    position:           relative;
+    display:            inline-block;
+    filter:             drop-shadow(1px 1px 1px black);
 }
 
 #vt100 #kbd_button {
