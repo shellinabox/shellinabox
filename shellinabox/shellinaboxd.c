@@ -687,10 +687,10 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
   } else if (pathInfoLength == 8 && !memcmp(pathInfo, "beep.wav", 8)) {
     // Serve the audio sample for the console bell.
     serveStaticFile(http, "audio/x-wav", beepStart, beepStart + beepSize - 1);
-  } else if (pathInfoLength == 11 && !memcmp(pathInfo, "enabled.gif", 11)) {
+  } else if (pathInfoLength == 11 && !memcmp(pathInfo, "check.png", 9)) {
     // Serve the checkmark icon used in the context menu
-    serveStaticFile(http, "image/gif", enabledStart,
-                    enabledStart + enabledSize - 1);
+    serveStaticFile(http, "image/gif", checkStart,
+                    checkStart + checkSize - 1);
   } else if (pathInfoLength == 11 && !memcmp(pathInfo, "favicon.ico", 11)) {
     // Serve the favicon
     serveStaticFile(http, "image/x-icon", faviconStart,
