@@ -7,7 +7,7 @@ shellinabox
 
 
 This is a fork of the project **Shell In A Box**. The fork was created because
-the original project was not maintained by authorized author.  He did provide some
+the original project was not maintained by the authorized author.  He did provide some
 early support for the Debian package.
 
 Our aim is to continue with maintenance of the shellinabox project. For a list of
