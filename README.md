@@ -6,9 +6,9 @@ shellinabox
 [![Join the chat at https://gitter.im/shellinabox/shellinabox](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/shellinabox/shellinabox?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 
-This is an unofficial fork of the project **Shell In A Box**. The fork was created because
-the original project was not maintained anymore and we cannot contact the original
-repository owners.
+This is a fork of the project **Shell In A Box**. The fork was created because
+the original project was not maintained by authorized author.  He did provide some
+early support for the Debian package.
 
 Our aim is to continue with maintenance of the shellinabox project. For a list of
 recent changes, please see [CHANGELOG.md](/CHANGELOG.md).
