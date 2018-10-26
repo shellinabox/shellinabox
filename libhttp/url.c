@@ -312,6 +312,9 @@ static void urlParsePostBody(struct URL *url,
               }
             }
           }
+        } else {
+           warn("[http] broken multipart/form-data!");
+           break;
         }
       }
       if (lastPart) {
