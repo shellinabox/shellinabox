@@ -300,7 +300,8 @@ VT100.prototype.getUserSettings = function() {
 
   // Enable soft keyboard icon on some clients by default.
   if (navigator.userAgent.match(/iPad|iPhone|iPod/i) != null ||
-      navigator.userAgent.match(/PlayStation Vita|Kindle/i) != null) {
+      navigator.userAgent.match(/PlayStation Vita|Kindle/i) != null ||
+      navigator.userAgent.match(/Mobile|Tablet/i) != null) {
     this.softKeyboard       = true;
   }
 
