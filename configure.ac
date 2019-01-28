@@ -138,6 +138,17 @@ AC_ARG_ENABLE(runtime-loading,
                             these libraries into the binary, thus making them a
                             hard dependency, then disable runtime-loading.])
 
+dnl This changes the order of the top ciphersuites
+AC_ARG_ENABLE(prefer-chacha,
+              [  --enable-prefer-chacha    Prefer ChaCha20-Poly1305 ciphersuites over
+                            AES256-GCM.  For processors without AES-NI or
+			    similar capabilities, ChaCha20-Poly1305 is 3 times
+			    faster than AES, with an equivalent strength.])
+if test "x$enable_prefer_chacha" == xyes; then
+  AC_DEFINE(SHELLINABOX_USE_CHACHA_FIRST, 1,
+                                Set if you want to prefer Chacha20-Poly1305 over AES-GCM)
+fi
+
 dnl This is feature is not suported in some standard C libs. So users can use
 dnl this switch to avoid compile and runtime problems. Note that utmp must
 dnl disabled on systems with musl libc.
