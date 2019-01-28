@@ -1,3 +1,9 @@
+shellinabox (2.21) unstable; urgency=medium
+
+  * Patched DoS vulnerability reported by Imre Rad.
+
+ -- Marc Singer <elf@debian.org>  Sun, 09 Sep 2018 12:10:40 -0700
+
 shellinabox (2.20) unstable; urgency=medium
 
   * Fixed issue #222, LOGIN service
