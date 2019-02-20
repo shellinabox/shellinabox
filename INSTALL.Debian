@@ -26,7 +26,7 @@ You can install them with:
 
 You can now connect to your new shell at:
 
-  http://localhost:4200
+  https://localhost:4200
 
 In contrast to installation by "make install", this package file creates
 files that are managed by the system tools. This allows it to install
