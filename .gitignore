@@ -19,6 +19,7 @@ config.sub
 configure
 debian/autoreconf.after
 debian/autoreconf.before
+debian/debhelper-build-stamp
 debian/files
 debian/*.debhelper.log
 debian/*.debhelper

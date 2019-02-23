@@ -1133,7 +1133,7 @@ static void parseArgs(int argc, char * const argv[]) {
         fatal("[config] Duplicate --port option!");
       }
       if (cgi) {
-        fatal("[config] Cannot specifiy a port for CGI operation");
+        fatal("[config] Cannot specify a port for CGI operation");
       }
       if (!optarg || *optarg < '0' || *optarg > '9') {
         fatal("[config] Option --port expects a port number.");

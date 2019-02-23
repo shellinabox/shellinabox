@@ -868,7 +868,7 @@ This product includes cryptographic software written by Eric Young
 #endif
 .SH BUGS
 Due to browser limitations, some features might not be available to
-users of all browers.
+users of all browsers.
 .P
 Konqueror does not allow for reliable interception of
 .I CTRL
