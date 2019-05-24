@@ -69,7 +69,7 @@ listed below. This will create executable file `shellinaboxd` in project directo
 4. Run configure and make in project directory
 
    ```
-    ./configure && make
+    ./configure --disable-runtime-loading && make
    ```
 
 #### Debian package
