@@ -312,6 +312,9 @@ static void urlParsePostBody(struct URL *url,
               }
             }
           }
+        } else {
+           warn("[http] broken multipart/form-data!");
+           break;
         }
         /* elf-2018.09.09: Detection of broken multipart/form-data
            fixes DoS vulnerability.
