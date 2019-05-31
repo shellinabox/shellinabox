@@ -3937,13 +3937,21 @@ VT100.prototype.csim = function() {
       break;
     default:
       if (this.par[i] >= 30 && this.par[i] <= 37) {
+          // set foreground color, colors 0-7 (ansi)
           var fg        = this.par[i] - 30;
           this.attr     = ((this.attr & ~0x0F) | fg) & ~(ATTR_DEF_FG);
           this.attrFg   = false;
       } else if (this.par[i] >= 40 && this.par[i] <= 47) {
+          // set background color, colors 0-7 (ansi)
           var bg        = this.par[i] - 40;
           this.attr     = ((this.attr & ~0xF0) | (bg << 4)) & ~(ATTR_DEF_BG);
           this.attrBg   = false;
+      } else if (this.par[i] >= 90 && this.par[i] <= 97) {
+          // set foreground color, colors 8-15 (aixterm high-intensity)
+          this.attrFg = this.par[i] - 82;
+      } else if (this.par[i] >= 100 && this.par[i] <= 107) {
+          // set background color, colors 8-15 (aixterm high-intensity)
+          this.attrBg = this.par[i] - 92;
       }
       break;
     }
