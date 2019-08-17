@@ -86,11 +86,13 @@
 }
 
 #vt100 .hidden {
-  position:             absolute;
-  top:                  -10000px;
-  left:                 -10000px;
+  bottom:               0;
+  left:                 0;
   width:                0px;
   height:               0px;
+  position:             fixed;
+  z-index:              -1;
+  overflow:             hidden;
 }
 
 #vt100 #menu {
@@ -100,10 +102,16 @@
 }
 
 #vt100 #menu .popup {
-  background-color:     #EEEEEE;
-  border:               1px solid black;
-  font-family:          sans-serif;
+  border:               1px solid rgba(0,0,0,0.3);
+  font-family:          "Droid Sans", "DejaVu Sans", "Arial", sans-serif;
+  padding:              0.5em 0;
+  font-size:            11pt;
+  box-shadow:           4px 4px 6px black;
+  background:           rgba(90,90,90,0.95);
+  color:                ivory;
+  border-radius:        3px;
   position:             absolute;
+  text-shadow:          0.5px 0.5px 0 rgba(0,0,0,0.5);
 }
 
 #vt100 #menu .popup ul {
@@ -114,7 +122,7 @@
 }
 
 #vt100 #menu .popup li {
-  padding:              3px 0.5ex 3px 0.5ex;
+  padding:              4px 3ex 4px 1ex;
 }
 
 #vt100 #menu .popup li.hover {
@@ -125,15 +133,31 @@
 #vt100 #menu .popup li.disabled {
   color:                #AAAAAA;
 }
-
 #vt100 #menu .popup hr {
-  margin:               0.5ex 0px 0.5ex 0px;
+  margin:               0.5ex 0 0.5ex 0;
+  border-top:           none;
+  border-color:         rgba(0,0,0,0.4);
 }
 
-#vt100 #menu img {
-  margin-right:         0.5ex;
-  width:                1ex;
-  height:               1ex;
+#beginclipboard,#endclipboard,#browserclipboard,#reset,#about {
+  padding:              4px 3.7ex !important;
+}
+
+.noimg,#vt100 #menu img {
+    margin-right:       0.5ex;
+    width:              2.2ex;
+    height:             2.2ex;
+    top:                2px;
+    position:           relative;
+    display:            inline-block;
+    filter:             drop-shadow(1px 1px 1px black);
+}
+
+#vt100 #kbd_button {
+  float:                left;
+  position:             fixed;
+  z-index:              0;
+  visibility:           hidden;
 }
 
 #vt100 #scrollable.inverted {

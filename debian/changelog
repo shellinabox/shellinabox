@@ -1,3 +1,9 @@
+shellinabox (2.22) unstable; urgency=medium
+
+  * merged pull requests
+
+ -- Jonny Rimkus <jonny@rimkus.it>  Sat, 01 Jun 2019 03:17:40 -0200
+
 shellinabox (2.21) unstable; urgency=medium
 
   * Patched DoS vulnerability reported by Imre Rad.

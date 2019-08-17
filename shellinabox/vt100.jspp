@@ -132,7 +132,7 @@ function VT100(container) {
     '(?:(?!-)' +
         '[^.[!"#$%&\'()*+,/:;<=>?@\\^_`{|}~\u0000- \u007F-\u00A0]+[.]){2,}' +
     '(?:(?:com|net|org|edu|gov|aero|asia|biz|cat|coop|info|int|jobs|mil|mobi|'+
-    'museum|name|pro|tel|travel|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|' +
+    'museum|name|guru|systems|pro|tel|travel|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|' +
     'au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|' +
     'ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cu|cv|cx|cy|cz|de|dj|dk|dm|do|' +
     'dz|ec|ee|eg|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|' +
@@ -160,7 +160,7 @@ function VT100(container) {
     // Hostname.
     '(?!-)[-a-zA-Z0-9]+(?:[.](?!-)[-a-zA-Z0-9]+)?[.]' +
     '(?:(?:com|net|org|edu|gov|aero|asia|biz|cat|coop|info|int|jobs|mil|mobi|'+
-    'museum|name|pro|tel|travel|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|' +
+    'museum|name|guru|systems|pro|tel|travel|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|' +
     'au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|' +
     'ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cu|cv|cx|cy|cz|de|dj|dk|dm|do|' +
     'dz|ec|ee|eg|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|' +
@@ -300,7 +300,8 @@ VT100.prototype.getUserSettings = function() {
 
   // Enable soft keyboard icon on some clients by default.
   if (navigator.userAgent.match(/iPad|iPhone|iPod/i) != null ||
-      navigator.userAgent.match(/PlayStation Vita|Kindle/i) != null) {
+      navigator.userAgent.match(/PlayStation Vita|Kindle/i) != null ||
+      navigator.userAgent.match(/Mobile|Tablet/i) != null) {
     this.softKeyboard       = true;
   }
 
@@ -452,7 +453,7 @@ VT100.prototype.initializeUserCSSStyles = function() {
                           sheet.disabled = false;
                         }
                         if (!sheet.disabled) {
-                          label.innerHTML= '<img src="enabled.gif" />' +
+                          label.innerHTML= '<img src="check.png" />' +
                                            label.innerHTML;
                         }
                       } else {
@@ -491,7 +492,7 @@ VT100.prototype.initializeUserCSSStyles = function() {
       // both ends), or whether this is a on/off toggle, which can be grouped
       // together with other on/off options.
       group                             +=
-        '<li>' + (enabled ? '<img src="enabled.gif" />' : '') +
+        '<li>' + (enabled ? '<img src="check.png" />' : '') +
                  label +
         '</li>';
     }
@@ -865,29 +866,6 @@ VT100.prototype.initializeElements = function(container) {
       !this.getChildById(this.container, 'space')       ||
       !this.getChildById(this.container, 'input')       ||
       !this.getChildById(this.container, 'cliphelper')) {
-    // Only enable the "embed" object, if we have a suitable plugin. Otherwise,
-    // we might get a pointless warning that a suitable plugin is not yet
-    // installed. If in doubt, we'd rather just stay silent.
-    var embed                  = '';
-    try {
-      if (typeof navigator.mimeTypes["audio/x-wav"].enabledPlugin.name !=
-          'undefined') {
-        embed                  = typeof suppressAllAudio != 'undefined' &&
-                                 suppressAllAudio ? "" :
-        '<embed classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B" ' +
-                       'id="beep_embed" ' +
-                       'src="beep.wav" ' +
-                       'autostart="false" ' +
-                       'volume="100" ' +
-                       'enablejavascript="true" ' +
-                       'type="audio/x-wav" ' +
-                       'height="16" ' +
-                       'width="200" ' +
-                       'style="position:absolute;left:-1000px;top:-1000px" />';
-      }
-    } catch (e) {
-    }
-
     this.container.innerHTML   =
                        '<div id="reconnect" style="visibility: hidden">' +
                          '<input type="button" value="Connect" ' +
@@ -920,7 +898,7 @@ VT100.prototype.initializeElements = function(container) {
                          '<input type="text" id="cliphelper" />' +
                          (typeof suppressAllAudio != 'undefined' &&
                           suppressAllAudio ? "" :
-                         embed + '<bgsound id="beep_bgsound" loop=1 />') +
+                          "<audio id=\"beep_embed\"><source src=\"beep.wav\"/></audio>") +
                           '<iframe id="layout" src="keyboard.html" />' +
                         '</div>';
   }
@@ -931,13 +909,6 @@ VT100.prototype.initializeElements = function(container) {
   } else {
     this.beeper                = this.getChildById(this.container,
                                                    'beep_embed');
-    if (!this.beeper || !this.beeper.Play) {
-      this.beeper              = this.getChildById(this.container,
-                                                   'beep_bgsound');
-      if (!this.beeper || typeof this.beeper.src == 'undefined') {
-        this.beeper            = undefined;
-      }
-    }
   }
 
   // Initialize the variables for finding the text console and the
@@ -990,6 +961,10 @@ VT100.prototype.initializeElements = function(container) {
                                           document.body, 'marginRight'));
   var x                        = this.container.offsetLeft;
   var y                        = this.container.offsetTop;
+    // For touchscreen gestures
+    this.xDown		= null;
+    this.yDown		= null;
+    this.Thresh		= 10;
   for (var parent = this.container; parent = parent.offsetParent; ) {
     x                         += parent.offsetLeft;
     y                         += parent.offsetTop;
@@ -1080,6 +1055,42 @@ VT100.prototype.initializeElements = function(container) {
   this.addListener(this.scrollable,'mouseup',  mouseEvent(this, MOUSE_UP));
   this.addListener(this.scrollable,'click',    mouseEvent(this, MOUSE_CLICK));
 
+// Stuff for swipes and tmux hack - EKL
+   this.addListener(this.scrollable, 'touchstart', 
+   	function(vt100) {
+   		return function(e) {
+   			if (!e) e = window.event;
+   				return vt100.handleTouchStart(e); } }(this));
+   this.addListener(this.scrollable, 'touchmove', 
+   	function(vt100) {
+   		return function(e) {
+   			if (!e) e = window.event;
+   				return vt100.handleTouchMove(e); } }(this));
+   this.addListener(this.scrollable, 'touchend', 
+   	function(vt100) {
+   		return function(e) {
+   			if (!e) e = window.event;
+   				return vt100.handleTouchEnd(e); } }(this));
+// End of Swipe/Tmux
+ 
+  // Check that browser supports drag and drop
+  if ('draggable' in document.createElement('span')) {
+      var dropEvent            = function (vt100) {
+          return function(e) {
+              if (!e) e = window.event;
+              if (e.preventDefault) e.preventDefault();
+              vt100.keysPressed(e.dataTransfer.getData('Text'));
+              return false;
+          };
+      };
+      // Tell the browser that we *can* drop on this target
+      this.addListener(this.scrollable, 'dragover', cancel);
+      this.addListener(this.scrollable, 'dragenter', cancel);
+
+      // Add a listener for the drop event
+      this.addListener(this.scrollable, 'drop', dropEvent(this));
+  }
+
   // Initialize the blank terminal window.
   this.currentScreen           = 0;
   this.cursorX                 = 0;
@@ -1092,6 +1103,13 @@ VT100.prototype.initializeElements = function(container) {
   this.focusCursor();
   this.input.focus();
 };
+
+function cancel(event) {
+  if (event.preventDefault) {
+    event.preventDefault();
+  }
+  return false;
+}
 
 VT100.prototype.getChildById = function(parent, id) {
   var nodeList = parent.all || parent.getElementsByTagName('*');
@@ -2501,6 +2519,7 @@ VT100.prototype.hideContextMenu = function() {
   this.menu.style.left       = '-100px';
   this.menu.style.width      = '0px';
   this.menu.style.height     = '0px';
+  this.menu.style.display    = 'none';
 };
 
 VT100.prototype.extendContextMenu = function(entries, actions) {
@@ -2519,19 +2538,19 @@ VT100.prototype.showContextMenu = function(x, y) {
           '<li id="reset">Reset</li>' +
           '<hr />' +
           '<li id="beginconfig">' +
-             (this.utfEnabled ? '<img src="enabled.gif" />' : '') +
+             (this.utfEnabled ? '<img src="check.png" />' : '<div class="noimg"> </div>') +
              'Unicode</li>' +
           '<li>' +
-             (this.visualBell ? '<img src="enabled.gif" />' : '') +
+             (this.visualBell ? '<img src="check.png" />' : '<div class="noimg"> </div>') +
              'Visual Bell</li>'+
           '<li>' +
-             (this.softKeyboard ? '<img src="enabled.gif" />' : '') +
+             (this.softKeyboard ? '<img src="check.png" />' : '<div class="noimg"> </div>') +
              'Onscreen Keyboard</li>' +
           '<li>' +
-             (this.disableAlt ? '<img src="enabled.gif" />' : '') +
+             (this.disableAlt ? '<img src="check.png" />' : '<div class="noimg"> </div>') +
              'Disable Alt Key</li>' +
           '<li id="endconfig">' +
-             (this.blinkingCursor ? '<img src="enabled.gif" />' : '') +
+             (this.blinkingCursor ? '<img src="check.png" />' : '<div class="noimg"> </div>') +
              'Blinking Cursor</li>'+
           (this.usercss.firstChild ?
            '<hr id="beginusercss" />' +
@@ -2622,6 +2641,7 @@ VT100.prototype.showContextMenu = function(x, y) {
   this.menu.style.top         = '0px';
   this.menu.style.width       =  this.container.offsetWidth  + 'px';
   this.menu.style.height      =  this.container.offsetHeight + 'px';
+  this.menu.style.display     = 'block'; 
   popup.style.left            = '0px';
   popup.style.top             = '0px';
 
@@ -2798,6 +2818,10 @@ VT100.prototype.handleKey = function(event) {
       case 123: /* F12          */ ch = '\u001B[24~';                   break;
       case 144: /* Num Lock     */                                      return;
       case 145: /* Scroll Lock  */                                      return;
+
+      case 163: /* # for FF15   */ ch = this.applyModifiers(35, event); break;
+      case 173: /* - for FF15   */ ch = this.applyModifiers(45, event); break;
+
       case 186: /* ;            */ ch = this.applyModifiers(59, event); break;
       // Conflicts with dead keys ` on Danish keyboard
       //                          ¸ on Slovenian keyboard
@@ -2944,6 +2968,9 @@ VT100.prototype.fixEvent = function(event) {
     case 109: /* - -> _ */ u = 45; s =  95; break;
     case 111: /* / -> ? */ u = 47; s =  63; break;
 
+    case 163: /* # -> ~ FF15 */ u = 96; s =  126; break;
+    case 173: /* - -> _ FF15 */ u = 45; s =  95; break;
+
     case 186: /* ; -> : */ u = 59; s =  58; break;
     case 187: /* = -> + */ u = 61; s =  43; break;
     case 188: /* , -> < */ u = 44; s =  60; break;
@@ -2976,6 +3003,88 @@ VT100.prototype.fixEvent = function(event) {
   }
   return event;
 };
+
+VT100.prototype.handleTouchStart = function(event) {
+    console.log("Touch Start");                                         
+    var text = this.getSelectedText();
+    if (text) {
+       console.log("Selected Text: " + text);
+       return true;
+    }
+    var terminal = this;
+    this.xDown = event.touches[0].clientX;                                      
+    this.yDown = event.touches[0].clientY;
+    if (this.touchTimer) {
+        clearTimeout(this.touchTimer);
+    }
+    this.touchTimer = setTimeout(function() {
+        console.log ("Touch Timer");
+	terminal.touchTimer = null;
+        var text = terminal.getSelectedText();
+        if (!text)
+	    terminal.showContextMenu(terminal.xDown,terminal.yDown);
+    }, 750);
+    return false; 
+  };                                                
+VT100.prototype.handleTouchEnd = function(event) {
+    console.log("Touch End");
+    if (this.touchTimer) { 
+	clearTimeout(this.touchTimer); 
+	this.touchTimer = null; 
+    }
+    return false;
+}
+VT100.prototype.getSelectedText = function(event) {
+    var text = ""; 
+    if (typeof window.getSelection != "undefined") { 
+	text = window.getSelection().toString(); 
+    } else if (typeof document.selection != "undefined" && document.selection.type == "Text") { 
+	text = document.selection.createRange().text; 
+    } 
+    return text; 
+}
+VT100.prototype.handleTouchMove = function(event) {
+    console.log("Touch Move");
+    var text = this.getSelectedText();
+    if (text) {
+        console.log("Text Selected = " + text);
+	return true;
+    }
+    if ( ! this.xDown || ! this.yDown ) {
+        return;
+    }
+
+    var xUp = event.touches[0].clientX;                                    
+    var yUp = event.touches[0].clientY;
+    var xDiff = this.xDown - xUp;
+    var yDiff = this.yDown - yUp;
+    
+    if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
+	if (Math.abs( xDiff ) > this.Thresh) {
+        	if ( xDiff > 0 ) {
+            		this.keysPressed("\x02n");  // c^B N tmux next
+       		} else {
+            		this.keysPressed("\x02p");  // c^B P tmux prev
+        	}
+	}                       
+    } else {
+	if (Math.abs( yDiff ) > this.Thresh) {
+        	if ( yDiff > 0 ) {
+            		this.keysPressed("\x1b[6~"); // Page Down 
+        	} else { 
+            		this.keysPressed("\x1b[5~"); // Page Up
+        	}
+	}                                                                 
+    }
+    /* reset values */
+    this.xDown = null;
+    this.yDown = null;
+    if (this.touchTimer) {
+      clearTimeout(this.touchTimer);
+      this.touchTimer = null;
+    }
+    return false;                                
+  };
 
 VT100.prototype.keyDown = function(event) {
   // this.vt100('D: c=' + event.charCode + ', k=' + event.keyCode +
@@ -3247,12 +3356,9 @@ VT100.prototype.beep = function() {
     this.flashScreen();
   } else {
     try {
-      this.beeper.Play();
+      this.beeper.play();
     } catch (e) {
-      try {
-        this.beeper.src = 'beep.wav';
-      } catch (e) {
-      }
+      console.log(e);
     }
   }
 };
@@ -3937,13 +4043,21 @@ VT100.prototype.csim = function() {
       break;
     default:
       if (this.par[i] >= 30 && this.par[i] <= 37) {
+          // set foreground color, colors 0-7 (ansi)
           var fg        = this.par[i] - 30;
           this.attr     = ((this.attr & ~0x0F) | fg) & ~(ATTR_DEF_FG);
           this.attrFg   = false;
       } else if (this.par[i] >= 40 && this.par[i] <= 47) {
+          // set background color, colors 0-7 (ansi)
           var bg        = this.par[i] - 40;
           this.attr     = ((this.attr & ~0xF0) | (bg << 4)) & ~(ATTR_DEF_BG);
           this.attrBg   = false;
+      } else if (this.par[i] >= 90 && this.par[i] <= 97) {
+          // set foreground color, colors 8-15 (aixterm high-intensity)
+          this.attrFg = this.par[i] - 82;
+      } else if (this.par[i] >= 100 && this.par[i] <= 107) {
+          // set background color, colors 8-15 (aixterm high-intensity)
+          this.attrBg = this.par[i] - 92;
       }
       break;
     }
