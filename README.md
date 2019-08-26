@@ -119,3 +119,15 @@ Known Issues
   utilities necessary for Shell-in-a-box to generate self-signed
   certificates.  Upgrade openssl to install a version of the tools
   that support certificate creation.
+
+Run with Docker
+---------------
+
+> You need to install Docker, and download source code on your host
+
+```
+cd shellinabox/
+docker build -t shellinabox .
+docker run -d --name shellinabox -p 4200:4200 shellinabox
+docker exec -it shellinabox /bin/bash # create user and change password
+```
