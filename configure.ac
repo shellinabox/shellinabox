@@ -2,7 +2,7 @@ AC_PREREQ(2.57)
 
 dnl This is one of the locations where the authoritative version
 dnl  number is stored.  The other is in the debian/changelog.
-AC_INIT(shellinabox, 2.20, markus@shellinabox.com)
+AC_INIT(shellinabox, 2.21, markus@shellinabox.com)
 if test -e .git; then
 VCS_REVISION=" (revision `cd $srcdir && git log -1 --format=format:%h`)"
 else
