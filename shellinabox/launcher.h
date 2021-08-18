@@ -57,6 +57,8 @@ struct LaunchRequest {
   pid_t terminate;
   char  peerName[128];
   char  realIP[128];
+  char  webAuthUser[128];
+  char  webAuthRoles[128];
   int   urlLength;
   char  url[0];
 };

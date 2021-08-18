@@ -84,5 +84,6 @@ struct Session *findSession(const char *sessionKey, const char *cgiSessionKey,
                             int *sessionIsNew, HttpConnection *http);
 void iterateOverSessions(int (*fnc)(void *, const char *, char **), void *arg);
 int  numSessions(void);
+const char *getHeaderValue(struct Session *session, const char *key);
 
 #endif /* SESSION_H__ */
