@@ -53,6 +53,7 @@
 
 #include "shellinabox/session.h"
 #include "logging/logging.h"
+#include "libhttp/hashmap.h"
 
 #ifdef HAVE_UNUSED
 #defined ATTR_UNUSED __attribute__((unused))
@@ -246,4 +247,18 @@ void iterateOverSessions(int (*fnc)(void *, const char *, char **), void *arg){
 
 int numSessions(void) {
   return getHashmapSize(sessions);
+}
+
+const char *getHeaderValue(struct Session *session, const char *key) {
+  if (!session) {
+	  return NULL;
+  }
+
+  const struct HashMap *hm = httpGetHeaders(session->http);
+  if (!hm) {
+    return NULL;
+  }
+
+  const char *val = getFromHashMap(hm, key);
+  return val;
 }

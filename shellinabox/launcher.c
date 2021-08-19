@@ -118,6 +118,7 @@ typedef struct pam_handle pam_handle_t;
 #include "shellinabox/launcher.h"
 #include "shellinabox/privileges.h"
 #include "shellinabox/service.h"
+#include "shellinabox/session.h"
 #include "libhttp/hashmap.h"
 #include "logging/logging.h"
 
@@ -534,6 +535,14 @@ int launchChild(int service, struct Session *session, const char *url) {
   const char *realIP   = httpGetRealIP(session->http);
   if (realIP && *realIP) {
     strncat(request->realIP, realIP, sizeof(request->realIP) - 1);
+  }
+  const char *webAuthUser = getHeaderValue(session, "x-webauth-user");
+  if (webAuthUser && *webAuthUser) {
+    strncat(request->webAuthUser, webAuthUser, sizeof(request->webAuthUser) - 1);
+  }
+  const char *webAuthRoles = getHeaderValue(session, "x-webauth-roles");
+  if (webAuthRoles && *webAuthRoles) {
+    strncat(request->webAuthRoles, webAuthRoles, sizeof(request->webAuthRoles) - 1);
   }
   request->urlLength   = strlen(u);
   memcpy(&request->url, u, request->urlLength);
@@ -1268,7 +1277,8 @@ static void destroyVariableHashEntry(void *arg ATTR_UNUSED, char *key,
 static void execService(int width ATTR_UNUSED, int height ATTR_UNUSED,
                         struct Service *service, const char *peerName,
                         const char *realIP, char **environment,
-                        const char *url) {
+                        const char *url, const char *webAuthUser,
+			const char *webAuthRoles) {
   UNUSED(width);
   UNUSED(height);
 
@@ -1307,6 +1317,12 @@ static void execService(int width ATTR_UNUSED, int height ATTR_UNUSED,
   addToHashMap(vars, key, value);
   check(key                   = strdup("realip"));
   check(value                 = strdup(realIP));
+  addToHashMap(vars, key, value);
+  check(key                   = strdup("webauthuser"));
+  check(value                 = strdup(webAuthUser));
+  addToHashMap(vars, key, value);
+  check(key                   = strdup("webauthroles"));
+  check(value                 = strdup(webAuthRoles));
   addToHashMap(vars, key, value);
   check(key                   = strdup("uid"));
   addToHashMap(vars, key, stringPrintf(NULL, "%d", service->uid));
@@ -1513,7 +1529,8 @@ static void pamSessionSighupHandler(int sig ATTR_UNUSED,
 
 static void childProcess(struct Service *service, int width, int height,
                          struct Utmp *utmp, const char *peerName, const char *realIP,
-                         const char *url) {
+                         const char *url, const char *webAuthUser,
+                         const char *webAuthRoles) {
   // Set initial window size
   setWindowSize(0, width, height);
 
@@ -1543,9 +1560,13 @@ static void childProcess(struct Service *service, int width, int height,
 
   // Add useful environment variables that can be used in custom client scripts
   // or programs.
-  numEnvVars                   += 3;
+  numEnvVars                   += 5;
   check(environment             = realloc(environment,
                                           (numEnvVars + 1)*sizeof(char *)));
+  environment[numEnvVars-5]     = stringPrintf(NULL, "SHELLINABOX_WEBAUTHUSER=%s",
+                                               webAuthUser);
+  environment[numEnvVars-4]     = stringPrintf(NULL, "SHELLINABOX_WEBAUTHROLES=%s",
+                                               webAuthRoles);
   environment[numEnvVars-3]     = stringPrintf(NULL, "SHELLINABOX_URL=%s",
                                                url);
   environment[numEnvVars-2]     = stringPrintf(NULL, "SHELLINABOX_PEERNAME=%s",
@@ -1688,7 +1709,8 @@ static void childProcess(struct Service *service, int width, int height,
            (void *)0, environment);
   } else {
     // Launch user provied service
-    execService(width, height, service, peerName, realIP, environment, url);
+    execService(width, height, service, peerName, realIP, environment, url,
+		webAuthUser, webAuthRoles);
   }
   _exit(1);
 }
@@ -1810,7 +1832,8 @@ static void launcherDaemon(int fd) {
                                         request.peerName,
                                         request.realIP)) == 0) {
       childProcess(services[request.service], request.width, request.height,
-                   utmp, request.peerName, request.realIP, url);
+                   utmp, request.peerName, request.realIP, url, request.webAuthUser,
+		   request.webAuthRoles);
       free(url);
       _exit(1);
     } else {
