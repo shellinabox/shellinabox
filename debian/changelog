@@ -1,3 +1,10 @@
+shellinabox (2.22) UNRELEASED; urgency=medium
+
+  * Remove constraints unnecessary since buster:
+    + Build-Depends: Drop versioned constraint on debhelper.
+
+ -- Debian Janitor <janitor@jelmer.uk>  Fri, 10 Sep 2021 16:39:39 -0000
+
 shellinabox (2.21) unstable; urgency=medium
 
   * Patched DoS vulnerability reported by Imre Rad.
