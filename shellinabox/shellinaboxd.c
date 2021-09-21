@@ -1300,6 +1300,23 @@ static void parseArgs(int argc, char * const argv[]) {
       _exit(0);
     }
     setsid();
+/* Must close all file-handles - we're becoming a daemon...
+ * But we'll open /dev/null on stdin/stdout/stderr, so that the
+ * tty entries may go there.
+ */
+    int flag = O_RDONLY;
+    for (int fh = 0; fh < 3; fh++) {
+        close(fh);
+        open("/dev/null", flag);
+        flag = O_WRONLY;
+    }
+    struct rlimit rlim;
+    if (getrlimit(RLIMIT_NOFILE, &rlim)) {
+        rlim.rlim_cur = 255;    /* Better than an error? */
+    }
+    for (int fh = 3; fh < rlim.rlim_cur; fh++) {
+        close(fh);
+    }
   }
   if (pidfile) {
 #ifndef O_LARGEFILE
