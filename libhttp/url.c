@@ -312,19 +312,7 @@ static void urlParsePostBody(struct URL *url,
               }
             }
           }
-        }
-        /* elf-2018.09.09: Detection of broken multipart/form-data
-           fixes DoS vulnerability.
-
-           On 9/9/18 10:43 AM, Imre Rad wrote:
-           Hi Markus, Marc!
-
-           I identified a vulnerability today in Shellinabox, it is
-           remote a denial of service, shellinaboxd eating up 100% cpu
-           and not processing subsequent requests after the attack was
-           mounted.
-        */
-        else {
+        } else {
           warn ("[http] Ignorning broken multipart/form-data");
           break;
         }

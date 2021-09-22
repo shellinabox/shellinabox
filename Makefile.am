@@ -24,7 +24,7 @@ EXTRA_DIST           = INSTALL.Debian                                         \
                        demo/demo.js                                           \
                        demo/demo.jspp                                         \
                        demo/demo.xml                                          \
-                       demo/enabled.gif                                       \
+                       demo/check.png                                         \
                        demo/keyboard.html                                     \
                        demo/keyboard.png                                      \
                        demo/styles.css                                        \
@@ -103,7 +103,7 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        shellinabox/shell_in_a_box.jspp                        \
                        shellinabox/styles.css                                 \
                        shellinabox/print-styles.css                           \
-                       shellinabox/enabled.gif                                \
+                       shellinabox/check.png                                  \
                        shellinabox/favicon.ico                                \
                        shellinabox/keyboard.png                               \
                        shellinabox/keyboard-layout.html                       \
@@ -111,7 +111,7 @@ shellinaboxd_SOURCES = shellinabox/shellinaboxd.c                             \
                        config.h
 BUILT_SOURCES        = shellinabox/beep.h                                     \
                        shellinabox/cgi_root.h                                 \
-                       shellinabox/enabled.h                                  \
+                       shellinabox/check.h                                    \
                        shellinabox/favicon.h                                  \
                        shellinabox/keyboard.h                                 \
                        shellinabox/keyboard-layout.h                          \
@@ -148,7 +148,7 @@ libtool: $(LIBTOOL_DEPS)
 
 ${top_srcdir}/demo/demo.js: ${top_srcdir}/demo/beep.wav                       \
                             ${top_srcdir}/demo/demo.jspp                      \
-                            ${top_srcdir}/demo/enabled.gif                    \
+                            ${top_srcdir}/demo/check.png                      \
                             ${top_srcdir}/demo/favicon.ico                    \
                             ${top_srcdir}/demo/keyboard.html                  \
                             ${top_srcdir}/demo/keyboard.png                   \
@@ -164,7 +164,7 @@ ${top_srcdir}/demo/beep.wav: ${top_srcdir}/shellinabox/beep.wav
 	@rm -f "$@"
 	ln "$?" "$@"
 
-${top_srcdir}/demo/enabled.gif: ${top_srcdir}/shellinabox/enabled.gif
+${top_srcdir}/demo/check.png: ${top_srcdir}/shellinabox/check.png
 	@rm -f "$@"
 	ln "$?" "$@"
 
@@ -250,7 +250,7 @@ clean-local: clean-demo
 	        debian/tmp
 	-rm -rf shellinabox/beep.h                                            \
 	        shellinabox/cgi_root.h      				      \
-	        shellinabox/enabled.h       				      \
+	        shellinabox/check.h            				      \
 	        shellinabox/favicon.h       				      \
 	        shellinabox/keyboard.h      				      \
 	        shellinabox/keyboard-layout.h				      \
@@ -265,7 +265,7 @@ clean-local: clean-demo
 clean-demo:
 	-rm demo/beep.wav						      \
 	    demo/demo.js 						      \
-	    demo/enabled.gif 						      \
+	    demo/check.png                                \
 	    demo/favicon.ico 						      \
 	    demo/keyboard.png 						      \
 	    demo/print-styles.css 					      \

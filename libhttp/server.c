@@ -333,14 +333,14 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
     return;
   }
 
-  server->serverFd              = socket(PF_INET, SOCK_STREAM, 0);
+  server->serverFd              = socket(PF_INET6, SOCK_STREAM, 0);
   check(server->serverFd >= 0);
   check(!setsockopt(server->serverFd, SOL_SOCKET, SO_REUSEADDR,
                     &true, sizeof(true)));
-  struct sockaddr_in serverAddr = { 0 };
-  serverAddr.sin_family         = AF_INET;
-  serverAddr.sin_addr.s_addr    = htonl(localhostOnly
-                                        ? INADDR_LOOPBACK : INADDR_ANY);
+  struct sockaddr_in6 serverAddr = { 0 };
+  serverAddr.sin6_family         = AF_INET6;
+  serverAddr.sin6_addr           = localhostOnly
+                                        ? in6addr_loopback : in6addr_any;
 
   // Linux unlike BSD does not have support for picking a local port range.
   // So, we have to randomly pick a port from our allowed port range, and then
@@ -355,14 +355,14 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
     int portStart               = rand() % (portMax - portMin + 1) + portMin;
     for (int p = 0; p <= portMax-portMin; p++) {
       int port                  = (p+portStart)%(portMax-portMin+1)+ portMin;
-      serverAddr.sin_port       = htons(port);
+      serverAddr.sin6_port      = htons(port);
       if (!bind(server->serverFd, (struct sockaddr *)&serverAddr,
                 sizeof(serverAddr))) {
         break;
       }
-      serverAddr.sin_port       = 0;
+      serverAddr.sin6_port      = 0;
     }
-    if (!serverAddr.sin_port) {
+    if (!serverAddr.sin6_port) {
       fatal("[server] Failed to find any available port!");
     }
   }
@@ -372,7 +372,7 @@ void initServer(struct Server *server, int localhostOnly, int portMin,
   check(!getsockname(server->serverFd, (struct sockaddr *)&serverAddr,
                      &socklen));
   check(socklen == sizeof(serverAddr));
-  server->port                  = ntohs(serverAddr.sin_port);
+  server->port                  = ntohs(serverAddr.sin6_port);
   info("[server] Listening on port %d...", server->port);
 
   check(server->pollFds         = malloc(sizeof(struct pollfd)));

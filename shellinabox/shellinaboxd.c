@@ -91,7 +91,7 @@
 // Embedded resources
 #include "shellinabox/beep.h"
 #include "shellinabox/cgi_root.h"
-#include "shellinabox/enabled.h"
+#include "shellinabox/check.h"
 #include "shellinabox/favicon.h"
 #include "shellinabox/keyboard.h"
 #include "shellinabox/keyboard-layout.h"
@@ -687,10 +687,10 @@ static int shellInABoxHttpHandler(HttpConnection *http, void *arg,
   } else if (pathInfoLength == 8 && !memcmp(pathInfo, "beep.wav", 8)) {
     // Serve the audio sample for the console bell.
     serveStaticFile(http, "audio/x-wav", beepStart, beepStart + beepSize - 1);
-  } else if (pathInfoLength == 11 && !memcmp(pathInfo, "enabled.gif", 11)) {
+  } else if (pathInfoLength == 9 && !memcmp(pathInfo, "check.png", 9)) {
     // Serve the checkmark icon used in the context menu
-    serveStaticFile(http, "image/gif", enabledStart,
-                    enabledStart + enabledSize - 1);
+    serveStaticFile(http, "image/png", checkStart,
+                    checkStart + checkSize - 1);
   } else if (pathInfoLength == 11 && !memcmp(pathInfo, "favicon.ico", 11)) {
     // Serve the favicon
     serveStaticFile(http, "image/x-icon", faviconStart,
@@ -1300,6 +1300,23 @@ static void parseArgs(int argc, char * const argv[]) {
       _exit(0);
     }
     setsid();
+/* Must close all file-handles - we're becoming a daemon...
+ * But we'll open /dev/null on stdin/stdout/stderr, so that the
+ * tty entries may go there.
+ */
+    int flag = O_RDONLY;
+    for (int fh = 0; fh < 3; fh++) {
+        close(fh);
+        open("/dev/null", flag);
+        flag = O_WRONLY;
+    }
+    struct rlimit rlim;
+    if (getrlimit(RLIMIT_NOFILE, &rlim)) {
+        rlim.rlim_cur = 255;    /* Better than an error? */
+    }
+    for (int fh = 3; fh < rlim.rlim_cur; fh++) {
+        close(fh);
+    }
   }
   if (pidfile) {
 #ifndef O_LARGEFILE
