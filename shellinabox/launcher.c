@@ -1007,10 +1007,6 @@ static pam_handle_t *internalLogin(struct Service *service, struct Utmp *utmp,
   const char *fqdn;
   check(fqdn                   = strdup(hostname));
   check(hostname               = strdup(hostname));
-  char *dot                    = strchr(hostname, '.');
-  if (dot) {
-    *dot                       = '\000';
-  }
 
   const struct passwd *pw;
   pam_handle_t *pam            = NULL;
