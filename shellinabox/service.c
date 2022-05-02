@@ -169,7 +169,7 @@ void initService(struct Service *service, const char *arg) {
     }
 
     service->cmdline                        = stringPrintf(NULL,
-      "ssh -a -e none -i /dev/null -x -oChallengeResponseAuthentication=no "
+      "ssh -a -e none -i /dev/null -x "
           "-oCheckHostIP=no -oClearAllForwardings=yes -oCompression=no "
           "-oControlMaster=no -oGSSAPIAuthentication=no "
           "-oHostbasedAuthentication=no -oIdentitiesOnly=yes "
