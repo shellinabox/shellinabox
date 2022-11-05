@@ -184,7 +184,7 @@ fi
 
 dnl If runtime loading has been disabled, add OpenSSL and PAM as hard
 dnl dependencies.
-if test "x$enable_runtime_loading" == xno; then
+if test "x$enable_runtime_loading" = xno; then
   dnl Link against OpenSSL libraries, unless SSL support has been disabled
   if test "x$enable_ssl" != xno; then
     AC_CHECK_HEADER(openssl/bio.h,
