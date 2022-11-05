@@ -1,8 +1,8 @@
-AC_PREREQ(2.57)
+AC_PREREQ([2.57])
 
 dnl This is one of the locations where the authoritative version
 dnl  number is stored.  The other is in the debian/changelog.
-AC_INIT(shellinabox, 2.20, markus@shellinabox.com)
+AC_INIT([shellinabox],[2.20],[markus@shellinabox.com])
 if test -e .git; then
 VCS_REVISION=" (revision `cd $srcdir && git log -1 --format=format:%h`)"
 else
@@ -15,13 +15,13 @@ AC_DEFINE_UNQUOTED(VCS_REVISION, "${VCS_REVISION}",
 dnl Set up autoconf/automake for building C libraries and binaries with GCC
 CFLAGS="${CFLAGS:--Os}"
 AM_INIT_AUTOMAKE([subdir-objects])
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 AC_PROG_CC
 dnl Added this for compatibility with older versions of autoconf/automake
 AM_PROG_CC_C_O
 AC_LANG_WERROR
 AC_PROG_INSTALL
-AC_PROG_LIBTOOL
+LT_INIT
 AC_SUBST(LIBTOOL_DEPS)
 AC_C_CONST
 AC_PROG_GCC_TRADITIONAL
@@ -51,51 +51,78 @@ AC_CHECK_FUNCS([getgrgid_r getgrnam_r gethostbyname_r getpwnam_r getpwuid_r  \
                 openpty strcasestr getresuid getresgid setresuid setresgid ])
 
 dnl We prefer ptsname_r(), but will settle for ptsname() if necessary
-AC_TRY_LINK([#ifndef _XOPEN_SOURCE
-             #define _XOPEN_SOURCE
-             #endif
-             #ifndef _GNU_SOURCE
-             #define _GNU_SOURCE
-             #endif
-             #include <stdlib.h>],
-            [char buf[10]; ptsname_r(0, buf, sizeof(buf));],
-            [AC_DEFINE(HAVE_PTSNAME_R, 1,
-                     Define to 1 if you have a re-entrant version of ptsname)])
+AC_MSG_CHECKING([for ptsname_r])
+AC_LINK_IFELSE(
+               [AC_LANG_PROGRAM(
+                    [[#ifndef _XOPEN_SOURCE
+                      #define _XOPEN_SOURCE
+                      #endif
+                      #ifndef _GNU_SOURCE
+                      #define _GNU_SOURCE
+                      #endif
+                      #include <stdlib.h>]],
+                    [[char buf[10]; ptsname_r(0, buf, sizeof(buf));]])],
+               [AC_MSG_RESULT([yes])
+                AC_DEFINE(HAVE_PTSNAME_R, 1,
+                          Define to 1 if you have a re-entrant version of ptsname)],
+               [AC_MSG_RESULT([no])])
 
 dnl Apparently, some systems define sigwait() but fail to implement it
-AC_TRY_LINK([#include <pthread.h>
-             #include <signal.h>],
-            [sigset_t s; int n; sigwait(&s, &n);],
-            [AC_DEFINE(HAVE_SIGWAIT, 1,
-                       Define to 1 if you have a working sigwait)])
+AC_MSG_CHECKING([for sigwait])
+AC_LINK_IFELSE(
+               [AC_LANG_PROGRAM(
+                    [[#include <pthread.h>
+                      #include <signal.h>]],
+                    [[sigset_t s; int n; sigwait(&s, &n);]])],
+               [AC_MSG_RESULT([yes])
+                AC_DEFINE(HAVE_SIGWAIT, 1,
+                          Define to 1 if you have a working sigwait)],
+               [AC_MSG_RESULT([no])])
 
 dnl Not every system has support for isnan()
-AC_TRY_LINK([#include <math.h>],
-            [if (isnan(0.0)) return 1;],
-            [AC_DEFINE(HAVE_ISNAN, 1,
-                       Define to 1 if you have support for isnan)])
+AC_MSG_CHECKING([for isnan in -lm])
+AC_LINK_IFELSE(
+               [AC_LANG_PROGRAM(
+                    [[#include <math.h>]],
+                    [[if (isnan(0.0)) return 1;]])],
+               [AC_MSG_RESULT([yes])
+                AC_DEFINE(HAVE_ISNAN, 1,
+                          Define to 1 if you have support for isnan)],
+               [AC_MSG_RESULT([no])])
 
+AC_MSG_CHECKING([if the compiler supports aliasing of symbols])
+AC_LINK_IFELSE(
+               [AC_LANG_PROGRAM(
+                    [[void x(void) { };
+                      void y(void) __attribute__((alias("x")));]],
+                    [[y();]])],
+               [AC_MSG_RESULT([yes])
+                AC_DEFINE(HAVE_ATTRIBUTE_ALIAS, 1,
+                          Define to 1 if you have support for symbol aliasing)],
+               [AC_MSG_RESULT([no])])
 
-dnl Check if the compiler supports aliasing of symbols
-AC_TRY_LINK([void x(void) { };
-             void y(void) __attribute__((alias("x")));],
-            [y();],
-            [AC_DEFINE(HAVE_ATTRIBUTE_ALIAS, 1,
-                       Define to 1 if you have support for symbol aliasing)])
-
-dnl Check if the compiler has support to mark parameters as unused
-AC_TRY_LINK([void x(int i __attribute__((unused))) __attribute__((unused));],
-            [],
-            [AC_DEFINE(HAVE_ATTRIBUTE_UNUSED, 1,
-                  Define to 1 if you have support for the "unused" attribute)])
+AC_MSG_CHECKING([if the compiler has support to mark parameters as unused])
+AC_LINK_IFELSE(
+               [AC_LANG_PROGRAM(
+                    [[void x(int i __attribute__((unused))) __attribute__((unused));]],
+                    [[]])],
+               [AC_MSG_RESULT([yes])
+                AC_DEFINE(HAVE_ATTRIBUTE_UNUSED, 1,
+                          Define to 1 if you have support for the "unused" attribute)],
+               [AC_MSG_RESULT([no])])
 
 dnl Check the function signature of getgrouplist()
-AC_TRY_LINK([#define _BSD_SOURCE
-             #include <grp.h>
-             #include <unistd.h>],
-            [int (*f)(const char *, int, int *, int *) = getgrouplist;],
-            [AC_DEFINE(HAVE_GETGROUPLIST_TAKES_INTS, 1,
-                       Define to 1 if getgrouplist() takes ints as arguments)])
+AC_MSG_CHECKING([the function signature of getgrouplist()])
+AC_LINK_IFELSE(
+               [AC_LANG_PROGRAM(
+                    [[#define _BSD_SOURCE
+                      #include <grp.h>
+                      #include <unistd.h>]],
+                    [[int (*f)(const char *, int, int *, int *) = getgrouplist;]])],
+               [AC_MSG_RESULT([ok])
+                AC_DEFINE(HAVE_GETGROUPLIST_TAKES_INTS, 1,
+                          Define to 1 if getgrouplist() takes ints as arguments)],
+               [AC_MSG_RESULT([ok])])
 
 dnl On some systems, calling /bin/login does not work. Disable the LOGIN
 dnl feature, if the user tells us that it does not do the right thing.
@@ -150,14 +177,25 @@ if test "x$enable_utmp" != xno; then
   AC_CHECK_HEADERS([utmp.h utmpx.h])
 
   dnl Even if utmpx.h exists, not all systems have support for updwtmpx()
-  AC_TRY_LINK([#include <utmp.h>],
-              [updwtmp(0, 0);],
-              [AC_DEFINE(HAVE_UPDWTMP, 1,
-                         Define to 1 if you have support for updwtmp)])
-  AC_TRY_LINK([#include <utmpx.h>],
-              [updwtmpx(0, 0);],
-              [AC_DEFINE(HAVE_UPDWTMPX, 1,
-                         Define to 1 if you have support for updwtmpx)])
+  AC_MSG_CHECKING([for updwtmp])
+  AC_LINK_IFELSE(
+                 [AC_LANG_PROGRAM(
+                     [[#include <utmp.h>]],
+                     [[updwtmp(0, 0);]])],
+                 [AC_MSG_RESULT([yes])
+                  AC_DEFINE(HAVE_UPDWTMP, 1,
+                            Define to 1 if you have support for updwtmp)]
+                 [AC_MSG_RESULT([no])])
+
+  AC_MSG_CHECKING([for updwtmpx])
+  AC_LINK_IFELSE(
+                 [AC_LANG_PROGRAM(
+                     [[#include <utmpx.h>]],
+                     [[updwtmpx(0, 0);]])],
+                 [AC_MSG_RESULT([yes])
+                  AC_DEFINE(HAVE_UPDWTMPX, 1,
+                            Define to 1 if you have support for updwtmpx)]
+                 [AC_MSG_RESULT([no])])
 fi
 
 dnl Only test for OpenSSL headers, if not explicitly disabled
