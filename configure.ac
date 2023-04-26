@@ -154,7 +154,8 @@ if test "x$enable_utmp" != xno; then
               [updwtmp(0, 0);],
               [AC_DEFINE(HAVE_UPDWTMP, 1,
                          Define to 1 if you have support for updwtmp)])
-  AC_TRY_LINK([#include <utmpx.h>],
+  AC_TRY_LINK([#define _GNU_SOURCE
+	      #include <utmpx.h>],
               [updwtmpx(0, 0);],
               [AC_DEFINE(HAVE_UPDWTMPX, 1,
                          Define to 1 if you have support for updwtmpx)])
