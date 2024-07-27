@@ -741,7 +741,7 @@ void closeAllFds(int *exceptFds, int num) {
     }
   } else {
     struct dirent de, *res;
-    while (!readdir_r(dir, &de, &res) && res) {
+      while ((res = readdir(dir)) != NULL) {
       if (res->d_name[0] < '0')
         continue;
       int fd  = atoi(res->d_name);
