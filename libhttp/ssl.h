@@ -45,6 +45,21 @@
 
 #ifndef SSL_H__
 #define SSL_H__
+#ifndef SSL_LIBRARY_INIT
+#define SSL_LIBRARY_INIT
+#define SSL_library_init             x_SSL_library_init
+#endif
+
+#ifndef SSLV23_SERVER_METHOD
+#define SSLV23_SERVER_METHOD
+#define SSLv23_server_method         x_SSLv23_server_method
+#endif
+
+#ifndef SK_ZERO
+#define SK_ZERO
+#define sk_zero                      x_sk_zero
+#endif
+
 
 #include "config.h"
 
