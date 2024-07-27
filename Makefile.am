@@ -66,6 +66,8 @@ liblogging_la_SOURCES= logging/logging.c                                      \
                        $(LIBLOGGING_INCLUDES)
 liblogging_la_LDFLAGS= -version 1:0:0
 
+LIBS = -lz -ldl -lutil -lssl -lcrypto
+
 LIBHTTP_INCLUDES     = libhttp/hashmap.h                                      \
                        libhttp/trie.h                                         \
                        libhttp/httpconnection.h                               \
