@@ -823,6 +823,7 @@ static void usage(void) {
           "      --unixdomain-only=PATH:USER:GROUP:CHMOD listen on unix socket\n"
           "  -u, --user=UID              switch to this user (default: %s)\n"
           "      --user-css=STYLES       defines user-selectable CSS options\n"
+          "      --user-css-dir=DIR      scan directory for user CSS options\n"
           "  -v, --verbose               enable logging messages\n"
           "      --version               prints version information\n"
           "      --disable-peer-check    disable peer check on a session\n"
@@ -934,6 +935,7 @@ static void parseArgs(int argc, char * const argv[]) {
       { "unixdomain-only",      1, 0,  0, },
       { "user",                 1, 0, 'u' },
       { "user-css",             1, 0,  0  },
+      { "user-css-dir",         1, 0,  0  },
       { "verbose",              0, 0, 'v' },
       { "version",              0, 0,  0  },
       { "disable-peer-check",   0, 0,  0  },
@@ -1235,6 +1237,12 @@ static void parseArgs(int argc, char * const argv[]) {
               "and labels!");
       }
       parseUserCSS(&userCSSList, optarg);
+    } else if (!idx--) {
+      // User CSS directory
+      if (!optarg || !*optarg) {
+        fatal("[config] Option --user-css-dir expects a style sheet directory!");
+      }
+      readUserCSSDir(&userCSSList, optarg);
     } else if (!idx--) {
       // Verbose
       if (!logIsDefault() && (!logIsInfo() || logIsDebug())) {

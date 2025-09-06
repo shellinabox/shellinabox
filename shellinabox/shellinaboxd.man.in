@@ -580,6 +580,20 @@ only takes effect the very first time the user visits the terminal
 emulator in his browser. On all subsequent visits, the user's
 preferences take precedence.
 .TP
+\fB--user-css-dir=\fP\fIdirectory\fP
+The directory
+.IR directory
+is scanned for files ending '.css', which are added to the list
+of user-selectable style sheet options. Filenames are of the form:
+.in +4
+<ID> ( '+' | '_' ) <option name> '.css'
+.in
+
+Any options with identical IDs will be put into the same option group.
+Options that should be turned on by default should use the '+'
+delimiter and any others '_'. The characters ':', ',', and ';'
+are invalid within option names.
+.TP
 \fB-v\fP\ |\ \fB--verbose\fP
 Enables logging of
 .IR Apache -style

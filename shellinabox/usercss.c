@@ -45,6 +45,7 @@
 
 #include "config.h"
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,6 +66,7 @@
 #define UNUSED(x)    do { (void)(x); } while (0)
 #endif
 
+static struct UserCSSGroupState groupState;
 static struct HashMap *defines;
 
 static void definesDestructor(void *arg ATTR_UNUSED, char *key,
@@ -106,17 +108,45 @@ static void readStylesheet(struct UserCSS *userCSS, const char *filename,
   }
 }
 
-void initUserCSS(struct UserCSS *userCSS, const char *arg) {
-  userCSS->newGroup                       = 1;
+static void endUserCSSGroup(struct UserCSSGroupState *groupState) {
+  if (groupState->groupOpen) {
+    // Sanity checks
+    if (!groupState->hasActiveMember && groupState->numMembers > 1) {
+      fatal("[config] Each group must have one default active style!");
+    }
+  }
+  memset(groupState, '\0', sizeof *groupState);
+}
 
-  int numMembers                          = 1;
-  int hasActiveMember                     = 0;
-  for (;;) {
+struct UserCSS **addUserCSSList(struct UserCSS **tailCSS, const char *arg, struct UserCSSGroupState *groupState) {
+  struct UserCSS *userCSS;
+
+  while (*arg) {
+    // Handle end of group
+    if (*arg == ';') {
+      endUserCSSGroup(groupState);
+      arg++;
+      continue;
+    }
+
+    // Add new node list
+    check(userCSS = malloc(sizeof(struct UserCSS)));
+    *tailCSS = userCSS;
+    tailCSS = &userCSS->next;
+    userCSS->next = NULL;
+
+    // Pick up where we left off
+    userCSS->newGroup = !groupState->groupOpen;
+    groupState->groupOpen = 1;
+    groupState->numMembers++;
+
+    // All items require a colon delimiter between label and filename
     const char *colon                     = strchr(arg, ':');
     if (!colon) {
       fatal("[config] Incomplete user CSS definition: \"%s\"!", arg);
     }
 
+    // Copy and quote label
     check(userCSS->label                  = malloc(6*(colon - arg) + 1));
     for (const char *src = arg, *dst = userCSS->label;;) {
       if (src == colon) {
@@ -141,6 +171,7 @@ void initUserCSS(struct UserCSS *userCSS, const char *arg) {
       }
     }
 
+    // Copy filename, interpreting group status
     int filenameLen                       = strcspn(colon + 1, ",;");
     char *filename;
     check(filename                        = malloc(filenameLen + 1));
@@ -152,10 +183,10 @@ void initUserCSS(struct UserCSS *userCSS, const char *arg) {
         userCSS->isActivated              = 0;
         break;
       case '+':
-        if (hasActiveMember) {
+        if (groupState->hasActiveMember) {
           fatal("[config] Only one default active style allowed per group!");
         }
-        hasActiveMember                   = 1;
+        groupState->hasActiveMember       = 1;
         userCSS->isActivated              = 1;
         break;
       default:
@@ -166,43 +197,56 @@ void initUserCSS(struct UserCSS *userCSS, const char *arg) {
     readStylesheet(userCSS, filename + 1, (char **)&userCSS->style,
                    &userCSS->styleLen);
     free(filename);
-
     arg                                   = colon + 1 + filenameLen;
-    if (!*arg) {
-      userCSS->next                       = NULL;
-      break;
-    }
-    check(userCSS->next                   = malloc(sizeof(struct UserCSS)));
-    userCSS                               = userCSS->next;
-    userCSS->newGroup                     = *arg++ == ';';
-    if (userCSS->newGroup) {
-      if (!hasActiveMember && numMembers > 1) {
-        // Print error message
-        break;
-      }
-      numMembers                          = 1;
-      hasActiveMember                     = 0;
-    } else {
-      ++numMembers;
-    }
   }
-  if (!hasActiveMember && numMembers > 1) {
-    fatal("[config] Only one default active style allowed per group!");
-  }
-}
-
-struct UserCSS *newUserCSS(const char *arg) {
-  struct UserCSS *userCSS;
-  check(userCSS = malloc(sizeof(struct UserCSS)));
-  initUserCSS(userCSS, arg);
-  return userCSS;
+  return tailCSS;
 }
 
 void parseUserCSS(struct UserCSS **userCSSList, const char *arg) {
-  while (*userCSSList) {
-    userCSSList = &(*userCSSList)->next;
+  struct UserCSS **tail;
+
+  for (tail = userCSSList; *tail; tail = &(*tail)->next);
+  addUserCSSList(tail, arg, &groupState);
+}
+
+void readUserCSSDir(struct UserCSS **userCSSList, const char *path) {
+  DIR *dir;
+  struct UserCSS **tail;
+  char *last_id = strdup("");
+
+  for (tail = userCSSList; *tail; tail = &(*tail)->next);
+  check((dir = opendir(path)));
+  struct dirent *de;
+  const char *arg_fmt = "%s%s:%c%s/%s";
+  while ((de = readdir(dir))) {
+    char *id_sep, *name, *arg;
+    int sz, new_id = 0;
+    char *ext = strrchr(de->d_name, '.');
+    if (!ext || strcmp(ext, ".css")) {
+      continue; // Ignore
+    }
+    for (id_sep = de->d_name; *id_sep && !strchr("-+_", *id_sep); id_sep++);
+    if (!*id_sep) {
+      fatal("[config] No '+', '-' or '_' separator after style ID!");
+    }
+    if (strncmp(de->d_name, last_id, id_sep - de->d_name)) {
+      free(last_id);
+      last_id = strndup(de->d_name, id_sep - de->d_name);
+      new_id = 1;
+    }
+    name = strndup(id_sep + 1, ext - id_sep - 1);
+    check((sz = snprintf(NULL, 0, arg_fmt, " ", name,
+                         '_', path, de->d_name), '_') != -1);
+    check((arg = malloc(sz + 1)));
+    check((sz = snprintf(arg, sz + 1, arg_fmt,
+                         new_id ? ";" : "", name,
+                         *id_sep == '_' ? '-': *id_sep, path, de->d_name)) != -1);
+    free(name);
+    tail = addUserCSSList(tail, arg, &groupState);
+    free(arg);
   }
-  *userCSSList  = newUserCSS(arg);
+  free(last_id);
+  closedir(dir);
 }
 
 void destroyUserCSS(struct UserCSS *userCSS) {
