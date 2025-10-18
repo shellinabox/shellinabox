@@ -72,24 +72,15 @@ listed below. This will create executable file `shellinaboxd` in project directo
     ./configure && make
    ```
 
-#### Debian package
+### Documentation
 
-For building and installing `.deb` packages you can use commands listed bellow.
-Note that dependencies from the first step above are also required.
+A manual page (`shellinaboxd.1`) is generated as part of the build process and
+rendered as a PDF file (`shellinaboxd.pdf`).
 
-1. Build package
+### Debian package
 
-    ```
-    dpkg-buildpackage -b
-    ```
-
-2. Install package
-
-    ```
-    dpkg -i ../shellinabox_{ver}_{arch}.deb
-    ```
-
-For more information about `.deb` packages please see [INSTALL.Debian](/INSTALL.Debian) file.
+Debian includes a package for shellinabox. See Debian documentation for any OS
+defaults and configuration considerations.
 
 Issues
 -----------------
@@ -114,8 +105,3 @@ Known Issues
   Shell-in-a-box may be used without SSL such that the login session
   is not encrypted.  To enable automatic creation of self-signed
   certificates or to use a generated certificate, install openssl.
-
-* On Debian Jessie, the default openssl package does not include the
-  utilities necessary for Shell-in-a-box to generate self-signed
-  certificates.  Upgrade openssl to install a version of the tools
-  that support certificate creation.
