@@ -961,6 +961,8 @@ VT100.prototype.initializeElements = function(container) {
   this.usercss                 = this.getChildById(this.container, 'usercss');
   this.space                   = this.getChildById(this.container, 'space');
   this.input                   = this.getChildById(this.container, 'input');
+  this.composing               = false;
+  this.justFinishedComposing   = false;
   this.cliphelper              = this.getChildById(this.container,
                                                                  'cliphelper');
 
@@ -1067,6 +1069,31 @@ VT100.prototype.initializeElements = function(container) {
                      return function(e) {
                        if (!e) e = window.event;
                        return vt100.keyUp(e); } }(this));
+  this.addListener(this.input, 'compositionstart',
+                   function(vt100) {
+                     return function() {
+                       vt100.composing = true; } }(this));
+  this.addListener(this.input, 'compositionend',
+                   function(vt100) {
+                     return function(e) {
+                       vt100.composing = false;
+                       // Send the composed text directly from the event's data
+                       // property. Using event.data instead of input.value avoids
+                       // the double-delimiter bug (RC-2): input.value may already
+                       // contain the composition-ending delimiter (space, period)
+                       // at compositionend time, causing it to be sent twice.
+                       if (e.data && e.data.length) {
+                         vt100.keysPressed(e.data);
+                       }
+                       vt100.input.value = '';
+                       vt100.lastNormalKeyDownEvent = undefined;
+                       // Block the keyUp that fires immediately after
+                       // compositionend for the composition-ending key (Bug B fix).
+                       vt100.justFinishedComposing = true;
+                       setTimeout(function() {
+                         vt100.justFinishedComposing = false;
+                       }, 0);
+                     } }(this));
 
   // Attach listeners that move the focus to the <input> field. This way we
   // can make sure that we can receive keyboard input.
@@ -2884,6 +2911,8 @@ VT100.prototype.inspect = function(o, d) {
 };
 
 VT100.prototype.checkComposedKeys = function(event) {
+  // Do not flush intermediate text while IME composition is active.
+  if (this.composing) return;
   // Composed keys (at least on Linux) do not generate normal events.
   // Instead, they get entered into the text field. We normally catch
   // this on the next keyup event.
@@ -2984,6 +3013,7 @@ VT100.prototype.keyDown = function(event) {
   //             (event.shiftKey ? 'S' : '') + (event.ctrlKey ? 'C' : '') +
   //             (event.altKey ? 'A' : '') + (event.metaKey ? 'M' : '') : '') +
   //            '\r\n');
+  if (event.isComposing || this.composing) return true;
   this.checkComposedKeys(event);
   this.lastKeyPressedEvent      = undefined;
   this.lastKeyDownEvent         = undefined;
@@ -3090,11 +3120,25 @@ VT100.prototype.keyPressed = function(event) {
   //             (event.shiftKey ? 'S' : '') + (event.ctrlKey ? 'C' : '') +
   //             (event.altKey ? 'A' : '') + (event.metaKey ? 'M' : '') : '') +
   //            '\r\n');
+  if (event.isComposing || this.composing) return false;
   if (this.lastKeyDownEvent) {
     // If we already processed the key on keydown, do not process it
     // again here. Ideally, the browser should not even have generated a
     // keypress event in this case. But that does not appear to always work.
     this.lastKeyDownEvent     = undefined;
+  } else if (this.justFinishedComposing) {
+    // Fast-typing race: compositionend just fired but the user has already
+    // pressed the next key. compositionstart for the new composition may not
+    // have fired yet, so event.isComposing and this.composing are both still
+    // false. Defer by one tick to let compositionstart update this.composing
+    // before deciding whether to send the raw key to the PTY.
+    var vt100 = this;
+    var deferredEvent = event;
+    setTimeout(function() {
+      if (vt100.composing) { return; }  // composition started — discard raw key
+      vt100.handleKey(deferredEvent.altKey || deferredEvent.metaKey
+                      ? vt100.fixEvent(deferredEvent) : deferredEvent);
+    }, 0);
   } else {
     this.handleKey(event.altKey || event.metaKey
                    ? this.fixEvent(event) : event);
@@ -3126,12 +3170,25 @@ VT100.prototype.keyUp = function(event) {
   //             (event.shiftKey ? 'S' : '') + (event.ctrlKey ? 'C' : '') +
   //             (event.altKey ? 'A' : '') + (event.metaKey ? 'M' : '') : '') +
   //            '\r\n');
+  if (event.isComposing || this.composing) {
+    this.lastNormalKeyDownEvent = undefined;
+    return false;
+  }
   if (this.lastKeyPressedEvent) {
     // The compose key on Linux occasionally confuses the browser and keeps
     // inserting bogus characters into the input field, even if just a regular
     // key has been pressed. Detect this case and drop the bogus characters.
     (event.target ||
      event.srcElement).value      = '';
+  } else if (this.justFinishedComposing) {
+    // Immediately after compositionend: the composition-ending delimiter
+    // (space, period, etc.) may have been inserted into input.value by the
+    // browser. Clear it so the 500ms animateCursor poll cannot double-send it.
+    // Do NOT call checkComposedKeys here — the Korean text was already sent
+    // by compositionend, and the delimiter was sent by keyPressed.
+    (event.target ||
+     event.srcElement).value      = '';
+    this.lastNormalKeyDownEvent   = undefined;
   } else {
     // This is usually were we notice that a key has been composed and
     // thus failed to generate normal events.
@@ -3205,7 +3262,9 @@ VT100.prototype.animateCursor = function(inactive) {
 
           // Use this opportunity to check whether the user entered a composed
           // key, or whether somebody pasted text into the textfield.
-          vt100.checkComposedKeys();
+          if (!vt100.composing) {
+            vt100.checkComposedKeys();
+          }
         }
       }(this), 500);
   }
