@@ -1888,8 +1888,8 @@ VT100.prototype.putString = function(x, y, text, color, style) {
     }
   }
 
-  // Position cursor
-  this.cursorX                      = x + text.length;
+  // Position cursor; wide CJK characters occupy 2 columns each.
+  this.cursorX                      = x + this.strDisplayWidth(text);
   if (this.cursorX >= this.terminalWidth) {
     this.cursorX                    = this.terminalWidth - 1;
     if (this.cursorX < 0) {
@@ -4357,6 +4357,45 @@ VT100.prototype.doControl = function(ch) {
   return lineBuf;
 };
 
+// Returns true if the Unicode code point is an East Asian Wide character
+// (occupies 2 terminal columns instead of 1).
+VT100.prototype.isWideChar = function(ch) {
+  return (ch >= 0x1100 && ch <= 0x115F) ||  // Hangul Jamo leading consonants
+         (ch >= 0x2E80 && ch <= 0x303E) ||  // CJK Radicals, Kangxi, etc.
+         (ch >= 0x3040 && ch <= 0x33FF) ||  // Hiragana, Katakana, CJK symbols
+         (ch >= 0x3400 && ch <= 0x4DBF) ||  // CJK Extension A
+         (ch >= 0x4E00 && ch <= 0xA4CF) ||  // CJK Unified Ideographs, Yi
+         (ch >= 0xA960 && ch <= 0xA97F) ||  // Hangul Jamo Extended-A
+         (ch >= 0xAC00 && ch <= 0xD7FF) ||  // Hangul Syllables + Extended-B
+         (ch >= 0xF900 && ch <= 0xFAFF) ||  // CJK Compatibility Ideographs
+         (ch >= 0xFE10 && ch <= 0xFE1F) ||  // Vertical Forms
+         (ch >= 0xFE30 && ch <= 0xFE6F) ||  // CJK Compat Forms, Small Forms
+         (ch >= 0xFF01 && ch <= 0xFF60) ||  // Fullwidth Latin/Punctuation
+         (ch >= 0xFFE0 && ch <= 0xFFE6);    // Fullwidth Signs
+};
+
+// Returns the display column width of a string, counting wide characters as 2.
+VT100.prototype.strDisplayWidth = function(s) {
+  var w = 0;
+  for (var i = 0; i < s.length; i++) {
+    w += this.isWideChar(s.charCodeAt(i)) ? 2 : 1;
+  }
+  return w;
+};
+
+// Returns the longest prefix of s that fits within 'cols' display columns.
+VT100.prototype.truncateToColumns = function(s, cols) {
+  var w = 0;
+  for (var i = 0; i < s.length; i++) {
+    var cw = this.isWideChar(s.charCodeAt(i)) ? 2 : 1;
+    if (w + cw > cols) {
+      return s.substr(0, i);
+    }
+    w += cw;
+  }
+  return s;
+};
+
 VT100.prototype.renderString = function(s, showCursor) {
   if (this.printing) {
     this.sendToPrinter(s);
@@ -4368,13 +4407,17 @@ VT100.prototype.renderString = function(s, showCursor) {
 
   // We try to minimize the number of DOM operations by coalescing individual
   // characters into strings. This is a significant performance improvement.
-  var incX = s.length;
+  // Use display column width (wide CJK chars count as 2 columns).
+  var incX = this.strDisplayWidth(s);
   if (incX > this.terminalWidth - this.cursorX) {
     incX   = this.terminalWidth - this.cursorX;
     if (incX <= 0) {
       return;
     }
-    s      = s.substr(0, incX - 1) + s.charAt(s.length - 1);
+    s      = this.truncateToColumns(s, incX);
+    if (!s.length) {
+      return;
+    }
   }
   if (showCursor) {
     // Minimize the number of calls to putString(), by avoiding a direct
@@ -4463,7 +4506,7 @@ VT100.prototype.vt100 = function(s) {
       this.lastCharacter  = String.fromCharCode(ch);
       lineBuf            += this.lastCharacter;
       if (!this.printing &&
-          this.cursorX + lineBuf.length >= this.terminalWidth) {
+          this.cursorX + this.strDisplayWidth(lineBuf) >= this.terminalWidth) {
         this.needWrap     = this.autoWrapMode;
       }
     } else {
