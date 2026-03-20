@@ -157,6 +157,7 @@ extern void   *(*x_SSL_COMP_get_compression_methods)(void);
 #define SSL_get_rbio                 x_SSL_get_rbio
 #define SSL_get_servername           x_SSL_get_servername
 #define SSL_get_wbio                 x_SSL_get_wbio
+#undef  SSL_library_init
 #define SSL_library_init             x_SSL_library_init
 #define SSL_new                      x_SSL_new
 #define SSL_read                     x_SSL_read
@@ -166,9 +167,11 @@ extern void   *(*x_SSL_COMP_get_compression_methods)(void);
 #define SSL_set_ex_data              x_SSL_set_ex_data
 #define SSL_shutdown                 x_SSL_shutdown
 #define SSL_write                    x_SSL_write
+#undef  SSLv23_server_method
 #define SSLv23_server_method         x_SSLv23_server_method
 #define d2i_X509                     x_d2i_X509
 #define X509_free                    x_X509_free
+#undef  sk_zero
 #define sk_zero                      x_sk_zero
 #define SSL_COMP_get_compression_methods    x_SSL_COMP_get_compression_methods
 
