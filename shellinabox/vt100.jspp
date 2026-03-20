@@ -961,6 +961,8 @@ VT100.prototype.initializeElements = function(container) {
   this.usercss                 = this.getChildById(this.container, 'usercss');
   this.space                   = this.getChildById(this.container, 'space');
   this.input                   = this.getChildById(this.container, 'input');
+  this.composing               = false;
+  this.justFinishedComposing   = false;
   this.cliphelper              = this.getChildById(this.container,
                                                                  'cliphelper');
 
@@ -1067,6 +1069,31 @@ VT100.prototype.initializeElements = function(container) {
                      return function(e) {
                        if (!e) e = window.event;
                        return vt100.keyUp(e); } }(this));
+  this.addListener(this.input, 'compositionstart',
+                   function(vt100) {
+                     return function() {
+                       vt100.composing = true; } }(this));
+  this.addListener(this.input, 'compositionend',
+                   function(vt100) {
+                     return function(e) {
+                       vt100.composing = false;
+                       // Send the composed text directly from the event's data
+                       // property. Using event.data instead of input.value avoids
+                       // the double-delimiter bug (RC-2): input.value may already
+                       // contain the composition-ending delimiter (space, period)
+                       // at compositionend time, causing it to be sent twice.
+                       if (e.data && e.data.length) {
+                         vt100.keysPressed(e.data);
+                       }
+                       vt100.input.value = '';
+                       vt100.lastNormalKeyDownEvent = undefined;
+                       // Block the keyUp that fires immediately after
+                       // compositionend for the composition-ending key (Bug B fix).
+                       vt100.justFinishedComposing = true;
+                       setTimeout(function() {
+                         vt100.justFinishedComposing = false;
+                       }, 0);
+                     } }(this));
 
   // Attach listeners that move the focus to the <input> field. This way we
   // can make sure that we can receive keyboard input.
@@ -1861,8 +1888,8 @@ VT100.prototype.putString = function(x, y, text, color, style) {
     }
   }
 
-  // Position cursor
-  this.cursorX                      = x + text.length;
+  // Position cursor; wide CJK characters occupy 2 columns each.
+  this.cursorX                      = x + this.strDisplayWidth(text);
   if (this.cursorX >= this.terminalWidth) {
     this.cursorX                    = this.terminalWidth - 1;
     if (this.cursorX < 0) {
@@ -2884,6 +2911,8 @@ VT100.prototype.inspect = function(o, d) {
 };
 
 VT100.prototype.checkComposedKeys = function(event) {
+  // Do not flush intermediate text while IME composition is active.
+  if (this.composing) return;
   // Composed keys (at least on Linux) do not generate normal events.
   // Instead, they get entered into the text field. We normally catch
   // this on the next keyup event.
@@ -2984,6 +3013,7 @@ VT100.prototype.keyDown = function(event) {
   //             (event.shiftKey ? 'S' : '') + (event.ctrlKey ? 'C' : '') +
   //             (event.altKey ? 'A' : '') + (event.metaKey ? 'M' : '') : '') +
   //            '\r\n');
+  if (event.isComposing || this.composing) return true;
   this.checkComposedKeys(event);
   this.lastKeyPressedEvent      = undefined;
   this.lastKeyDownEvent         = undefined;
@@ -3090,11 +3120,25 @@ VT100.prototype.keyPressed = function(event) {
   //             (event.shiftKey ? 'S' : '') + (event.ctrlKey ? 'C' : '') +
   //             (event.altKey ? 'A' : '') + (event.metaKey ? 'M' : '') : '') +
   //            '\r\n');
+  if (event.isComposing || this.composing) return false;
   if (this.lastKeyDownEvent) {
     // If we already processed the key on keydown, do not process it
     // again here. Ideally, the browser should not even have generated a
     // keypress event in this case. But that does not appear to always work.
     this.lastKeyDownEvent     = undefined;
+  } else if (this.justFinishedComposing) {
+    // Fast-typing race: compositionend just fired but the user has already
+    // pressed the next key. compositionstart for the new composition may not
+    // have fired yet, so event.isComposing and this.composing are both still
+    // false. Defer by one tick to let compositionstart update this.composing
+    // before deciding whether to send the raw key to the PTY.
+    var vt100 = this;
+    var deferredEvent = event;
+    setTimeout(function() {
+      if (vt100.composing) { return; }  // composition started — discard raw key
+      vt100.handleKey(deferredEvent.altKey || deferredEvent.metaKey
+                      ? vt100.fixEvent(deferredEvent) : deferredEvent);
+    }, 0);
   } else {
     this.handleKey(event.altKey || event.metaKey
                    ? this.fixEvent(event) : event);
@@ -3126,12 +3170,25 @@ VT100.prototype.keyUp = function(event) {
   //             (event.shiftKey ? 'S' : '') + (event.ctrlKey ? 'C' : '') +
   //             (event.altKey ? 'A' : '') + (event.metaKey ? 'M' : '') : '') +
   //            '\r\n');
+  if (event.isComposing || this.composing) {
+    this.lastNormalKeyDownEvent = undefined;
+    return false;
+  }
   if (this.lastKeyPressedEvent) {
     // The compose key on Linux occasionally confuses the browser and keeps
     // inserting bogus characters into the input field, even if just a regular
     // key has been pressed. Detect this case and drop the bogus characters.
     (event.target ||
      event.srcElement).value      = '';
+  } else if (this.justFinishedComposing) {
+    // Immediately after compositionend: the composition-ending delimiter
+    // (space, period, etc.) may have been inserted into input.value by the
+    // browser. Clear it so the 500ms animateCursor poll cannot double-send it.
+    // Do NOT call checkComposedKeys here — the Korean text was already sent
+    // by compositionend, and the delimiter was sent by keyPressed.
+    (event.target ||
+     event.srcElement).value      = '';
+    this.lastNormalKeyDownEvent   = undefined;
   } else {
     // This is usually were we notice that a key has been composed and
     // thus failed to generate normal events.
@@ -3205,7 +3262,9 @@ VT100.prototype.animateCursor = function(inactive) {
 
           // Use this opportunity to check whether the user entered a composed
           // key, or whether somebody pasted text into the textfield.
-          vt100.checkComposedKeys();
+          if (!vt100.composing) {
+            vt100.checkComposedKeys();
+          }
         }
       }(this), 500);
   }
@@ -4298,6 +4357,45 @@ VT100.prototype.doControl = function(ch) {
   return lineBuf;
 };
 
+// Returns true if the Unicode code point is an East Asian Wide character
+// (occupies 2 terminal columns instead of 1).
+VT100.prototype.isWideChar = function(ch) {
+  return (ch >= 0x1100 && ch <= 0x115F) ||  // Hangul Jamo leading consonants
+         (ch >= 0x2E80 && ch <= 0x303E) ||  // CJK Radicals, Kangxi, etc.
+         (ch >= 0x3040 && ch <= 0x33FF) ||  // Hiragana, Katakana, CJK symbols
+         (ch >= 0x3400 && ch <= 0x4DBF) ||  // CJK Extension A
+         (ch >= 0x4E00 && ch <= 0xA4CF) ||  // CJK Unified Ideographs, Yi
+         (ch >= 0xA960 && ch <= 0xA97F) ||  // Hangul Jamo Extended-A
+         (ch >= 0xAC00 && ch <= 0xD7FF) ||  // Hangul Syllables + Extended-B
+         (ch >= 0xF900 && ch <= 0xFAFF) ||  // CJK Compatibility Ideographs
+         (ch >= 0xFE10 && ch <= 0xFE1F) ||  // Vertical Forms
+         (ch >= 0xFE30 && ch <= 0xFE6F) ||  // CJK Compat Forms, Small Forms
+         (ch >= 0xFF01 && ch <= 0xFF60) ||  // Fullwidth Latin/Punctuation
+         (ch >= 0xFFE0 && ch <= 0xFFE6);    // Fullwidth Signs
+};
+
+// Returns the display column width of a string, counting wide characters as 2.
+VT100.prototype.strDisplayWidth = function(s) {
+  var w = 0;
+  for (var i = 0; i < s.length; i++) {
+    w += this.isWideChar(s.charCodeAt(i)) ? 2 : 1;
+  }
+  return w;
+};
+
+// Returns the longest prefix of s that fits within 'cols' display columns.
+VT100.prototype.truncateToColumns = function(s, cols) {
+  var w = 0;
+  for (var i = 0; i < s.length; i++) {
+    var cw = this.isWideChar(s.charCodeAt(i)) ? 2 : 1;
+    if (w + cw > cols) {
+      return s.substr(0, i);
+    }
+    w += cw;
+  }
+  return s;
+};
+
 VT100.prototype.renderString = function(s, showCursor) {
   if (this.printing) {
     this.sendToPrinter(s);
@@ -4309,13 +4407,17 @@ VT100.prototype.renderString = function(s, showCursor) {
 
   // We try to minimize the number of DOM operations by coalescing individual
   // characters into strings. This is a significant performance improvement.
-  var incX = s.length;
+  // Use display column width (wide CJK chars count as 2 columns).
+  var incX = this.strDisplayWidth(s);
   if (incX > this.terminalWidth - this.cursorX) {
     incX   = this.terminalWidth - this.cursorX;
     if (incX <= 0) {
       return;
     }
-    s      = s.substr(0, incX - 1) + s.charAt(s.length - 1);
+    s      = this.truncateToColumns(s, incX);
+    if (!s.length) {
+      return;
+    }
   }
   if (showCursor) {
     // Minimize the number of calls to putString(), by avoiding a direct
@@ -4404,7 +4506,7 @@ VT100.prototype.vt100 = function(s) {
       this.lastCharacter  = String.fromCharCode(ch);
       lineBuf            += this.lastCharacter;
       if (!this.printing &&
-          this.cursorX + lineBuf.length >= this.terminalWidth) {
+          this.cursorX + this.strDisplayWidth(lineBuf) >= this.terminalWidth) {
         this.needWrap     = this.autoWrapMode;
       }
     } else {
