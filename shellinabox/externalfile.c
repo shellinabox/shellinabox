@@ -100,8 +100,11 @@ static int externalFileHttpHandler(HttpConnection *http, void *arg,
           httpSendReply(http, 404, "File not found", NO_MSG);
           return HTTP_DONE;
         }
-        ptr                = strchr(ptr + 1, '/');
-      } while (ptr);
+        ptr                = strchr(ptr, '/');
+        if (ptr) {
+          ptr++; // Point past the directory separator
+        }
+      } while (ptr && *ptr);
     }
 
     // Open file for reading
